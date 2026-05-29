@@ -2954,7 +2954,7 @@ function updateWaterDisplay(ozTotal){
 
 async function logWater(oz){
   if(!supa){showToast('⚠️ Connect Supabase first');return;}
-  const entry={amount_oz:oz,logged_at:new Date().toISOString(),notes:`Quick log: +${oz}oz`};
+  const entry={amount_oz:oz,logged_at:new Date().toISOString(),note:`Quick log: +${oz}oz`};
   const{data,error}=await supa.from('water_logs').insert(entry).select().single();
   if(error){showToast('❌ Water: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.water.push(data||entry);
@@ -3242,7 +3242,7 @@ async function logMeal(){
 
   const entry={name:name||'Unnamed meal',calories,protein_g:protein,carbs_g:carbs,fat_g:fat,logged_at:new Date().toISOString()};
   const{data,error}=await supa.from('meals').insert(entry).select().single();
-  if(error){showToast('❌ Failed to log meal');return;}
+  if(error){showToast('❌ Meal: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.meals.unshift(data||entry);
 
   // Reset form
