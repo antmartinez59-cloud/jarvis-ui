@@ -2956,7 +2956,7 @@ async function logWater(oz){
   if(!supa){showToast('⚠️ Connect Supabase first');return;}
   const entry={amount_oz:oz,logged_at:new Date().toISOString(),notes:`Quick log: +${oz}oz`};
   const{data,error}=await supa.from('water_logs').insert(entry).select().single();
-  if(error){showToast('❌ Failed to log water');return;}
+  if(error){showToast('❌ Water: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.water.push(data||entry);
   renderDashboard();
   renderWaterLog();
@@ -3020,7 +3020,7 @@ async function logSleep(){
   const notes=document.getElementById('sleep-notes').value.trim();
   const entry={duration_hours:hours,quality_rating:quality||null,notes};
   const{data,error}=await supa.from('sleep_logs').insert(entry).select().single();
-  if(error){showToast('❌ Failed to log sleep');return;}
+  if(error){showToast('❌ Sleep: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.sleep.unshift(data||entry);
   renderDashboard();renderSleepLog();
   document.getElementById('sleep-notes').value='';
@@ -3142,7 +3142,7 @@ async function logWorkout(){
   };
 
   const{data,error}=await supa.from('workouts').insert(entry).select().single();
-  if(error){showToast('❌ Failed to log workout');return;}
+  if(error){showToast('❌ Workout: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.workouts.unshift(data||entry);
 
   // Reset form
