@@ -1201,7 +1201,7 @@ async function callEndpoint(name, body={}, method='POST'){
     const localBody={...body};
 
     // Inject credentials that Edge Functions read from Vault
-    if(name==='proxy'&&apiKey) headers['x-api-key']=apiKey;
+    // Anthropic key lives in Supabase Vault — Edge Functions handle auth server-side
     if(name==='search'&&braveKey) localBody.brave_key=braveKey;
     if(name==='reflect') localBody.api_key=apiKey;
     if(name==='obsidian-write') localBody.vault_path=obsidianVault;
@@ -1548,7 +1548,7 @@ async function sendToCouncil(){
   // ── Smart Agent Routing ─────────────────────────────────────────────────
   // If user manually loaded an agent, keep it sticky.
   // If previous agent was auto-selected, re-evaluate for this new message.
-  if(apiKey){
+  if(supabaseUrl&&supabaseKey){
     if(!manualAgentLoaded){
       // Clear any previous auto-selection so we re-match fresh
       if(activeAutoAgent){ loadedAgentPrompt=''; activeAutoAgent=null; updateActiveAgentUI(); }
@@ -1563,7 +1563,7 @@ async function sendToCouncil(){
   }
 
   let responseText;
-  if(apiKey){
+  if(supabaseUrl&&supabaseKey){
     try{
       const res=await callEndpoint('proxy',{model:'claude-sonnet-4-6',max_tokens:1200,system:buildCouncilPrompt(),messages:[{role:'user',content:text}]});
       if(!res.ok){const e=await res.json().catch(()=>({}));responseText=`[CHAIRMAN]\nAPI error: ${e.error?.message||'HTTP '+res.status}`;}
@@ -1574,7 +1574,7 @@ async function sendToCouncil(){
   }
   removeLoading(lid);appendCouncilResponse(responseText);
   councilBusy=false;document.getElementById('send-btn').disabled=false;setActiveMembers([]);
-  saveSession(text,responseText);if(apiKey)triggerReflection(text,responseText);
+  saveSession(text,responseText);if(supabaseUrl&&supabaseKey)triggerReflection(text,responseText);
 }
 
 function appendUserMsg(text){
@@ -1635,7 +1635,7 @@ let mAgentData=null,mRunId=null;
 async function startMastery(){
   const topic=document.getElementById('mastery-topic').value.trim();
   if(!topic)return;
-  if(!apiKey){showToast('API key not found — check JARVIS_CONFIG in index.html');return;}
+  if(!supabaseUrl||!supabaseKey){showToast('Supabase not connected — check JARVIS_CONFIG in index.html');return;}
   mAbort=false;mRunning=true;mNotes=[];mVisited=new Set();mConcepts=new Set();
   mCurriculumItems=[];mGapRounds=0;mCurrentMastery=0;mAgentData=null;mRunId=null;
   document.getElementById('mastery-start-btn').disabled=true;
