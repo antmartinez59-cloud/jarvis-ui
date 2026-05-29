@@ -217,6 +217,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
 .session-entry:hover{border-color:var(--border-light);color:var(--text);}
 .session-date{font-size:10px;color:var(--text-dim);margin-bottom:3px;}
 
+/* BRIEFING CARDS */
+.briefing-strip{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory;}
+.briefing-strip::-webkit-scrollbar{height:3px;}
+.briefing-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;min-width:220px;max-width:260px;flex-shrink:0;scroll-snap-align:start;transition:border-color .2s;}
+.briefing-card:hover{border-color:var(--border-light);}
+.briefing-card.morning{border-top:2px solid var(--orange);}
+.briefing-card.midday{border-top:2px solid var(--teal);}
+.briefing-card.afternoon{border-top:2px solid var(--primary);}
+.briefing-card.evening{border-top:2px solid var(--pink);}
+.briefing-card.presynthesis{border-top:2px solid var(--text-dim);}
+.bc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.bc-type{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;}
+.bc-time{font-size:10px;color:var(--text-muted);}
+.bc-preview{font-size:12px;color:var(--text-muted);line-height:1.55;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+.bc-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);border:1px dashed var(--border);border-radius:10px;padding:20px 24px;min-width:200px;font-size:12px;color:var(--text-dim);text-align:center;gap:6px;}
+/* SYNTHESIS */
+.synth-summary{font-size:13px;color:var(--text-muted);line-height:1.6;font-style:italic;padding:10px 14px;background:var(--primary-dim);border:1px solid var(--primary-border);border-radius:8px;margin-bottom:10px;}
+.mem-synth-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.synth-chip{padding:3px 9px;border-radius:6px;font-size:10px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);}
+.mem-tag.green{background:rgba(68,232,122,.1);border-color:rgba(68,232,122,.3);color:var(--green);}
+.mem-tag.pink{background:rgba(255,92,135,.1);border-color:rgba(255,92,135,.3);color:var(--pink);}
+
 /* MODALS */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
@@ -697,18 +719,38 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
       <div id="session-list"><div class="mem-empty">No sessions yet.</div></div>
     </div>
     <div id="memory-main">
+
+      <!-- Today's Briefings -->
+      <div>
+        <div class="mem-section-title">
+          Today's Briefings
+          <span onclick="refreshBriefings()" style="cursor:pointer;color:var(--primary);font-weight:400;font-size:11px;text-transform:none;letter-spacing:0;">↻ refresh</span>
+        </div>
+        <div class="briefing-strip" id="briefings-strip">
+          <div class="bc-empty"><div style="font-size:20px">☁️</div>Briefings appear here after 7am</div>
+        </div>
+      </div>
+
+      <!-- Synthesized Profile -->
       <div class="mem-profile-card" id="mem-profile-card">
         <div class="mem-profile-header">
           <div class="mem-avatar">T</div>
-          <div><div class="mem-name" id="mem-name">Tony</div><div class="mem-updated" id="mem-updated">Ask the Council to start building your profile</div></div>
+          <div>
+            <div class="mem-name" id="mem-name">Tony</div>
+            <div class="mem-updated" id="mem-updated">Ask the Council to start building your profile</div>
+          </div>
         </div>
+        <div id="mem-synth-summary"></div>
         <div id="mem-tags" class="mem-tags"></div>
         <div id="mem-rows"></div>
       </div>
+
+      <!-- Learnings -->
       <div>
         <div class="mem-section-title">Recent Learnings <span id="reflect-status"></span></div>
-        <div id="learnings-list"><div class="mem-empty">Learnings appear after your first Council session with an API key.</div></div>
+        <div id="learnings-list"><div class="mem-empty">Learnings appear after your first Council session.</div></div>
       </div>
+
     </div>
   </div>
 
@@ -2175,24 +2217,38 @@ function appendAutoAgentBanner(agent){
 // MEMORY SYSTEM (Supabase-first)
 // ═══════════════════════════════════════════════════════════════════════════
 async function loadMemory(){
-  if(!supa){
-    // No Supabase — run with in-memory defaults
-    return;
-  }
+  if(!supa){ return; }
   try{
-    // Load profile (single row id=1)
-    const{data:profileData}=await supa.from('profile').select('*').eq('id',1).single();
-    const{data:learningsData}=await supa.from('learnings').select('*').order('created_at',{ascending:false}).limit(50);
-    const{data:sessionsData}=await supa.from('sessions').select('*').order('created_at',{ascending:false}).limit(30);
+    const today=new Date().toISOString().slice(0,10);
+    const[profileRes,learningsRes,sessionsRes,synthRes,briefRes]=await Promise.all([
+      supa.from('profile').select('*').eq('id',1).single(),
+      supa.from('learnings').select('*').order('created_at',{ascending:false}).limit(50),
+      supa.from('sessions').select('*').order('created_at',{ascending:false}).limit(30),
+      supa.from('profile_history').select('*').order('created_at',{ascending:false}).limit(1),
+      supa.from('briefings').select('*').gte('created_at',today).order('created_at',{ascending:false}).limit(10),
+    ]);
     memory={
-      profile:profileData||{name:userName,traits:[],priorities:[],projects:[],preferences:[],patterns:[]},
-      learnings:learningsData||[],
-      sessions:sessionsData||[]
+      profile:profileRes.data||{name:userName,traits:[],priorities:[],projects:[],preferences:[],patterns:[]},
+      learnings:learningsRes.data||[],
+      sessions:sessionsRes.data||[],
+      synthesis:synthRes.data?.[0]||null,
+      briefings:briefRes.data||[],
     };
     if(memory.learnings.length){
       document.getElementById('memory-tab').textContent=`💾 Memory (${memory.learnings.length})`;
     }
   }catch(e){console.warn('loadMemory error:',e);}
+}
+
+async function refreshBriefings(){
+  if(!supa)return;
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const{data}=await supa.from('briefings').select('*').gte('created_at',today).order('created_at',{ascending:false}).limit(10);
+    memory.briefings=data||[];
+    renderBriefings();
+    showToast('Briefings refreshed');
+  }catch(e){showToast('Could not refresh briefings');}
 }
 
 async function saveSession(question,response){
@@ -2251,16 +2307,99 @@ async function triggerReflection(question,response){
 
 function loadMemoryTab(){
   const p=memory.profile||{};
+  const synth=memory.synthesis||null;
+
+  // ── Name + last synthesized ───────────────────────────────────────────────
   document.getElementById('mem-name').textContent=p.name||userName;
-  document.getElementById('mem-updated').textContent=p.updated_at?`Last updated ${(p.updated_at||'').slice(0,16)}`:'Ask the Council to start building your profile';
-  const tagEl=document.getElementById('mem-tags');
-  const allTags=[...(p.projects||[]).slice(-4).map(t=>({t,cls:''})),...(p.priorities||[]).slice(-3).map(t=>({t,cls:'teal'})),...(p.traits||[]).slice(-2).map(t=>({t,cls:'orange'}))];
-  tagEl.innerHTML=allTags.length?allTags.map(({t,cls})=>`<div class="mem-tag ${cls}">${escHtml(t)}</div>`).join(''):'<div class="mem-empty">No profile data yet</div>';
-  document.getElementById('mem-rows').innerHTML=[['Patterns',(p.patterns||[]).join(' · ')||'—'],['Preferences',(p.preferences||[]).join(' · ')||'—']].map(([l,v])=>`<div class="mem-row"><div class="mem-row-label">${l}</div><div class="mem-row-val">${escHtml(v)}</div></div>`).join('');
+  const lastTs=synth?.created_at||p.updated_at||null;
+  document.getElementById('mem-updated').textContent=lastTs
+    ?`Last synthesized ${(lastTs).slice(0,16)}`
+    :'Ask the Council to start building your profile';
+
+  // ── Synthesis summary + chips ─────────────────────────────────────────────
+  const synthEl=document.getElementById('mem-synth-summary');
+  if(synth?.synthesis_summary){
+    const chips=[
+      synth.decision_style?`🧠 ${synth.decision_style}`:'',
+      synth.learnings_count?`📚 ${synth.learnings_count} learnings`:'',
+      synth.significant_insight?'💡 Notable insight':'',
+    ].filter(Boolean);
+    synthEl.innerHTML=
+      `<div class="synth-summary">${escHtml(synth.synthesis_summary)}</div>`+
+      (chips.length?`<div class="mem-synth-meta">${chips.map(c=>`<div class="synth-chip">${escHtml(c)}</div>`).join('')}</div>`:'');
+  } else {
+    synthEl.innerHTML='';
+  }
+
+  // ── Tags — prefer synthesis data, fall back to profile ────────────────────
+  const projects  =(synth?.projects    ||p.projects  ||[]).slice(-4);
+  const priorities=(synth?.priorities  ||p.priorities||[]).slice(-3);
+  const traits    =(synth?.traits      ||p.traits    ||[]).slice(-2);
+  const goals     =(synth?.goals       ||[]).slice(-3);
+  const money     =(synth?.money_mindset||[]).slice(-2);
+  const allTags=[
+    ...projects.map(t=>({t,cls:''})),
+    ...priorities.map(t=>({t,cls:'teal'})),
+    ...traits.map(t=>({t,cls:'orange'})),
+    ...goals.map(t=>({t,cls:'green'})),
+    ...money.map(t=>({t,cls:'pink'})),
+  ];
+  document.getElementById('mem-tags').innerHTML=allTags.length
+    ?allTags.map(({t,cls})=>`<div class="mem-tag ${cls}">${escHtml(t)}</div>`).join('')
+    :'<div class="mem-empty" style="padding:8px 0">No profile data yet — use the Council to start building it</div>';
+
+  // ── Profile rows ──────────────────────────────────────────────────────────
+  const rows=[];
+  if(synth?.decision_style) rows.push(['Decision Style',synth.decision_style]);
+  rows.push(['Patterns',(synth?.patterns||p.patterns||[]).join(' · ')||'—']);
+  rows.push(['Preferences',(p.preferences||[]).join(' · ')||'—']);
+  document.getElementById('mem-rows').innerHTML=rows.map(([l,v])=>
+    `<div class="mem-row"><div class="mem-row-label">${l}</div><div class="mem-row-val">${escHtml(v)}</div></div>`
+  ).join('');
+
+  // ── Briefings ─────────────────────────────────────────────────────────────
+  renderBriefings();
+
+  // ── Learnings ─────────────────────────────────────────────────────────────
   const learnings=(memory.learnings||[]).slice(0,20);
-  document.getElementById('learnings-list').innerHTML=learnings.length?learnings.map(l=>`<div class="learning-card"><div class="learning-date">${(l.created_at||l.date||'').slice(0,16)||''}</div><div class="learning-summary">${escHtml(l.summary||l.question||'')}</div><div class="learning-tags">${[...(l.projects||[]),...(l.priorities||[])].map(t=>`<div class="learning-tag">${escHtml(t)}</div>`).join('')}</div></div>`).join(''):'<div class="mem-empty">Learnings will appear after your first Council session with an API key.</div>';
+  document.getElementById('learnings-list').innerHTML=learnings.length
+    ?learnings.map(l=>`<div class="learning-card"><div class="learning-date">${(l.created_at||'').slice(0,16)}</div><div class="learning-summary">${escHtml(l.summary||l.question||'')}</div><div class="learning-tags">${[...(l.projects||[]),...(l.priorities||[])].map(t=>`<div class="learning-tag">${escHtml(t)}</div>`).join('')}</div></div>`).join('')
+    :'<div class="mem-empty">Learnings appear after your first Council session.</div>';
+
+  // ── Sessions sidebar ──────────────────────────────────────────────────────
   const sessions=(memory.sessions||[]).slice(0,30);
-  document.getElementById('session-list').innerHTML=sessions.length?sessions.map(s=>`<div class="session-entry"><div class="session-date">${(s.created_at||s.date||'').slice(0,16)||''}</div>${escHtml((s.question||'').slice(0,60))}${(s.question||'').length>60?'…':''}</div>`).join(''):'<div class="mem-empty">No sessions yet.</div>';
+  document.getElementById('session-list').innerHTML=sessions.length
+    ?sessions.map(s=>`<div class="session-entry"><div class="session-date">${(s.created_at||'').slice(0,16)}</div>${escHtml((s.question||'').slice(0,60))}${(s.question||'').length>60?'…':''}</div>`).join('')
+    :'<div class="mem-empty">No sessions yet.</div>';
+}
+
+function renderBriefings(){
+  const BRIEF_META={
+    morning:     {emoji:'☀️', label:'Morning',   color:'var(--orange)'},
+    midday:      {emoji:'🌤️', label:'Midday',    color:'var(--teal)'},
+    afternoon:   {emoji:'🌅', label:'Afternoon', color:'var(--primary)'},
+    evening:     {emoji:'🌙', label:'Evening',   color:'var(--pink)'},
+    presynthesis:{emoji:'🌑', label:'Night',     color:'var(--text-muted)'},
+  };
+  const stripEl=document.getElementById('briefings-strip');
+  if(!stripEl)return;
+  const briefings=memory.briefings||[];
+  if(!briefings.length){
+    stripEl.innerHTML='<div class="bc-empty"><div style="font-size:22px">☁️</div>Briefings appear here after 7am · JARVIS sends 5 per day</div>';
+    return;
+  }
+  stripEl.innerHTML=briefings.map(b=>{
+    const meta=BRIEF_META[b.briefing_type]||{emoji:'📋',label:b.briefing_type||'Brief',color:'var(--text-muted)'};
+    const time=(b.created_at||'').slice(11,16);
+    const preview=(b.content||'').slice(0,200);
+    return `<div class="briefing-card ${b.briefing_type||''}">
+      <div class="bc-header">
+        <div class="bc-type" style="color:${meta.color}">${meta.emoji} ${meta.label}</div>
+        <div class="bc-time">${time} CT</div>
+      </div>
+      <div class="bc-preview">${escHtml(preview)}${preview.length>=200?'…':''}</div>
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
