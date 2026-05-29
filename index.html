@@ -3539,7 +3539,7 @@ async function logTransaction(){
     renderTransactions();
     renderFinanceOverview();
     showToast('Transaction logged ✓');
-  }catch(e){showToast('Error saving transaction');}
+  }catch(e){showToast('❌ Txn: '+(e.message||e.code||JSON.stringify(e)).slice(0,80));}
 }
 
 async function deleteTransaction(id){
@@ -3550,7 +3550,7 @@ async function deleteTransaction(id){
     renderTransactions();
     renderFinanceOverview();
     showToast('Deleted');
-  }catch(e){showToast('Error deleting');}
+  }catch(e){showToast('❌ Txn del: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 // ── CSV Import ───────────────────────────────────────────────────────────────
@@ -3633,7 +3633,7 @@ async function savePayRules(){
     financeData.payRules=data;
     renderShifts();
     showToast('Pay rules saved ✓');
-  }catch(e){showToast('Error saving pay rules');}
+  }catch(e){showToast('❌ Pay rules: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 async function logShift(){
@@ -3661,7 +3661,7 @@ async function logShift(){
     renderShifts();
     updateShiftCalcBox();
     showToast('Shift logged ✓');
-  }catch(e){showToast('Error logging shift');}
+  }catch(e){showToast('❌ Shift: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 function timeToMins(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
@@ -3739,7 +3739,7 @@ async function deleteShift(id){
     financeData.shifts=financeData.shifts.filter(s=>s.id!==id);
     renderShifts();
     showToast('Deleted');
-  }catch(e){showToast('Error deleting');}
+  }catch(e){showToast('❌ Shift del: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 // ── Subscriptions ────────────────────────────────────────────────────────────
@@ -3765,7 +3765,7 @@ async function addSubscription(){
     document.getElementById('sub-category').value='';
     renderSubscriptions();
     showToast('Subscription added ✓');
-  }catch(e){showToast('Error adding subscription');}
+  }catch(e){showToast('❌ Sub: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 function renderSubscriptions(){
@@ -3813,7 +3813,7 @@ async function deleteSubscription(id){
     financeData.subscriptions=financeData.subscriptions.filter(s=>s.id!==id);
     renderSubscriptions();
     showToast('Removed');
-  }catch(e){showToast('Error removing');}
+  }catch(e){showToast('❌ Remove: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 // ── Goals ────────────────────────────────────────────────────────────────────
@@ -3838,7 +3838,7 @@ async function addGoal(){
     renderGoals();
     renderFinanceOverview();
     showToast('Goal created ✓');
-  }catch(e){showToast('Error creating goal');}
+  }catch(e){showToast('❌ Goal: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 async function addMoneyToGoal(id,current,target){
@@ -3854,7 +3854,7 @@ async function addMoneyToGoal(id,current,target){
     renderGoals();
     renderFinanceOverview();
     showToast(`Added ${fmtMoney(add)} ✓`);
-  }catch(e){showToast('Error updating goal');}
+  }catch(e){showToast('❌ Goal update: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 async function deleteGoal(id){
@@ -3865,7 +3865,7 @@ async function deleteGoal(id){
     renderGoals();
     renderFinanceOverview();
     showToast('Goal removed');
-  }catch(e){showToast('Error removing goal');}
+  }catch(e){showToast('❌ Goal remove: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 function renderGoals(){
