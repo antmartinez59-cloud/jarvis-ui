@@ -2326,7 +2326,7 @@ async function loadTodayMessage(){
   try{
     const today=new Date().toISOString().slice(0,10);
     const{data}=await supa.from('briefings')
-      .select('*').eq('type','morning').gte('created_at',today)
+      .select('*').eq('briefing_type','morning').gte('created_at',today)
       .order('created_at',{ascending:false}).limit(1);
     if(data&&data[0]){
       const b=data[0];
@@ -2349,8 +2349,8 @@ async function loadTodayData(){
   try{
     const [w,sl,wo,m]=await Promise.all([
       supa.from('water_logs').select('*').gte('logged_at',today).order('logged_at'),
-      supa.from('sleep_logs').select('*').gte('logged_at',today).order('logged_at',{ascending:false}).limit(5),
-      supa.from('workouts').select('*').gte('logged_at',today).order('logged_at',{ascending:false}).limit(10),
+      supa.from('sleep_logs').select('*').gte('created_at',today).order('created_at',{ascending:false}).limit(5),
+      supa.from('workouts').select('*').gte('created_at',today).order('created_at',{ascending:false}).limit(10),
       supa.from('meals').select('*').gte('logged_at',today).order('logged_at',{ascending:false}).limit(20),
     ]);
     todayData.water = w.data||[];
@@ -2368,7 +2368,7 @@ async function loadTodayData(){
 // ── Render dashboard rings + score ────────────────────────────────────────
 function renderDashboard(){
   // Water
-  const ozTotal=todayData.water.reduce((s,e)=>s+(e.oz||0),0);
+  const ozTotal=todayData.water.reduce((s,e)=>s+(e.amount_oz||0),0);
   const waterPct=Math.min(1,ozTotal/waterGoalOz);
   setRing('ring-water',waterPct);
   document.getElementById('ring-water-num').textContent=ozTotal>=100?`${Math.round(ozTotal/10)*10}`:`${ozTotal}`;
@@ -2376,7 +2376,7 @@ function renderDashboard(){
 
   // Sleep
   const latestSleep=todayData.sleep[0];
-  const sleepHrs=latestSleep?.hours_slept||0;
+  const sleepHrs=latestSleep?.duration_hours||0;
   const sleepPct=sleepHrs?Math.min(1,sleepHrs/8):0;
   setRing('ring-sleep',sleepPct);
   document.getElementById('ring-sleep-num').textContent=sleepHrs?`${sleepHrs}h`:'--';
@@ -2468,7 +2468,7 @@ function updateWaterDisplay(ozTotal){
 
 async function logWater(oz){
   if(!supa){showToast('⚠️ Connect Supabase first');return;}
-  const entry={oz,logged_at:new Date().toISOString(),notes:`Quick log: +${oz}oz`};
+  const entry={amount_oz:oz,logged_at:new Date().toISOString(),notes:`Quick log: +${oz}oz`};
   const{data,error}=await supa.from('water_logs').insert(entry).select().single();
   if(error){showToast('❌ Failed to log water');return;}
   todayData.water.push(data||entry);
@@ -2487,11 +2487,11 @@ async function logWaterCustom(){
 function renderWaterLog(){
   const list=document.getElementById('water-log-list');
   if(!todayData.water.length){list.innerHTML='<div class="mem-empty">No water logged yet today.</div>';return;}
-  const ozTotal=todayData.water.reduce((s,e)=>s+(e.oz||0),0);
+  const ozTotal=todayData.water.reduce((s,e)=>s+(e.amount_oz||0),0);
   list.innerHTML=todayData.water.slice().reverse().map(e=>`
     <div class="log-entry">
       <div class="log-entry-left">
-        <div class="log-entry-main">💧 +${e.oz} oz</div>
+        <div class="log-entry-main">💧 +${e.amount_oz} oz</div>
         <div class="log-entry-sub">${(e.logged_at||'').slice(11,16)}</div>
       </div>
       <div class="log-entry-right">
@@ -2532,7 +2532,7 @@ async function logSleep(){
   const hours=parseFloat(document.getElementById('sleep-hours-slider').value);
   const quality=sleepQualityVal||null;
   const notes=document.getElementById('sleep-notes').value.trim();
-  const entry={hours_slept:hours,quality,notes,logged_at:new Date().toISOString()};
+  const entry={duration_hours:hours,quality_rating:quality||null,notes};
   const{data,error}=await supa.from('sleep_logs').insert(entry).select().single();
   if(error){showToast('❌ Failed to log sleep');return;}
   todayData.sleep.unshift(data||entry);
@@ -2549,8 +2549,8 @@ function renderSleepLog(){
   list.innerHTML=todayData.sleep.map(e=>`
     <div class="log-entry">
       <div class="log-entry-left">
-        <div class="log-entry-main">😴 ${e.hours_slept}h ${e.quality?`· ${'⭐'.repeat(e.quality)}`:''}</div>
-        <div class="log-entry-sub">${e.notes||''}&nbsp;${(e.logged_at||'').slice(0,10)}</div>
+        <div class="log-entry-main">😴 ${e.duration_hours}h ${e.quality_rating?`· ${'⭐'.repeat(e.quality_rating)}`:''}</div>
+        <div class="log-entry-sub">${e.notes||''}&nbsp;${(e.created_at||'').slice(0,10)}</div>
       </div>
       <div class="log-entry-right">
         <button class="log-entry-del" onclick="deleteSleepEntry('${e.id}')">✕</button>
@@ -2653,7 +2653,6 @@ async function logWorkout(){
     exercises:exercises.length?exercises:null,
     cardio:cardioData,
     notes,
-    logged_at:new Date().toISOString(),
   };
 
   const{data,error}=await supa.from('workouts').insert(entry).select().single();
@@ -2681,7 +2680,7 @@ function renderWorkoutLog(){
       <div class="log-entry-left">
         <div class="log-entry-main">💪 ${w.type==='cardio'?'Cardio':w.type==='both'?'Weights + Cardio':'Weights'}</div>
         <div class="log-entry-sub">${[exList,cardio,w.notes].filter(Boolean).join(' · ').slice(0,100)}</div>
-        <div class="log-entry-sub">${(w.logged_at||'').slice(11,16)}</div>
+        <div class="log-entry-sub">${(w.created_at||'').slice(11,16)}</div>
       </div>
       <div class="log-entry-right">
         <button class="log-entry-del" onclick="deleteWorkoutEntry('${w.id}')">✕</button>
