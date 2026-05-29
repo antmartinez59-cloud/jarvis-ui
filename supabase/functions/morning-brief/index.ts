@@ -24,8 +24,14 @@ const TWILIO_TO            = Deno.env.get('TWILIO_TO_NUMBER');
 
 const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-const TONY_EMAIL = 'antmartinez59@gmail.com';
+const TONY_EMAIL = Deno.env.get('NOTIFY_EMAIL') || 'antmartinez59@gmail.com';
 const SUPABASE_FUNCTIONS_URL = SUPABASE_URL.replace('.supabase.co', '.supabase.co/functions/v1');
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 // ══════════════════════════════════════════════════════════════
 // AUTOMATIC DST HANDLING
@@ -82,7 +88,28 @@ function getScheduledBriefingType(): string | null {
 
 // Duplicate guard: has this briefing type already been sent today (CT date)?
 async function alreadySentToday(type: string, ctDateStr: string): Promise<boolean> {
-  const startOfDayCT = new Date(`${ctDateStr}T00:00:00-05:00`).toISOString(); // close enough
+  // Determine the UTC timestamp for midnight CT on ctDateStr.
+  // We get today's CT date string from getCentralTime(), so we know ctDateStr is correct.
+  // To find midnight CT in UTC, we step backwards from noon UTC on that date until
+  // the CT date matches — this correctly handles CDT (UTC-5) and CST (UTC-6).
+  const noonUTC = new Date(`${ctDateStr}T12:00:00Z`);
+  const ctFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  // Find UTC offset by comparing formatted CT date vs the ctDateStr
+  // America/Chicago is either UTC-5 (CDT) or UTC-6 (CST) — try both
+  let startOfDayCT: string;
+  const cdtMidnight = new Date(`${ctDateStr}T05:00:00Z`); // midnight CT if CDT (UTC-5)
+  const cstMidnight = new Date(`${ctDateStr}T06:00:00Z`); // midnight CT if CST (UTC-6)
+  // Verify which offset is correct by checking the formatted date
+  const cdtFormatted = ctFormatter.format(cdtMidnight);
+  const [cdtMonth, cdtDay, cdtYear] = cdtFormatted.split('/');
+  const cdtDateStr = `${cdtYear}-${cdtMonth}-${cdtDay}`;
+  startOfDayCT = cdtDateStr === ctDateStr
+    ? cdtMidnight.toISOString()
+    : cstMidnight.toISOString();
+
   const { data } = await db
     .from('briefings')
     .select('id')
@@ -443,6 +470,16 @@ function emailFooter(): string {
 // MAIN HANDLER
 // ══════════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    });
+  }
+
   try {
     const { hour, minute, dateStr } = getCentralTime();
     const ctTimeStr = `${hour}:${String(minute).padStart(2,'0')} CT`;
@@ -467,7 +504,7 @@ Deno.serve(async (req) => {
         // Not a briefing window — exit silently (pg_cron fires every 15 min)
         console.log(`[brief] ${ctTimeStr} — not a briefing window, skipping.`);
         return new Response(JSON.stringify({ ok: true, skipped: true, ct_time: ctTimeStr }), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...CORS, 'Content-Type': 'application/json' },
         });
       }
 
@@ -475,7 +512,7 @@ Deno.serve(async (req) => {
       if (await alreadySentToday(briefingType, dateStr)) {
         console.log(`[brief] ${briefingType} already sent today (${dateStr}), skipping.`);
         return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'already_sent', type: briefingType }), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...CORS, 'Content-Type': 'application/json' },
         });
       }
     }
@@ -538,14 +575,14 @@ Deno.serve(async (req) => {
       sms_sent:      !!(TWILIO_SID && TWILIO_TOKEN),
       briefing_id:   savedBrief?.id || null,
     }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
     console.error('[brief] Fatal error:', err);
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

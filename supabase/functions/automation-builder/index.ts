@@ -21,6 +21,12 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 // ── Claude call ──────────────────────────────────────────────
 async function callClaude(system: string, messages: any[], maxTokens = 800): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -168,6 +174,16 @@ async function upsertSession(id: string | null, update: any): Promise<string> {
 // MAIN HANDLER
 // ══════════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    });
+  }
+
   try {
     const body = await req.json();
 
@@ -180,7 +196,7 @@ Deno.serve(async (req) => {
 
     if (!message) {
       return new Response(JSON.stringify({ ok: false, error: 'message required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -224,7 +240,7 @@ Deno.serve(async (req) => {
           ...messages,
           { role: 'assistant', content: response },
         ],
-      }), { headers: { 'Content-Type': 'application/json' } });
+      }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
 
     } else {
       // Still gathering info — return Claude's question
@@ -243,13 +259,13 @@ Deno.serve(async (req) => {
           ...messages,
           { role: 'assistant', content: response },
         ],
-      }), { headers: { 'Content-Type': 'application/json' } });
+      }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
   } catch (err) {
     console.error('[automation-builder] Error:', err);
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

@@ -19,6 +19,12 @@ const TWILIO_TO            = Deno.env.get('TWILIO_TO_NUMBER');
 
 const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 // ── Twilio SMS ───────────────────────────────────────────────
 async function sendSMS(body: string) {
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM || !TWILIO_TO) {
@@ -106,7 +112,7 @@ async function loadAllContext() {
     // Finance — last 30 days
     db.from('transactions').select('date, amount, category_id, description, type').gte('date', thirtyDaysAgo.slice(0,10)).order('date', { ascending: false }),
     db.from('subscriptions').select('name, amount, billing_cycle, is_active').eq('is_active', true),
-    db.from('shifts').select('date, duration_hours, calculated_pay').order('date', { ascending: false }).limit(20).maybeSingle().catch(() => ({ data: [] })),
+    db.from('shifts').select('date, duration_hours, calculated_pay').order('date', { ascending: false }).limit(20).catch(() => ({ data: [] })),
     db.from('saving_goals').select('name, target_amount, current_amount, deadline'),
     db.from('portfolio').select('ticker, shares, avg_buy_price').limit(20),
   ]);
@@ -207,6 +213,16 @@ function buildFinanceSummary(finance: any): string {
 
 // ── Main handler ─────────────────────────────────────────────
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    });
+  }
+
   try {
     console.log('[synthesize] Starting nightly synthesis — pulling all JARVIS data...');
 
@@ -375,13 +391,13 @@ Synthesize everything above into an updated profile. Look for cross-domain patte
       finance_data_points:     finance.transactions.length,
       significant_insight:     significant_insight || null,
       profile_updated:         true,
-    }), { headers: { 'Content-Type': 'application/json' } });
+    }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
 
   } catch (err) {
     console.error('[synthesize] Fatal error:', err);
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

@@ -1203,8 +1203,8 @@ async function callEndpoint(name, body={}, method='POST'){
     // Inject credentials that Edge Functions read from Vault
     // Anthropic key lives in Supabase Vault — Edge Functions handle auth server-side
     if(name==='search'&&braveKey) localBody.brave_key=braveKey;
-    if(name==='reflect') localBody.api_key=apiKey;
-    if(name==='obsidian-write') localBody.vault_path=obsidianVault;
+    // reflect uses ANTHROPIC_KEY from Supabase Vault — no browser key needed
+    // obsidian-write uses GITHUB_TOKEN from Supabase Vault — no browser params needed
 
     const isGet=(localName==='github');
     return fetch(`/${localName}`,{
@@ -1319,7 +1319,7 @@ async function syncGitHub(){
     let res;
     try{ res=await callEndpoint('github-sync',{},'GET'); }
     catch(netErr){
-      showToast('⚠️ Server not running — start server.py first');
+      showToast('⚠️ Could not reach GitHub sync — check Supabase connection');
       btn.classList.remove('syncing');btn.textContent='🔄 Sync GitHub';
       return;
     }
@@ -1888,11 +1888,9 @@ Be comprehensive — 400-600 words.`;
       });
     }
 
-    // Write to Obsidian
-    if(obsidianVault){
-      const md=`# ${topic} — Expert Agent\n\nCreated: ${mAgentData.created}\nMastery: ${mCurrentMastery}%\nSources: ${mNotes.length}\n\n## System Prompt\n\n${systemPrompt}\n\n## Knowledge Summary\n\n${knowledgeSummary}`;
-      writeObsidian(`Agents/${topic.replace(/[^a-z0-9]/gi,'-')}.md`,md);
-    }
+    // Write agent to Obsidian via GitHub vault
+    const agentMd=`# ${topic} — Expert Agent\n\nCreated: ${mAgentData.created}\nMastery: ${mCurrentMastery}%\nSources: ${mNotes.length}\n\n## System Prompt\n\n${systemPrompt}\n\n## Knowledge Summary\n\n${knowledgeSummary}`;
+    writeObsidian(`Agents/${topic.replace(/[^a-z0-9]/gi,'-')}.md`,agentMd);
 
     addFeedEntry('agent','🧠 Agent Built',`${topic} expert agent ready — ${mNotes.length} sources, ${mCurrentMastery}% mastery.`,'');
     document.getElementById('mastery-agent-btn').style.display='inline-flex';
@@ -2206,12 +2204,10 @@ async function saveSession(question,response){
   memory.sessions=memory.sessions||[];
   memory.sessions.push({...row,created_at:new Date().toISOString()});
 
-  // Write to Obsidian if configured
-  if(obsidianVault){
-    const date=new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-    const md=`# Council Session — ${date}\n\n**Question:** ${question}\n\n**Response:**\n\n${response}`;
-    writeObsidian(`Sessions/${date}.md`,md);
-  }
+  // Write session to Obsidian via GitHub vault
+  const date=new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+  const md=`# Council Session — ${date}\n\n**Question:** ${question}\n\n**Response:**\n\n${response}`;
+  writeObsidian(`Sessions/${date}.md`,md);
 }
 
 async function triggerReflection(question,response){
@@ -2245,11 +2241,9 @@ async function triggerReflection(question,response){
     memory.learnings.unshift({summary:ins.summary||question.slice(0,80),question:question.slice(0,100),created_at:ins.date,projects:ins.projects||[],priorities:ins.priorities||[]});
     document.getElementById('memory-tab').textContent=`💾 Memory (${memory.learnings.length})`;
 
-    // Write profile to Obsidian
-    if(obsidianVault){
-      const md=`# JARVIS Profile — ${profile.name||userName}\n\nLast updated: ${ins.date}\n\n## Projects\n${(profile.projects||[]).map(p=>`- ${p}`).join('\n')}\n\n## Priorities\n${(profile.priorities||[]).map(p=>`- ${p}`).join('\n')}\n\n## Traits\n${(profile.traits||[]).map(t=>`- ${t}`).join('\n')}\n\n## Patterns\n${(profile.patterns||[]).map(p=>`- ${p}`).join('\n')}`;
-      writeObsidian('Profile.md',md);
-    }
+    // Write profile to Obsidian via GitHub vault
+    const profileMd=`# JARVIS Profile — ${profile.name||userName}\n\nLast updated: ${ins.date}\n\n## Projects\n${(profile.projects||[]).map(p=>`- ${p}`).join('\n')}\n\n## Priorities\n${(profile.priorities||[]).map(p=>`- ${p}`).join('\n')}\n\n## Traits\n${(profile.traits||[]).map(t=>`- ${t}`).join('\n')}\n\n## Patterns\n${(profile.patterns||[]).map(p=>`- ${p}`).join('\n')}`;
+    writeObsidian('Profile.md',profileMd);
 
     badge.textContent='✓ Learned';setTimeout(()=>badge.remove(),3000);
   }catch(e){badge.remove();}
@@ -2273,7 +2267,7 @@ function loadMemoryTab(){
 // OBSIDIAN WRITER
 // ═══════════════════════════════════════════════════════════════════════════
 async function writeObsidian(fileName,content){
-  if(!obsidianVault)return;
+  if(!supabaseUrl||!supabaseKey)return;
   try{
     await callEndpoint('obsidian-write',{file_name:fileName,content});
   }catch(e){console.warn('Obsidian write failed:',e);}

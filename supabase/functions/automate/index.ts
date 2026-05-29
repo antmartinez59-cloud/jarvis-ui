@@ -17,7 +17,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ANTHROPIC_KEY        = Deno.env.get('ANTHROPIC_KEY')!;
 const TWILIO_SID           = Deno.env.get('TWILIO_ACCOUNT_SID');
 const TWILIO_TOKEN         = Deno.env.get('TWILIO_AUTH_TOKEN');
 const TWILIO_FROM          = Deno.env.get('TWILIO_FROM_NUMBER');
@@ -28,8 +27,24 @@ const APPLE_PASS           = Deno.env.get('APPLE_CALDAV_PASSWORD');
 const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 const SUPABASE_FUNCTIONS_URL = SUPABASE_URL.replace('.supabase.co', '.supabase.co/functions/v1');
-const WATER_GOAL_OZ          = 80;
-const WORKOUT_DAYS_PER_WEEK  = 4;
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+// These are resolved at runtime from user profile, with fallbacks
+let WATER_GOAL_OZ         = 80;
+let WORKOUT_DAYS_PER_WEEK = 4;
+
+async function loadUserGoals() {
+  try {
+    const { data } = await db.from('profile').select('preferences').eq('id', 1).single();
+    if (data?.preferences?.water_goal_oz)        WATER_GOAL_OZ         = data.preferences.water_goal_oz;
+    if (data?.preferences?.workout_days_per_week) WORKOUT_DAYS_PER_WEEK = data.preferences.workout_days_per_week;
+  } catch { /* use defaults */ }
+}
 
 // ══════════════════════════════════════════════════════════════
 // HELPERS
@@ -583,7 +598,6 @@ async function runCustomRules(ct: ReturnType<typeof getCT>) {
       if (!triggerMet) continue;
 
       // ── Dedup check ────────────────────────────────────────
-      const dedupKey = `custom_${rule.id}_${action.dedup_daily ? dateStr : `${dateStr}_${hour}`}`;
       if (action.dedup_daily && await alreadyRanToday(`custom_${rule.id}`, dateStr)) continue;
 
       // ── Check condition ────────────────────────────────────
@@ -623,7 +637,20 @@ async function runCustomRules(ct: ReturnType<typeof getCT>) {
 // MAIN HANDLER
 // ══════════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    });
+  }
+
   try {
+    // Load user goals from profile (fallback to defaults if not set)
+    await loadUserGoals();
+
     // Allow manual trigger for specific checks
     let forceCheck: string | null = null;
     try {
@@ -650,13 +677,13 @@ Deno.serve(async (req) => {
     results.custom = await runCustomRules(ct).catch(e => ({ error: String(e) }));
 
     return new Response(JSON.stringify({ ok: true, ct_time: `${ct.hour}:${ct.minute}`, checks: Object.keys(results) }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
     console.error('[automate] Fatal:', err);
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

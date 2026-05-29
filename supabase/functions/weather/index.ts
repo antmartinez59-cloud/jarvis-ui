@@ -17,6 +17,12 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 // Prosper TX 76227 coordinates
 const LAT   = '33.2362';
 const LON   = '-96.8009';
@@ -68,11 +74,12 @@ async function fetchLiveWeather(): Promise<any> {
     };
   }
 
-  // Current + forecast + UV in parallel
-  const [currentRes, forecastRes, uvRes] = await Promise.allSettled([
+  // Current + forecast in parallel
+  // NOTE: The /data/2.5/uvi endpoint is deprecated and no longer works.
+  // UV index is available via the OneCall API (paid plan) — skipping for now.
+  const [currentRes, forecastRes] = await Promise.allSettled([
     fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&units=${UNITS}&appid=${OPENWEATHER_KEY}`),
     fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${LAT}&lon=${LON}&units=${UNITS}&cnt=40&appid=${OPENWEATHER_KEY}`),
-    fetch(`https://api.openweathermap.org/data/2.5/uvi?lat=${LAT}&lon=${LON}&appid=${OPENWEATHER_KEY}`),
   ]);
 
   if (currentRes.status !== 'fulfilled' || !currentRes.value.ok) {
@@ -83,9 +90,6 @@ async function fetchLiveWeather(): Promise<any> {
   const forecastRaw = forecastRes.status === 'fulfilled' && forecastRes.value.ok
     ? await forecastRes.value.json()
     : { list: [] };
-  const uvData      = uvRes.status === 'fulfilled' && uvRes.value.ok
-    ? await uvRes.value.json()
-    : null;
 
   // Group forecast by day
   const dailyMap: Record<string, any[]> = {};
@@ -128,10 +132,11 @@ async function fetchLiveWeather(): Promise<any> {
       clouds_pct:    current.clouds.all,
       sunrise:       new Date(current.sys.sunrise * 1000).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' }),
       sunset:        new Date(current.sys.sunset  * 1000).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' }),
-      uv_index:      uvData?.value ?? null,
+      // UV index: /data/2.5/uvi is deprecated; OneCall API requires a paid plan — skipping for now.
+      uv_index:      null,
     },
     forecast,
-    summary: buildWeatherSummary(current, forecast, uvData?.value ?? null),
+    summary: buildWeatherSummary(current, forecast, null),
   };
 
   return weather;
@@ -139,6 +144,16 @@ async function fetchLiveWeather(): Promise<any> {
 
 // ── Main handler ─────────────────────────────────────────────
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    });
+  }
+
   try {
     // Check if this is an on-demand (live) request or a briefing (cached ok) request
     let forceLive = false;
@@ -166,14 +181,14 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ ok: !weather.error, weather }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
     console.error('[weather] Error:', err);
     return new Response(JSON.stringify({ ok: false, error: String(err), weather: null }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

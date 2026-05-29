@@ -8,6 +8,12 @@
 const NEWS_API_KEY = Deno.env.get('NEWS_API_KEY');
 const BRAVE_KEY    = Deno.env.get('BRAVE_KEY');
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 // Tony's sports teams
 const SPORTS_QUERY = 'Cowboys OR Mavericks OR Rangers OR NFL';
 
@@ -149,6 +155,16 @@ async function getNews(query: string, category?: string): Promise<any[]> {
 
 // ── Main handler ─────────────────────────────────────────────
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    });
+  }
+
   try {
     // Parse optional request body (can request specific sections)
     let sections = ['finance', 'tech', 'sports', 'headlines'];
@@ -196,14 +212,14 @@ Deno.serve(async (req) => {
     console.log('[news] Fetched:', result.counts);
 
     return new Response(JSON.stringify(result), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
     console.error('[news] Error:', err);
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

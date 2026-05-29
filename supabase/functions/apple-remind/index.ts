@@ -15,6 +15,12 @@
 const APPLE_USER = Deno.env.get('APPLE_CALDAV_USER');
 const APPLE_PASS = Deno.env.get('APPLE_CALDAV_PASSWORD');
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 // Priority mapping: urgent=1, high=2, medium=5, low=9 (iCal standard)
 const PRIORITY_MAP: Record<string, number> = {
   urgent: 1,
@@ -168,6 +174,16 @@ async function createReminder(params: {
 
 // ── Main handler (for direct calls) ─────────────────────────
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    });
+  }
+
   try {
     const body = await req.json();
 
@@ -175,7 +191,7 @@ Deno.serve(async (req) => {
 
     if (!title) {
       return new Response(JSON.stringify({ ok: false, error: 'title is required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -186,12 +202,12 @@ Deno.serve(async (req) => {
     const result = await createReminder({ title, notes, dueDate, priority });
 
     return new Response(JSON.stringify(result), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });
