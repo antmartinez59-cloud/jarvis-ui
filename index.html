@@ -2380,7 +2380,7 @@ function renderDashboard(){
   const sleepPct=sleepHrs?Math.min(1,sleepHrs/8):0;
   setRing('ring-sleep',sleepPct);
   document.getElementById('ring-sleep-num').textContent=sleepHrs?`${sleepHrs}h`:'--';
-  document.getElementById('ring-sleep-sub').textContent=latestSleep?`${sleepHrs}h · ⭐${latestSleep.quality||'?'}`:'Not logged';
+  document.getElementById('ring-sleep-sub').textContent=latestSleep?`${sleepHrs}h · ⭐${latestSleep.quality_rating||'?'}`:'Not logged';
 
   // Workout
   const didWorkout=todayData.workouts.length>0;
