@@ -1,0 +1,11 @@
+# Claude internal files
+368b121d-0d52-4cdb-aba8-ec285bbbb8b9/
+*.backup
+.claude/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
