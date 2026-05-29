@@ -493,6 +493,133 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
   #view-map{flex-direction:column;}
 }
 
+/* ══════════════════════════════════════════════════════════
+   LAYER 4 — FINANCE TAB
+   ══════════════════════════════════════════════════════════ */
+#view-finance{flex-direction:column;overflow:hidden;}
+.fin-scroll{flex:1;overflow-y:auto;padding:20px 24px 100px;}
+.fin-tabs{display:flex;gap:4px;padding:12px 24px 0;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto;}
+.fin-tab{padding:7px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;border:none;background:none;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;}
+.fin-tab:hover{color:var(--text);}
+.fin-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.fin-panel{display:none;}
+.fin-panel.active{display:block;}
+
+/* Stat cards */
+.fin-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+.fin-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.fin-stat-label{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
+.fin-stat-val{font-size:20px;font-weight:700;}
+.fin-stat-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.fin-stat.income .fin-stat-val{color:var(--green);}
+.fin-stat.expense .fin-stat-val{color:var(--red);}
+.fin-stat.net .fin-stat-val{color:var(--teal);}
+.fin-stat.savings .fin-stat-val{color:var(--primary);}
+
+/* Category bar */
+.cat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.cat-bar-label{font-size:12px;color:var(--text);width:110px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-bar-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.cat-bar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
+.cat-bar-amt{font-size:11px;color:var(--text-muted);width:60px;text-align:right;flex-shrink:0;}
+
+/* Transaction list */
+.txn-list{display:flex;flex-direction:column;gap:6px;}
+.txn-item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;transition:border-color .15s;}
+.txn-item:hover{border-color:var(--border-light);}
+.txn-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.txn-left{flex:1;min-width:0;}
+.txn-desc{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.txn-meta{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.txn-amt{font-size:14px;font-weight:700;flex-shrink:0;}
+.txn-amt.income{color:var(--green);}
+.txn-amt.expense{color:var(--red);}
+.txn-del{width:26px;height:26px;border:none;background:none;color:var(--text-dim);cursor:pointer;border-radius:6px;font-size:13px;flex-shrink:0;}
+.txn-del:hover{background:var(--card-hover);color:var(--red);}
+
+/* Quick log form */
+.fin-form{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;}
+.fin-form-title{font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;}
+.fin-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.fin-input{background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:8px 10px;outline:none;transition:border-color .2s;font-family:inherit;min-width:0;}
+.fin-input:focus{border-color:var(--primary-border);}
+.fin-input.grow{flex:1;}
+.fin-input.sm{width:100px;}
+.fin-input.xs{width:70px;}
+.fin-select{background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:8px 10px;outline:none;cursor:pointer;font-family:inherit;}
+.fin-select:focus{border-color:var(--primary-border);}
+.fin-btn{padding:8px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .2s;white-space:nowrap;}
+.fin-btn.primary{background:var(--primary);color:#fff;}
+.fin-btn.primary:hover{opacity:.85;}
+.fin-btn.ghost{background:var(--surface);border:1px solid var(--border);color:var(--text-muted);}
+.fin-btn.ghost:hover{border-color:var(--primary-border);color:var(--primary);}
+.fin-btn.green{background:rgba(68,232,122,.15);border:1px solid rgba(68,232,122,.3);color:var(--green);}
+.fin-btn.green:hover{background:rgba(68,232,122,.25);}
+
+/* Type toggle */
+.type-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+.type-toggle button{padding:7px 14px;border:none;background:none;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.type-toggle button.active{background:var(--primary);color:#fff;}
+
+/* Shift cards */
+.shift-calc{background:var(--primary-dim);border:1px solid var(--primary-border);border-radius:8px;padding:12px 14px;margin-bottom:10px;display:flex;gap:16px;flex-wrap:wrap;}
+.shift-calc-item{text-align:center;}
+.shift-calc-num{font-size:18px;font-weight:700;color:var(--primary);}
+.shift-calc-label{font-size:10px;color:var(--text-muted);margin-top:2px;}
+
+/* Paycheck rules */
+.pay-rule{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;}
+.pay-rule-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.pay-rule-label{font-size:13px;font-weight:500;flex:1;}
+.pay-rule-pct{font-size:14px;font-weight:700;color:var(--primary);width:46px;text-align:right;}
+.pay-rule-amt{font-size:12px;color:var(--text-muted);width:70px;text-align:right;}
+
+/* Subscription cards */
+.sub-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:border-color .15s;}
+.sub-card:hover{border-color:var(--border-light);}
+.sub-icon{width:36px;height:36px;border-radius:9px;background:var(--primary-dim);border:1px solid var(--primary-border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.sub-info{flex:1;min-width:0;}
+.sub-name{font-size:13px;font-weight:600;}
+.sub-meta{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.sub-renewal{font-size:11px;padding:2px 7px;border-radius:4px;font-weight:600;}
+.sub-renewal.soon{background:rgba(255,68,102,.12);color:var(--red);}
+.sub-renewal.ok{background:var(--teal-dim);color:var(--teal);}
+.sub-amt{font-size:15px;font-weight:700;color:var(--text);text-align:right;flex-shrink:0;}
+.sub-amt-label{font-size:10px;color:var(--text-muted);}
+
+/* Goal cards */
+.goal-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;}
+.goal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.goal-name{font-size:14px;font-weight:600;}
+.goal-pct{font-size:13px;font-weight:700;color:var(--primary);}
+.goal-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px;}
+.goal-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--primary),var(--teal));transition:width .6s ease;}
+.goal-footer{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-muted);}
+.goal-add-btn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid var(--primary-border);background:var(--primary-dim);color:var(--primary);cursor:pointer;transition:all .2s;}
+.goal-add-btn:hover{background:var(--primary);color:#fff;}
+
+/* Section header */
+.fin-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.fin-section-title{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;}
+.fin-section-sub{font-size:12px;color:var(--text-muted);}
+
+/* Bank connect banner */
+.bank-banner{background:linear-gradient(135deg,rgba(124,111,255,.1),rgba(0,217,180,.08));border:1px solid var(--primary-border);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.bank-banner-icon{font-size:22px;flex-shrink:0;}
+.bank-banner-text{flex:1;}
+.bank-banner-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+.bank-banner-sub{font-size:11px;color:var(--text-muted);}
+
+/* Mobile finance */
+@media(max-width:768px){
+  .fin-scroll{padding:12px 12px 80px;}
+  .fin-tabs{padding:8px 12px 0;gap:2px;}
+  .fin-tab{font-size:11px;padding:6px 10px;}
+  .fin-stats{grid-template-columns:repeat(2,1fr);}
+  .fin-row{gap:6px;}
+  .fin-input.sm{width:80px;}
+}
+
 </style>
 </head>
 <body>
@@ -511,6 +638,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
     <button class="tab" onclick="switchTab('library',this)" id="library-tab">📚 Library</button>
     <button class="tab" onclick="switchTab('memory',this)" id="memory-tab">💾 Memory</button>
     <button class="tab" onclick="switchTab('today',this)" id="today-tab">📊 Today</button>
+    <button class="tab" onclick="switchTab('finance',this)" id="finance-tab">💰 Finance</button>
   </div>
   <div class="header-right">
     <span id="mode-badge" style="font-size:11px;cursor:default;padding:4px 10px;border-radius:20px;border:1px solid var(--border);" title="Loading...">⏳ Loading</span>
@@ -531,6 +659,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
   <button class="mnav-btn" onclick="switchTab('library',this)" data-tab="library">📚<span>Library</span></button>
   <button class="mnav-btn" onclick="switchTab('memory',this)" data-tab="memory">💾<span>Memory</span></button>
   <button class="mnav-btn" onclick="switchTab('today',this)" data-tab="today">📊<span>Today</span></button>
+  <button class="mnav-btn" onclick="switchTab('finance',this)" data-tab="finance">💰<span>Finance</span></button>
 </nav>
 
 <div id="main">
@@ -1092,6 +1221,224 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
       </div>
     </div><!-- end today-scroll -->
   </div>
+
+  <!-- ══════════════ FINANCE TAB ══════════════ -->
+  <div class="view" id="view-finance">
+    <div class="fin-scroll">
+
+      <!-- Finance sub-tabs -->
+      <div class="fin-tabs">
+        <button class="fin-tab active" onclick="switchFinanceTab('overview',this)" id="ftab-overview">📊 Overview</button>
+        <button class="fin-tab" onclick="switchFinanceTab('transactions',this)" id="ftab-transactions">💳 Transactions</button>
+        <button class="fin-tab" onclick="switchFinanceTab('shifts',this)" id="ftab-shifts">⏱ Shifts</button>
+        <button class="fin-tab" onclick="switchFinanceTab('subscriptions',this)" id="ftab-subscriptions">🔁 Subscriptions</button>
+        <button class="fin-tab" onclick="switchFinanceTab('goals',this)" id="ftab-goals">🎯 Goals</button>
+      </div>
+
+      <!-- ── OVERVIEW PANEL ── -->
+      <div class="fin-panel active" id="fpanel-overview">
+        <!-- Month stats -->
+        <div class="fin-stats">
+          <div class="fin-stat income">
+            <div class="fin-stat-label">Income</div>
+            <div class="fin-stat-val" id="fin-income">$0</div>
+          </div>
+          <div class="fin-stat expense">
+            <div class="fin-stat-label">Expenses</div>
+            <div class="fin-stat-val" id="fin-expenses">$0</div>
+          </div>
+          <div class="fin-stat net">
+            <div class="fin-stat-label">Net</div>
+            <div class="fin-stat-val" id="fin-net">$0</div>
+          </div>
+          <div class="fin-stat savings">
+            <div class="fin-stat-label">Saved</div>
+            <div class="fin-stat-val" id="fin-saved">$0</div>
+          </div>
+        </div>
+
+        <!-- Spending by category -->
+        <div class="today-section">
+          <div class="today-section-title">Spending by Category</div>
+          <div id="fin-cat-bars"><div class="mem-empty">No transactions this month.</div></div>
+        </div>
+
+        <!-- Plaid banner -->
+        <div class="bank-banner" id="bank-banner">
+          <div class="bank-banner-icon">🏦</div>
+          <div class="bank-banner-text">
+            <div class="bank-banner-title">Connect your bank</div>
+            <div class="bank-banner-sub">Auto-import transactions with Plaid — coming soon</div>
+          </div>
+          <button class="fin-btn" disabled style="opacity:.5;cursor:default;">Connect</button>
+        </div>
+      </div>
+
+      <!-- ── TRANSACTIONS PANEL ── -->
+      <div class="fin-panel" id="fpanel-transactions">
+        <!-- Quick add form -->
+        <div class="fin-form">
+          <div class="today-section-title" style="margin-bottom:10px;">Log Transaction</div>
+          <!-- Income / Expense toggle -->
+          <div class="type-toggle">
+            <button class="type-btn active" id="txn-type-expense" onclick="setTxnType('expense',this)">💸 Expense</button>
+            <button class="type-btn" id="txn-type-income" onclick="setTxnType('income',this)">💰 Income</button>
+          </div>
+          <div class="fin-row">
+            <input class="fin-input" id="txn-amount" type="number" placeholder="Amount ($)" min="0" step="0.01"/>
+            <input class="fin-input" id="txn-desc" type="text" placeholder="Description"/>
+          </div>
+          <div class="fin-row">
+            <select class="fin-select" id="txn-category">
+              <option value="">-- Category --</option>
+              <option>Food</option><option>Transport</option><option>Housing</option>
+              <option>Health</option><option>Entertainment</option><option>Shopping</option>
+              <option>Utilities</option><option>Subscriptions</option><option>Income</option><option>Other</option>
+            </select>
+            <input class="fin-input" id="txn-date" type="date"/>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="fin-btn primary" onclick="logTransaction()">+ Add</button>
+            <label class="fin-btn" style="cursor:pointer;margin:0;">
+              📎 Import CSV
+              <input type="file" accept=".csv" id="txn-csv" style="display:none" onchange="importTransactionCSV(event)"/>
+            </label>
+          </div>
+        </div>
+
+        <!-- Transaction list -->
+        <div class="today-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="today-section-title" style="margin:0;">Recent Transactions</div>
+            <select class="fin-select" id="txn-filter-month" onchange="renderTransactions()" style="width:auto;padding:4px 8px;font-size:12px;"></select>
+          </div>
+          <div id="txn-list"><div class="mem-empty">No transactions yet.</div></div>
+        </div>
+      </div>
+
+      <!-- ── SHIFTS PANEL ── -->
+      <div class="fin-panel" id="fpanel-shifts">
+        <!-- Paycheck rules -->
+        <div class="fin-form">
+          <div class="today-section-title" style="margin-bottom:10px;">Pay Rules</div>
+          <div class="fin-row">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Base hourly rate ($)</div>
+              <input class="fin-input" id="pay-base" type="number" placeholder="e.g. 18.00" step="0.01"/>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">OT after (hrs/week)</div>
+              <input class="fin-input" id="pay-ot-thresh" type="number" placeholder="e.g. 40"/>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">OT multiplier</div>
+              <input class="fin-input" id="pay-ot-mult" type="number" placeholder="1.5" step="0.25"/>
+            </div>
+          </div>
+          <div class="fin-row">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Tax rate (%)</div>
+              <input class="fin-input" id="pay-tax" type="number" placeholder="e.g. 22" step="0.5"/>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Other deductions ($)</div>
+              <input class="fin-input" id="pay-deduct" type="number" placeholder="0.00" step="0.01"/>
+            </div>
+          </div>
+          <button class="fin-btn primary" onclick="savePayRules()">Save Pay Rules</button>
+        </div>
+
+        <!-- Log a shift -->
+        <div class="fin-form">
+          <div class="today-section-title" style="margin-bottom:10px;">Log Shift</div>
+          <div class="fin-row">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Date</div>
+              <input class="fin-input" id="shift-date" type="date"/>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Start time</div>
+              <input class="fin-input" id="shift-start" type="time"/>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">End time</div>
+              <input class="fin-input" id="shift-end" type="time"/>
+            </div>
+          </div>
+          <div class="fin-row">
+            <input class="fin-input" id="shift-notes" type="text" placeholder="Notes (optional)" style="flex:1"/>
+            <button class="fin-btn primary" onclick="logShift()" style="align-self:flex-end;">+ Log</button>
+          </div>
+          <!-- Paycheck estimate -->
+          <div class="shift-calc" id="shift-calc-box" style="display:none;">
+            <div class="shift-calc-title">📊 Week estimate</div>
+            <div id="shift-calc-detail"></div>
+          </div>
+        </div>
+
+        <!-- Shifts list -->
+        <div class="today-section">
+          <div class="today-section-title" style="margin-bottom:8px;">Recent Shifts</div>
+          <div id="shifts-list"><div class="mem-empty">No shifts logged yet.</div></div>
+        </div>
+      </div>
+
+      <!-- ── SUBSCRIPTIONS PANEL ── -->
+      <div class="fin-panel" id="fpanel-subscriptions">
+        <!-- Add subscription form -->
+        <div class="fin-form">
+          <div class="today-section-title" style="margin-bottom:10px;">Add Subscription</div>
+          <div class="fin-row">
+            <input class="fin-input" id="sub-name" type="text" placeholder="Name (Netflix, Spotify…)"/>
+            <input class="fin-input" id="sub-amount" type="number" placeholder="Amount ($)" step="0.01"/>
+          </div>
+          <div class="fin-row">
+            <select class="fin-select" id="sub-cycle">
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+              <option value="weekly">Weekly</option>
+            </select>
+            <input class="fin-input" id="sub-renewal" type="date" title="Next renewal date"/>
+            <input class="fin-input" id="sub-category" type="text" placeholder="Category (optional)"/>
+          </div>
+          <button class="fin-btn primary" onclick="addSubscription()">+ Add</button>
+        </div>
+
+        <!-- Subscriptions list -->
+        <div class="today-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="today-section-title" style="margin:0;">Active Subscriptions</div>
+            <div id="sub-monthly-total" style="font-size:12px;color:var(--text-muted);font-weight:600;"></div>
+          </div>
+          <div id="subs-list"><div class="mem-empty">No subscriptions tracked yet.</div></div>
+        </div>
+      </div>
+
+      <!-- ── GOALS PANEL ── -->
+      <div class="fin-panel" id="fpanel-goals">
+        <!-- Add goal form -->
+        <div class="fin-form">
+          <div class="today-section-title" style="margin-bottom:10px;">New Saving Goal</div>
+          <div class="fin-row">
+            <input class="fin-input" id="goal-name" type="text" placeholder="Goal name (e.g. Emergency fund)"/>
+            <input class="fin-input" id="goal-target" type="number" placeholder="Target ($)" step="1"/>
+          </div>
+          <div class="fin-row">
+            <input class="fin-input" id="goal-current" type="number" placeholder="Already saved ($)" step="0.01"/>
+            <input class="fin-input" id="goal-deadline" type="date" title="Target date (optional)"/>
+          </div>
+          <button class="fin-btn primary" onclick="addGoal()">+ Add Goal</button>
+        </div>
+
+        <!-- Goals list -->
+        <div class="today-section">
+          <div class="today-section-title" style="margin-bottom:8px;">Your Goals</div>
+          <div id="goals-list"><div class="mem-empty">No saving goals yet.</div></div>
+        </div>
+      </div>
+
+    </div><!-- end fin-scroll -->
+  </div><!-- end #view-finance -->
 
 </div><!-- end #main -->
 
@@ -3023,12 +3370,564 @@ document.addEventListener('DOMContentLoaded',()=>{});
     window.switchTab=function(name,btn){
       origSwitch(name,btn);
       if(name==='today')initTodayTab();
+      if(name==='finance')initFinanceTab();
     };
   }
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // END LAYER 3
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYER 4 — FINANCE TAB
+// ═══════════════════════════════════════════════════════════════════════════
+
+let financeData={transactions:[],shifts:[],subscriptions:[],goals:[],payRules:null};
+let financeLoaded=false;
+let activeTxnType='expense';
+let activeFinPanel='overview';
+
+// ── Init ────────────────────────────────────────────────────────────────────
+async function initFinanceTab(){
+  if(!supa)return;
+  if(!financeLoaded){await loadFinanceData();}
+  populateTxnMonthFilter();
+  renderFinanceOverview();
+  renderTransactions();
+  loadPayRules();
+  renderShifts();
+  renderSubscriptions();
+  renderGoals();
+  // Default dates for forms
+  const today=new Date().toISOString().slice(0,10);
+  const txnDate=document.getElementById('txn-date');
+  if(txnDate&&!txnDate.value)txnDate.value=today;
+  const shiftDate=document.getElementById('shift-date');
+  if(shiftDate&&!shiftDate.value)shiftDate.value=today;
+}
+
+async function loadFinanceData(){
+  if(!supa)return;
+  try{
+    const[txRes,shRes,subRes,goalRes]=await Promise.all([
+      supa.from('transactions').select('*').order('date',{ascending:false}).limit(200),
+      supa.from('shifts').select('*').order('date',{ascending:false}).limit(100),
+      supa.from('subscriptions').select('*').order('name'),
+      supa.from('saving_goals').select('*').order('created_at'),
+    ]);
+    financeData.transactions=txRes.data||[];
+    financeData.shifts=shRes.data||[];
+    financeData.subscriptions=subRes.data||[];
+    financeData.goals=goalRes.data||[];
+    financeLoaded=true;
+  }catch(e){console.warn('loadFinanceData error:',e);}
+}
+
+// ── Sub-tab switch ───────────────────────────────────────────────────────────
+function switchFinanceTab(name,btn){
+  document.querySelectorAll('.fin-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.fin-panel').forEach(p=>p.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const panel=document.getElementById('fpanel-'+name);
+  if(panel)panel.classList.add('active');
+  activeFinPanel=name;
+}
+
+// ── TXN type toggle ──────────────────────────────────────────────────────────
+function setTxnType(type,btn){
+  activeTxnType=type;
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+}
+
+// ── Overview ─────────────────────────────────────────────────────────────────
+function renderFinanceOverview(){
+  const now=new Date();
+  const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthTxn=financeData.transactions.filter(t=>(t.date||'').startsWith(ym));
+  let income=0,expenses=0;
+  monthTxn.forEach(t=>{
+    const amt=parseFloat(t.amount)||0;
+    if(t.type==='income')income+=amt; else expenses+=amt;
+  });
+  const net=income-expenses;
+  // Goal saved totals
+  const totalSaved=financeData.goals.reduce((a,g)=>a+(parseFloat(g.current_amount)||0),0);
+  document.getElementById('fin-income').textContent=fmtMoney(income);
+  document.getElementById('fin-expenses').textContent=fmtMoney(expenses);
+  const netEl=document.getElementById('fin-net');
+  netEl.textContent=fmtMoney(net);
+  netEl.style.color=net>=0?'var(--green)':'var(--pink)';
+  document.getElementById('fin-saved').textContent=fmtMoney(totalSaved);
+  // Category bars
+  const cats={};
+  monthTxn.filter(t=>t.type!=='income').forEach(t=>{
+    const c=t.category||'Other';
+    cats[c]=(cats[c]||0)+(parseFloat(t.amount)||0);
+  });
+  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const maxAmt=sorted[0]?sorted[0][1]:1;
+  const container=document.getElementById('fin-cat-bars');
+  if(!sorted.length){container.innerHTML='<div class="mem-empty">No expenses this month.</div>';return;}
+  container.innerHTML=sorted.map(([cat,amt])=>{
+    const pct=Math.round((amt/maxAmt)*100);
+    return `<div class="cat-bar-row">
+      <div class="cat-bar-label"><span>${cat}</span><span>${fmtMoney(amt)}</span></div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Transactions ─────────────────────────────────────────────────────────────
+function populateTxnMonthFilter(){
+  const sel=document.getElementById('txn-filter-month');
+  if(!sel)return;
+  const months=new Set();
+  const now=new Date();
+  const curYM=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  months.add(curYM);
+  financeData.transactions.forEach(t=>{if(t.date)months.add(t.date.slice(0,7));});
+  const sorted=[...months].sort().reverse();
+  sel.innerHTML=sorted.map(m=>{
+    const [y,mo]=m.split('-');
+    const label=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});
+    return `<option value="${m}"${m===curYM?' selected':''}>${label}</option>`;
+  }).join('');
+}
+
+function renderTransactions(){
+  const sel=document.getElementById('txn-filter-month');
+  const ym=sel?sel.value:'';
+  const filtered=ym?financeData.transactions.filter(t=>(t.date||'').startsWith(ym)):financeData.transactions;
+  const container=document.getElementById('txn-list');
+  if(!container)return;
+  if(!filtered.length){container.innerHTML='<div class="mem-empty">No transactions for this period.</div>';return;}
+  container.innerHTML=filtered.map(t=>{
+    const isIncome=t.type==='income';
+    const icon=isIncome?'💰':getCatIcon(t.category);
+    const amtStr=(isIncome?'+':'-')+fmtMoney(parseFloat(t.amount)||0);
+    const color=isIncome?'var(--green)':'var(--pink)';
+    return `<div class="txn-item">
+      <div class="txn-icon">${icon}</div>
+      <div class="txn-left">
+        <div style="font-size:13px;font-weight:500;color:var(--text)">${t.description||t.category||'Transaction'}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${fmtDate(t.date)} · ${t.category||''}</div>
+      </div>
+      <div class="txn-amt" style="color:${color}">${amtStr}</div>
+      <button class="txn-del" onclick="deleteTransaction('${t.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function logTransaction(){
+  if(!supa)return;
+  const amount=parseFloat(document.getElementById('txn-amount').value);
+  const description=document.getElementById('txn-desc').value.trim();
+  const category=document.getElementById('txn-category').value;
+  const date=document.getElementById('txn-date').value||new Date().toISOString().slice(0,10);
+  if(!amount||amount<=0){showToast('Enter a valid amount');return;}
+  try{
+    const{data,error}=await supa.from('transactions').insert({
+      amount,description,category,date,type:activeTxnType
+    }).select().single();
+    if(error)throw error;
+    financeData.transactions.unshift(data);
+    document.getElementById('txn-amount').value='';
+    document.getElementById('txn-desc').value='';
+    populateTxnMonthFilter();
+    renderTransactions();
+    renderFinanceOverview();
+    showToast('Transaction logged ✓');
+  }catch(e){showToast('Error saving transaction');}
+}
+
+async function deleteTransaction(id){
+  if(!supa)return;
+  try{
+    await supa.from('transactions').delete().eq('id',id);
+    financeData.transactions=financeData.transactions.filter(t=>t.id!==id);
+    renderTransactions();
+    renderFinanceOverview();
+    showToast('Deleted');
+  }catch(e){showToast('Error deleting');}
+}
+
+// ── CSV Import ───────────────────────────────────────────────────────────────
+async function importTransactionCSV(event){
+  if(!supa)return;
+  const file=event.target.files[0];
+  if(!file)return;
+  const text=await file.text();
+  const lines=text.trim().split('\n');
+  if(lines.length<2){showToast('CSV appears empty');return;}
+  // Auto-detect header row
+  const headers=lines[0].toLowerCase().split(',').map(h=>h.trim().replace(/"/g,''));
+  const colIdx=(names)=>{for(const n of names){const i=headers.indexOf(n);if(i!==-1)return i;}return -1;};
+  const amtCol=colIdx(['amount','amt','price','total']);
+  const descCol=colIdx(['description','desc','memo','name','payee','merchant']);
+  const dateCol=colIdx(['date','transaction date','posted date','trans date']);
+  const catCol=colIdx(['category','cat','type']);
+  if(amtCol===-1){showToast('CSV needs an "amount" column');event.target.value='';return;}
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const cols=lines[i].split(',').map(c=>c.trim().replace(/"/g,''));
+    const rawAmt=parseFloat((cols[amtCol]||'').replace(/[$,]/g,''));
+    if(isNaN(rawAmt)||rawAmt===0)continue;
+    const amount=Math.abs(rawAmt);
+    const type=rawAmt<0?'expense':'income';
+    const description=descCol!==-1?(cols[descCol]||''):'';
+    const date=dateCol!==-1?parseDateStr(cols[dateCol]):new Date().toISOString().slice(0,10);
+    const category=catCol!==-1?(cols[catCol]||'Other'):'Other';
+    rows.push({amount,description,date,category,type});
+  }
+  if(!rows.length){showToast('No valid rows found in CSV');event.target.value='';return;}
+  try{
+    const{data,error}=await supa.from('transactions').insert(rows).select();
+    if(error)throw error;
+    financeData.transactions=[...(data||[]),...financeData.transactions];
+    financeData.transactions.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    populateTxnMonthFilter();
+    renderTransactions();
+    renderFinanceOverview();
+    showToast(`Imported ${rows.length} transactions ✓`);
+  }catch(e){showToast('CSV import error');}
+  event.target.value='';
+}
+
+function parseDateStr(str){
+  if(!str)return new Date().toISOString().slice(0,10);
+  const d=new Date(str);
+  if(!isNaN(d))return d.toISOString().slice(0,10);
+  return new Date().toISOString().slice(0,10);
+}
+
+// ── Shifts ───────────────────────────────────────────────────────────────────
+async function loadPayRules(){
+  if(!supa)return;
+  try{
+    const{data}=await supa.from('pay_config').select('*').eq('id',1).maybeSingle();
+    if(data){
+      financeData.payRules=data;
+      document.getElementById('pay-base').value=data.hourly_rate||'';
+      document.getElementById('pay-ot-thresh').value=data.ot_threshold||40;
+      document.getElementById('pay-ot-mult').value=data.ot_multiplier||1.5;
+      document.getElementById('pay-tax').value=data.tax_rate||'';
+      document.getElementById('pay-deduct').value=data.deductions||'';
+    }
+  }catch(e){}
+}
+
+async function savePayRules(){
+  if(!supa)return;
+  const hourly_rate=parseFloat(document.getElementById('pay-base').value)||0;
+  const ot_threshold=parseInt(document.getElementById('pay-ot-thresh').value)||40;
+  const ot_multiplier=parseFloat(document.getElementById('pay-ot-mult').value)||1.5;
+  const tax_rate=parseFloat(document.getElementById('pay-tax').value)||0;
+  const deductions=parseFloat(document.getElementById('pay-deduct').value)||0;
+  try{
+    const{data,error}=await supa.from('pay_config').upsert({
+      id:1,hourly_rate,ot_threshold,ot_multiplier,tax_rate,deductions,updated_at:new Date().toISOString()
+    }).select().single();
+    if(error)throw error;
+    financeData.payRules=data;
+    renderShifts();
+    showToast('Pay rules saved ✓');
+  }catch(e){showToast('Error saving pay rules');}
+}
+
+async function logShift(){
+  if(!supa)return;
+  const date=document.getElementById('shift-date').value;
+  const start_time=document.getElementById('shift-start').value;
+  const end_time=document.getElementById('shift-end').value;
+  const notes=document.getElementById('shift-notes').value.trim();
+  if(!date||!start_time||!end_time){showToast('Fill in date, start, and end time');return;}
+  // Calculate hours
+  const startMin=timeToMins(start_time);
+  let endMin=timeToMins(end_time);
+  if(endMin<startMin)endMin+=24*60; // overnight
+  const duration_hours=parseFloat(((endMin-startMin)/60).toFixed(2));
+  const gross_pay=calcGrossPay(duration_hours);
+  try{
+    const{data,error}=await supa.from('shifts').insert({
+      date,start_time,end_time,duration_hours,gross_pay,notes
+    }).select().single();
+    if(error)throw error;
+    financeData.shifts.unshift(data);
+    document.getElementById('shift-start').value='';
+    document.getElementById('shift-end').value='';
+    document.getElementById('shift-notes').value='';
+    renderShifts();
+    updateShiftCalcBox();
+    showToast('Shift logged ✓');
+  }catch(e){showToast('Error logging shift');}
+}
+
+function timeToMins(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+
+function calcGrossPay(hours){
+  const r=financeData.payRules;
+  if(!r||!r.hourly_rate)return 0;
+  const base=parseFloat(r.hourly_rate)||0;
+  const otThresh=parseInt(r.ot_threshold)||40;
+  const otMult=parseFloat(r.ot_multiplier)||1.5;
+  if(hours<=otThresh)return base*hours;
+  return base*otThresh + base*otMult*(hours-otThresh);
+}
+
+function calcNetPay(gross){
+  const r=financeData.payRules;
+  if(!r)return gross;
+  const taxRate=(parseFloat(r.tax_rate)||0)/100;
+  const deductions=parseFloat(r.deductions)||0;
+  return gross*(1-taxRate)-deductions;
+}
+
+function renderShifts(){
+  const container=document.getElementById('shifts-list');
+  if(!container)return;
+  if(!financeData.shifts.length){container.innerHTML='<div class="mem-empty">No shifts logged yet.</div>';return;}
+  container.innerHTML=financeData.shifts.slice(0,30).map(s=>{
+    const gross=parseFloat(s.gross_pay)||0;
+    const net=calcNetPay(gross);
+    return `<div class="txn-item">
+      <div class="txn-icon">⏱</div>
+      <div class="txn-left">
+        <div style="font-size:13px;font-weight:500;color:var(--text)">${fmtDate(s.date)} · ${s.start_time||''}–${s.end_time||''}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${parseFloat(s.duration_hours||0).toFixed(1)} hrs${s.notes?' · '+s.notes:''}</div>
+      </div>
+      <div style="text-align:right;min-width:72px">
+        <div style="font-size:13px;font-weight:600;color:var(--green)">${fmtMoney(gross)}</div>
+        <div style="font-size:11px;color:var(--text-muted)">~${fmtMoney(net)} net</div>
+      </div>
+      <button class="txn-del" onclick="deleteShift('${s.id}')">✕</button>
+    </div>`;
+  }).join('');
+  updateShiftCalcBox();
+}
+
+function updateShiftCalcBox(){
+  const box=document.getElementById('shift-calc-box');
+  const detail=document.getElementById('shift-calc-detail');
+  if(!box||!detail)return;
+  // Current week (Sun–Sat)
+  const now=new Date();
+  const weekStart=new Date(now);
+  weekStart.setDate(now.getDate()-now.getDay());
+  weekStart.setHours(0,0,0,0);
+  const weekShifts=financeData.shifts.filter(s=>{
+    const d=new Date(s.date+'T00:00:00');
+    return d>=weekStart;
+  });
+  if(!weekShifts.length){box.style.display='none';return;}
+  const totalHrs=weekShifts.reduce((a,s)=>a+(parseFloat(s.duration_hours)||0),0);
+  const totalGross=weekShifts.reduce((a,s)=>a+(parseFloat(s.gross_pay)||0),0);
+  const totalNet=calcNetPay(totalGross);
+  box.style.display='block';
+  detail.innerHTML=`<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-muted)">
+    <span>⏱ ${totalHrs.toFixed(1)} hrs this week</span>
+    <span>💵 ${fmtMoney(totalGross)} gross</span>
+    <span>🏠 ~${fmtMoney(totalNet)} net</span>
+  </div>`;
+}
+
+async function deleteShift(id){
+  if(!supa)return;
+  try{
+    await supa.from('shifts').delete().eq('id',id);
+    financeData.shifts=financeData.shifts.filter(s=>s.id!==id);
+    renderShifts();
+    showToast('Deleted');
+  }catch(e){showToast('Error deleting');}
+}
+
+// ── Subscriptions ────────────────────────────────────────────────────────────
+async function addSubscription(){
+  if(!supa)return;
+  const name=document.getElementById('sub-name').value.trim();
+  const amount=parseFloat(document.getElementById('sub-amount').value);
+  const billing_cycle=document.getElementById('sub-cycle').value;
+  const next_renewal=document.getElementById('sub-renewal').value||null;
+  const category=document.getElementById('sub-category').value.trim()||null;
+  if(!name){showToast('Enter subscription name');return;}
+  if(!amount||amount<=0){showToast('Enter valid amount');return;}
+  try{
+    const{data,error}=await supa.from('subscriptions').insert({
+      name,amount,billing_cycle,next_renewal,category,is_active:true
+    }).select().single();
+    if(error)throw error;
+    financeData.subscriptions.push(data);
+    financeData.subscriptions.sort((a,b)=>a.name.localeCompare(b.name));
+    document.getElementById('sub-name').value='';
+    document.getElementById('sub-amount').value='';
+    document.getElementById('sub-renewal').value='';
+    document.getElementById('sub-category').value='';
+    renderSubscriptions();
+    showToast('Subscription added ✓');
+  }catch(e){showToast('Error adding subscription');}
+}
+
+function renderSubscriptions(){
+  const container=document.getElementById('subs-list');
+  const totalEl=document.getElementById('sub-monthly-total');
+  if(!container)return;
+  const active=financeData.subscriptions.filter(s=>s.is_active!==false);
+  // Monthly equivalent total
+  let monthlyTotal=0;
+  active.forEach(s=>{
+    const amt=parseFloat(s.amount)||0;
+    if(s.billing_cycle==='yearly')monthlyTotal+=amt/12;
+    else if(s.billing_cycle==='weekly')monthlyTotal+=amt*4.33;
+    else monthlyTotal+=amt;
+  });
+  if(totalEl)totalEl.textContent=active.length?`${fmtMoney(monthlyTotal)}/mo`:'';
+  if(!active.length){container.innerHTML='<div class="mem-empty">No subscriptions tracked yet.</div>';return;}
+  const today=new Date().toISOString().slice(0,10);
+  container.innerHTML=active.map(s=>{
+    const amt=parseFloat(s.amount)||0;
+    const cycleLabel=s.billing_cycle==='yearly'?'/yr':s.billing_cycle==='weekly'?'/wk':'/mo';
+    const renewal=s.next_renewal?fmtDate(s.next_renewal):'';
+    const soonDate=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+    const soon=s.next_renewal&&String(s.next_renewal).slice(0,10)<=soonDate;
+    return `<div class="sub-card">
+      <div class="sub-icon">${getSubIcon(s.name)}</div>
+      <div class="sub-info">
+        <div style="font-size:13px;font-weight:500;color:var(--text)">${s.name}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${s.category||'Subscription'}${renewal?' · renews '+renewal:''}</div>
+        ${soon?'<div style="font-size:10px;color:var(--orange);font-weight:600;">⚠ Renews soon</div>':''}
+      </div>
+      <div style="text-align:right;min-width:60px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${fmtMoney(amt)}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${cycleLabel}</div>
+      </div>
+      <button class="txn-del" onclick="deleteSubscription('${s.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function deleteSubscription(id){
+  if(!supa)return;
+  try{
+    await supa.from('subscriptions').delete().eq('id',id);
+    financeData.subscriptions=financeData.subscriptions.filter(s=>s.id!==id);
+    renderSubscriptions();
+    showToast('Removed');
+  }catch(e){showToast('Error removing');}
+}
+
+// ── Goals ────────────────────────────────────────────────────────────────────
+async function addGoal(){
+  if(!supa)return;
+  const name=document.getElementById('goal-name').value.trim();
+  const target_amount=parseFloat(document.getElementById('goal-target').value);
+  const current_amount=parseFloat(document.getElementById('goal-current').value)||0;
+  const deadline=document.getElementById('goal-deadline').value||null;
+  if(!name){showToast('Enter goal name');return;}
+  if(!target_amount||target_amount<=0){showToast('Enter target amount');return;}
+  try{
+    const{data,error}=await supa.from('saving_goals').insert({
+      name,target_amount,current_amount,deadline,is_complete:false
+    }).select().single();
+    if(error)throw error;
+    financeData.goals.push(data);
+    document.getElementById('goal-name').value='';
+    document.getElementById('goal-target').value='';
+    document.getElementById('goal-current').value='';
+    document.getElementById('goal-deadline').value='';
+    renderGoals();
+    renderFinanceOverview();
+    showToast('Goal created ✓');
+  }catch(e){showToast('Error creating goal');}
+}
+
+async function addMoneyToGoal(id,current,target){
+  const input=prompt(`How much are you adding? (current: ${fmtMoney(current)})`);
+  if(input===null)return;
+  const add=parseFloat(input);
+  if(isNaN(add)||add<=0){showToast('Invalid amount');return;}
+  const newAmount=Math.min(current+add,target);
+  try{
+    await supa.from('saving_goals').update({current_amount:newAmount}).eq('id',id);
+    const g=financeData.goals.find(g=>g.id===id);
+    if(g)g.current_amount=newAmount;
+    renderGoals();
+    renderFinanceOverview();
+    showToast(`Added ${fmtMoney(add)} ✓`);
+  }catch(e){showToast('Error updating goal');}
+}
+
+async function deleteGoal(id){
+  if(!supa)return;
+  try{
+    await supa.from('saving_goals').delete().eq('id',id);
+    financeData.goals=financeData.goals.filter(g=>g.id!==id);
+    renderGoals();
+    renderFinanceOverview();
+    showToast('Goal removed');
+  }catch(e){showToast('Error removing goal');}
+}
+
+function renderGoals(){
+  const container=document.getElementById('goals-list');
+  if(!container)return;
+  const active=financeData.goals.filter(g=>!g.is_complete);
+  if(!active.length){container.innerHTML='<div class="mem-empty">No saving goals yet.</div>';return;}
+  container.innerHTML=active.map(g=>{
+    const current=parseFloat(g.current_amount)||0;
+    const target=parseFloat(g.target_amount)||1;
+    const pct=Math.min(Math.round((current/target)*100),100);
+    const remaining=Math.max(target-current,0);
+    const daysLeft=g.deadline?Math.ceil((new Date(g.deadline)-new Date())/86400000):null;
+    const complete=pct>=100;
+    return `<div class="goal-card${complete?' complete':''}">
+      <div class="goal-header">
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${complete?'✅ ':''} ${g.name}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${pct}%</div>
+      </div>
+      <div class="goal-track"><div class="goal-fill" style="width:${pct}%"></div></div>
+      <div class="goal-footer">
+        <span>${fmtMoney(current)} / ${fmtMoney(target)}</span>
+        <span style="color:var(--text-muted)">${remaining>0?fmtMoney(remaining)+' to go':'Complete! 🎉'}</span>
+        ${daysLeft!==null?`<span style="color:${daysLeft<7?'var(--orange)':'var(--text-muted)'};">${daysLeft}d left</span>`:''}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        ${!complete?`<button class="fin-btn primary" style="padding:4px 12px;font-size:12px;" onclick="addMoneyToGoal('${g.id}',${current},${target})">+ Add Money</button>`:''}
+        <button class="fin-btn" style="padding:4px 10px;font-size:12px;" onclick="deleteGoal('${g.id}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function fmtMoney(n){
+  return '$'+parseFloat(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtDate(str){
+  if(!str)return '';
+  const d=new Date(str+'T00:00:00');
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function getCatIcon(cat){
+  const map={Food:'🍔',Transport:'🚗',Housing:'🏠',Health:'💊',Entertainment:'🎬',
+    Shopping:'🛍',Utilities:'💡',Subscriptions:'🔁',Income:'💰',Other:'📌'};
+  return map[cat]||'📌';
+}
+function getSubIcon(name){
+  const n=(name||'').toLowerCase();
+  if(n.includes('netflix'))return '🎬';
+  if(n.includes('spotify')||n.includes('apple music')||n.includes('tidal'))return '🎵';
+  if(n.includes('gym')||n.includes('planet fitness'))return '🏋️';
+  if(n.includes('hulu')||n.includes('disney')||n.includes('max'))return '📺';
+  if(n.includes('amazon'))return '📦';
+  if(n.includes('phone')||n.includes('att')||n.includes('verizon')||n.includes('tmobile'))return '📱';
+  if(n.includes('insurance'))return '🛡';
+  if(n.includes('cloud')||n.includes('dropbox')||n.includes('icloud'))return '☁️';
+  return '🔁';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// END LAYER 4
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Supabase connection check — show a one-time hint if keys aren't configured yet
