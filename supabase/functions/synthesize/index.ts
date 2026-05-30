@@ -395,6 +395,9 @@ Synthesize everything above into an updated profile. Look for cross-domain patte
 
   } catch (err) {
     console.error('[synthesize] Fatal error:', err);
+    try {
+      await db.from('jarvis_errors').insert({ source: 'edge:synthesize', error_type: 'edge_fn', message: String(err), resolved: false });
+    } catch(_) {}
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500,
       headers: { ...CORS, 'Content-Type': 'application/json' },

@@ -670,20 +670,41 @@ Deno.serve(async (req) => {
     if (!forceCheck || forceCheck === 'finance')       results.finance       = await checkWeeklyFinance(ct).catch(e => ({ error: String(e) }));
     if (!forceCheck || forceCheck === 'goals')         results.goals         = await checkSavingGoals(ct).catch(e => ({ error: String(e) }));
     if (!forceCheck || forceCheck === 'sleep')         results.sleep         = await checkSleepLog(ct).catch(e => ({ error: String(e) }));
-    if (!forceCheck || forceCheck === 'meals')         results.meals         = await checkMealLog(ct).catch(e => ({ error: String(e) }));
-    if (!forceCheck || forceCheck === 'workout_log')   results.workout_log   = await checkWorkoutLog(ct).catch(e => ({ error: String(e) }));
+    if (!forceCheck || forceCheck === 'meal')         results.meal         = await checkMealLog(ct).catch(e => ({ error: String(e) }));
+    if (!forceCheck || forceCheck === 'workoutlog')   results.workoutlog   = await checkWorkoutLog(ct).catch(e => ({ error: String(e) }));
 
-    // ── Run custom user-defined automations from DB ──────────
-    results.custom = await runCustomRules(ct).catch(e => ({ error: String(e) }));
+    // Log any sub-check errors to jarvis_errors
+    for (const [key, val] of Object.entries(results)) {
+      if ((val as any)?.error) {
+        try {
+          await db.from('jarvis_errors').insert({
+            source:     'edge:automate',
+            error_type: 'edge_fn',
+            message:    `Check '${key}' failed: ${(val as any).error}`,
+            context:    { check: key },
+            resolved:   false,
+          });
+        } catch(_) {}
+      }
+    }
 
-    return new Response(JSON.stringify({ ok: true, ct_time: `${ct.hour}:${ct.minute}`, checks: Object.keys(results) }), {
+    return new Response(JSON.stringify({ ok: true, results }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
-    console.error('[automate] Fatal:', err);
+    console.error('[automate] Fatal error:', err);
+    try {
+      await db.from('jarvis_errors').insert({
+        source:     'edge:automate',
+        error_type: 'edge_fn',
+        message:    String(err),
+        resolved:   false,
+      });
+    } catch(_) {}
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+      status: 500,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });

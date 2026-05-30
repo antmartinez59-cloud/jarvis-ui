@@ -48,6 +48,9 @@ supabase functions deploy automation-builder  --no-verify-jwt
 :: ── Layer 3 — Daily Trackers ──────────────────────────────
 supabase functions deploy meal-photo          --no-verify-jwt
 
+:: ── Debug Agent ─────────────────────────────────────────────
+supabase functions deploy debug-agent         --no-verify-jwt
+
 echo.
 echo [3/3] Done! Your Edge Function URLs are:
 echo.
@@ -65,9 +68,12 @@ echo   https://%PROJECT_REF%.supabase.co/functions/v1/weather
 echo   https://%PROJECT_REF%.supabase.co/functions/v1/news
 echo   https://%PROJECT_REF%.supabase.co/functions/v1/morning-brief
 echo.
+echo   [Debug Agent]
+echo   https://%PROJECT_REF%.supabase.co/functions/v1/debug-agent
+echo.
 echo Next steps:
 echo   1. Set required secrets (see secrets-setup.md)
-echo   2. Run schema_v2.sql in Supabase SQL Editor
-echo   3. Run pg_cron-setup.sql in Supabase SQL Editor to schedule briefings
+echo   2. Run schema_v2.sql + schema_v7.sql in Supabase SQL Editor
+echo   3. Run pg_cron-setup.sql in Supabase SQL Editor to schedule briefings + debug agent
 echo.
 pause

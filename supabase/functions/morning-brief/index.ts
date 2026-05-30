@@ -580,6 +580,15 @@ Deno.serve(async (req) => {
 
   } catch (err) {
     console.error('[brief] Fatal error:', err);
+    // Log to jarvis_errors table
+    try {
+      await db.from('jarvis_errors').insert({
+        source:     'edge:morning-brief',
+        error_type: 'edge_fn',
+        message:    String(err),
+        resolved:   false,
+      });
+    } catch(_) { /* don't let error logging break the response */ }
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500,
       headers: { ...CORS, 'Content-Type': 'application/json' },

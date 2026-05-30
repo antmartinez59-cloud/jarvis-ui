@@ -1743,6 +1743,40 @@ function showLibSection(name,btn){
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
 // ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL ERROR LOGGER — writes to jarvis_errors table in Supabase
+// Call: logError(source, type, message, context)
+// source:  'frontend:today' | 'frontend:finance' | 'frontend:council' etc
+// type:    'supabase_query' | 'network' | 'js_runtime' | 'validation'
+// context: plain object with extra info { action:'logWater', tab:'today' }
+// ═══════════════════════════════════════════════════════════════════════════
+async function logError(source, type, message, context={}) {
+  // Always log to console so DevTools still shows it
+  console.error(`[JARVIS error] ${source} | ${type} | ${message}`, context);
+  if (!supa) return; // can't log without DB connection
+  try {
+    await supa.from('jarvis_errors').insert({
+      source:     source,
+      error_type: type,
+      message:    String(message).slice(0, 500),
+      context:    context,
+      url:        window.location.href,
+      resolved:   false,
+    });
+  } catch(e) {
+    // Don't let the logger itself cause infinite loops
+    console.warn('[JARVIS] logError failed to write to DB:', e);
+  }
+}
+
+// Catch unhandled JS errors globally
+window.onerror = function(msg, src, line, col, err) {
+  logError('frontend:global', 'js_runtime', msg, { src, line, col, stack: err?.stack?.slice(0,300) });
+};
+window.addEventListener('unhandledrejection', function(e) {
+  logError('frontend:global', 'promise_rejection', String(e.reason?.message || e.reason), { stack: e.reason?.stack?.slice(0,300) });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GITHUB SYNC
 // ═══════════════════════════════════════════════════════════════════════════
 async function syncGitHub(){
@@ -2935,7 +2969,7 @@ async function loadTodayData(){
     todayData.sleep = sl.data||[];
     todayData.workouts = wo.data||[];
     todayData.meals = m.data||[];
-  }catch(e){console.warn('loadTodayData error',e);}
+  }catch(e){logError('frontend:today','js_runtime',e?.message||String(e),{action:'loadTodayData'});console.warn('loadTodayData error',e);}
   // Show/hide log UI based on whether we're viewing today
   const isToday=date===localDateStr();
   document.body.classList.toggle('viewing-past',!isToday);
@@ -3093,7 +3127,7 @@ async function logWater(oz){
   const logTs=new Date(viewingDate+'T12:00:00').toISOString();
   const entry={amount_oz:oz,logged_at:logTs,note:`Quick log: +${oz}oz`};
   const{data,error}=await supa.from('water_logs').insert(entry).select().single();
-  if(error){showToast('❌ Water: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
+  if(error){logError('frontend:today','supabase_query',error.message||error.code,{action:'logWater',oz});showToast('❌ Water: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.water.push(data||entry);
   renderDashboard();
   renderWaterLog();
@@ -3158,7 +3192,7 @@ async function logSleep(){
   const logTs=new Date(viewingDate+'T08:00:00').toISOString(); // morning of the viewing day
   const entry={duration_hours:hours,quality_rating:quality||null,notes,created_at:logTs};
   const{data,error}=await supa.from('sleep_logs').insert(entry).select().single();
-  if(error){showToast('❌ Sleep: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
+  if(error){logError('frontend:today','supabase_query',error.message||error.code,{action:'logSleep',hours});showToast('❌ Sleep: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.sleep.unshift(data||entry);
   renderDashboard();renderSleepLog();
   document.getElementById('sleep-notes').value='';
@@ -3282,7 +3316,7 @@ async function logWorkout(){
   };
 
   const{data,error}=await supa.from('workouts').insert(entry).select().single();
-  if(error){showToast('❌ Workout: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
+  if(error){logError('frontend:today','supabase_query',error.message||error.code,{action:'logWorkout',type:workoutType});showToast('❌ Workout: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.workouts.unshift(data||entry);
 
   // Reset form
@@ -3383,7 +3417,7 @@ async function logMeal(){
   const logTs=new Date(viewingDate+'T12:00:00').toISOString();
   const entry={name:name||'Unnamed meal',calories,protein_g:protein,carbs_g:carbs,fat_g:fat,logged_at:logTs};
   const{data,error}=await supa.from('meals').insert(entry).select().single();
-  if(error){showToast('❌ Meal: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
+  if(error){logError('frontend:today','supabase_query',error.message||error.code,{action:'logMeal',name});showToast('❌ Meal: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.meals.unshift(data||entry);
 
   // Reset form

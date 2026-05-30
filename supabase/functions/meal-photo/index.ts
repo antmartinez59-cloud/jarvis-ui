@@ -91,6 +91,19 @@ Deno.serve(async (req) => {
 
   } catch (err) {
     console.error('[meal-photo] Error:', err);
+    // Log to jarvis_errors
+    try {
+      const _db = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      await _db.from('jarvis_errors').insert({
+        source:     'edge:meal-photo',
+        error_type: 'edge_fn',
+        message:    String(err),
+        resolved:   false,
+      });
+    } catch(_e) {}
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },

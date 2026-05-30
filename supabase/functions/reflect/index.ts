@@ -62,6 +62,10 @@ Max 3 items per array. Only include items clearly evidenced.`
       { headers: { ...CORS, 'Content-Type': 'application/json' } }
     )
   } catch (e) {
+    try {
+      const _db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      await _db.from('jarvis_errors').insert({ source: 'edge:reflect', error_type: 'edge_fn', message: String(e?.message || e), resolved: false });
+    } catch(_) {}
     return new Response(
       JSON.stringify({ ok: false, error: e.message }),
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }

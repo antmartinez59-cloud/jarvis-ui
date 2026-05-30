@@ -186,6 +186,19 @@ Deno.serve(async (req) => {
 
   } catch (err) {
     console.error('[weather] Error:', err);
+    // Log to jarvis_errors
+    try {
+      const _db = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      await _db.from('jarvis_errors').insert({
+        source:     'edge:weather',
+        error_type: 'edge_fn',
+        message:    String(err),
+        resolved:   false,
+      });
+    } catch(_e) {}
     return new Response(JSON.stringify({ ok: false, error: String(err), weather: null }), {
       status: 500,
       headers: { ...CORS, 'Content-Type': 'application/json' },
@@ -208,14 +221,4 @@ function buildWeatherSummary(current: any, forecast: any[], uvIndex: number | nu
   if (humidity > 80) summary += ` Humid (${humidity}%).`;
   if (uvIndex !== null && uvIndex > 6) summary += ` High UV (${uvIndex}) — sunscreen recommended.`;
 
-  const rainyDays = forecast.filter(d => d.rain_chance > 40);
-  if (rainyDays.length > 0) {
-    summary += ` Rain expected ${rainyDays.slice(0, 2).map(d => d.date).join(' and ')}.`;
-  }
-
-  const isNice = temp >= 65 && temp <= 88 && !['Rain','Thunderstorm','Snow'].includes(current.weather[0].main) && wind < 20;
-  if (isNice) summary += ` Great day to be outside.`;
-  else if (['Rain','Thunderstorm'].includes(current.weather[0].main)) summary += ` Stay dry — indoor day.`;
-
-  return summary;
-}
+  const rainyDays = forecast.filter
