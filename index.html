@@ -239,6 +239,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
 .mem-tag.green{background:rgba(68,232,122,.1);border-color:rgba(68,232,122,.3);color:var(--green);}
 .mem-tag.pink{background:rgba(255,92,135,.1);border-color:rgba(255,92,135,.3);color:var(--pink);}
 
+/* Past day view — log forms still visible so user can add/edit entries */
+body.viewing-past .tracker-log-only{display:block;}
 /* MODALS */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
@@ -887,6 +889,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
   <div class="view" id="view-today">
     <div class="today-scroll">
 
+      <!-- Date navigation bar -->
+      <div id="today-date-nav" style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;gap:8px;">
+        <button onclick="shiftDay(-1)" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;">‹</button>
+        <div style="flex:1;text-align:center;">
+          <div id="today-date-label" style="font-size:13px;font-weight:600;color:var(--text);">Today</div>
+          <div id="today-date-sub" style="font-size:11px;color:var(--text-muted);"></div>
+        </div>
+        <button onclick="shiftDay(1)" id="today-next-btn" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;opacity:.3;" disabled>›</button>
+        <button onclick="goToToday()" id="today-now-btn" style="display:none;background:var(--primary-dim);border:1px solid var(--primary-border);border-radius:6px;color:var(--primary);font-size:11px;font-weight:600;cursor:pointer;padding:4px 10px;">Today</button>
+      </div>
+
+      <!-- Past day read-only banner -->
+      <div id="past-day-banner" style="display:none;align-items:center;gap:10px;background:rgba(124,111,255,.08);border:1px solid var(--primary-border);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:var(--primary);">
+        <span>📅 Viewing past day — you can still add or edit entries</span>
+        <button onclick="goToToday()" style="margin-left:auto;background:var(--primary);border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;padding:4px 12px;">Go to Today</button>
+      </div>
+
       <!-- JARVIS message -->
       <div class="today-header-msg" id="today-jarvis-msg">
         <div class="today-jarvis-avatar">J</div>
@@ -992,36 +1011,59 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
 
         <!-- ── WATER PANEL ──────────────────────────────────── -->
         <div class="tracker-panel active" id="tp-water">
-          <!-- Goal calculator -->
+          <!-- Smart Goal Calculator (flowchart algorithm) -->
           <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
             <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;">💡 Smart Goal Calculator</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div>
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Age</div>
+                <input type="number" id="water-age" class="log-custom-input" style="width:100%" placeholder="e.g. 28" min="0" max="120" oninput="recalcWaterGoal()">
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Gender</div>
+                <select id="water-gender" class="mastery-select" style="width:100%;font-size:12px;" onchange="recalcWaterGoal()">
+                  <option value="">-- select --</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
               <div>
                 <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Weight (lbs)</div>
-                <input type="number" id="water-weight" class="log-custom-input" style="width:100%" placeholder="175" value="" onchange="recalcWaterGoal()">
+                <input type="number" id="water-weight" class="log-custom-input" style="width:100%" placeholder="e.g. 175" min="1" oninput="recalcWaterGoal()">
               </div>
               <div>
                 <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Activity Level</div>
                 <select id="water-activity" class="mastery-select" style="width:100%;font-size:12px;" onchange="recalcWaterGoal()">
-                  <option value="1.0">Sedentary</option>
-                  <option value="1.1">Light</option>
-                  <option value="1.2" selected>Moderate</option>
-                  <option value="1.4">Active</option>
-                  <option value="1.6">Very Active</option>
+                  <option value="sedentary">Sedentary</option>
+                  <option value="light">Light (+6 oz)</option>
+                  <option value="moderate" selected>Moderate (+12 oz)</option>
+                  <option value="high">High (+24 oz)</option>
+                  <option value="extreme">Extreme (+32 oz)</option>
+                </select>
+              </div>
+              <div style="grid-column:1/-1;">
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Climate</div>
+                <select id="water-climate" class="mastery-select" style="width:100%;font-size:12px;" onchange="recalcWaterGoal()">
+                  <option value="normal">Normal / Temperate</option>
+                  <option value="tropical">Tropical / Hot (+12 oz)</option>
                 </select>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <div style="font-size:12px;color:var(--text-muted);">Recommended: <strong id="water-calc-oz" style="color:var(--teal)">-- oz</strong></div>
-              <div style="font-size:12px;color:var(--text-muted);">|</div>
-              <div style="font-size:12px;color:var(--text-muted);">Healthy minimum: <strong style="color:var(--primary)">64 oz</strong></div>
-              <div style="font-size:12px;color:var(--text-muted);">|</div>
-              <div style="font-size:12px;color:var(--text-muted);">Your goal: <strong id="water-goal-display" style="color:var(--orange)">80 oz</strong></div>
+            <!-- Result row -->
+            <div style="background:var(--surface);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+              <div>
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Your personalised goal</div>
+                <div style="font-size:20px;font-weight:700;color:var(--teal)" id="water-calc-oz">-- oz</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Current goal</div>
+                <div style="font-size:20px;font-weight:700;color:var(--orange)" id="water-goal-display">80 oz</div>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;margin-top:10px;">
-              <button class="log-preset-btn" onclick="applyCalcGoal()" style="font-size:11px;padding:5px 12px">Use calculated</button>
-              <input type="number" id="water-custom-goal" class="log-custom-input" placeholder="Custom oz" style="width:90px" onchange="saveWaterGoal()">
-              <button class="log-preset-btn" onclick="saveWaterGoal()" style="font-size:11px;padding:5px 12px">Set goal</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="log-preset-btn primary" onclick="applyCalcGoal()" style="font-size:11px;padding:5px 14px;">✓ Use this goal</button>
+              <input type="number" id="water-custom-goal" class="log-custom-input" placeholder="Or enter custom oz" style="flex:1;min-width:100px">
+              <button class="log-preset-btn" onclick="saveWaterGoal()" style="font-size:11px;padding:5px 12px;">Set</button>
             </div>
           </div>
 
@@ -1036,17 +1078,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
           </div>
 
           <!-- Quick-log presets -->
-          <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Log Water</div>
-          <div class="log-btn-grid">
-            <button class="log-preset-btn" onclick="logWater(8)">+8 oz<div style="font-size:9px;color:var(--text-dim)">glass</div></button>
-            <button class="log-preset-btn" onclick="logWater(16)">+16 oz<div style="font-size:9px;color:var(--text-dim)">large glass</div></button>
-            <button class="log-preset-btn" onclick="logWater(24)">+24 oz<div style="font-size:9px;color:var(--text-dim)">bottle</div></button>
-            <button class="log-preset-btn" onclick="logWater(32)">+32 oz<div style="font-size:9px;color:var(--text-dim)">large bottle</div></button>
-            <button class="log-preset-btn" onclick="logWater(51)">+51 oz<div style="font-size:9px;color:var(--text-dim)">Ozarka 1.5L</div></button>
-          </div>
-          <div class="log-custom-row">
-            <input type="number" id="water-custom-oz" class="log-custom-input" placeholder="oz">
-            <button class="log-preset-btn primary" onclick="logWaterCustom()">+ Log</button>
+          <div class="tracker-log-only">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Log Water</div>
+            <div class="log-btn-grid">
+              <button class="log-preset-btn" onclick="logWater(8)">+8 oz<div style="font-size:9px;color:var(--text-dim)">glass</div></button>
+              <button class="log-preset-btn" onclick="logWater(16)">+16 oz<div style="font-size:9px;color:var(--text-dim)">large glass</div></button>
+              <button class="log-preset-btn" onclick="logWater(24)">+24 oz<div style="font-size:9px;color:var(--text-dim)">bottle</div></button>
+              <button class="log-preset-btn" onclick="logWater(32)">+32 oz<div style="font-size:9px;color:var(--text-dim)">large bottle</div></button>
+              <button class="log-preset-btn" onclick="logWater(51)">+51 oz<div style="font-size:9px;color:var(--text-dim)">Ozarka 1.5L</div></button>
+            </div>
+            <div class="log-custom-row">
+              <input type="number" id="water-custom-oz" class="log-custom-input" placeholder="oz">
+              <button class="log-preset-btn primary" onclick="logWaterCustom()">+ Log</button>
+            </div>
           </div>
 
           <!-- Today's log -->
@@ -1056,7 +1100,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
 
         <!-- ── SLEEP PANEL ──────────────────────────────────── -->
         <div class="tracker-panel" id="tp-sleep">
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
+          <div class="tracker-log-only" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
             <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;">Log Last Night's Sleep</div>
 
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Hours slept: <strong id="sleep-hours-val" style="color:var(--primary)">7.0 hrs</strong></div>
@@ -1083,7 +1127,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
 
         <!-- ── WORKOUT PANEL ───────────────────────────────── -->
         <div class="tracker-panel" id="tp-workout">
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
+          <div class="tracker-log-only" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
             <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;">Log Today's Workout</div>
 
             <div class="workout-type-row">
@@ -1164,7 +1208,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
 
         <!-- ── MEALS PANEL ─────────────────────────────────── -->
         <div class="tracker-panel" id="tp-meals">
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
+          <div class="tracker-log-only" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
             <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;">Log a Meal</div>
 
             <!-- Photo AI estimate -->
@@ -2779,6 +2823,7 @@ setTimeout(()=>{ if(supa)loadAgentLibrary(); updateActiveAgentUI(); updateModeBa
 // ── State ─────────────────────────────────────────────────────────────────
 let todayData = { water:[], sleep:[], workouts:[], meals:[] };
 let waterGoalOz = 80;
+let viewingDate = new Date().toISOString().slice(0,10); // YYYY-MM-DD
 let scoreWeights = { sleep:30, workout:30, water:25, meals:15 };
 let sleepQualityVal = 0;
 let workoutType = 'weights';
@@ -2795,11 +2840,46 @@ function switchTracker(name){
   if(tp)tp.classList.add('active');
 }
 
+// ── Date navigation ───────────────────────────────────────────────────────
+function updateDateNav(){
+  const today=new Date().toISOString().slice(0,10);
+  const isToday=viewingDate===today;
+  const d=new Date(viewingDate+'T00:00:00');
+  const label=isToday?'Today':d.toLocaleDateString('en-US',{weekday:'long'});
+  const sub=d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('today-date-label').textContent=label;
+  document.getElementById('today-date-sub').textContent=sub;
+  const nextBtn=document.getElementById('today-next-btn');
+  const nowBtn=document.getElementById('today-now-btn');
+  nextBtn.disabled=isToday;
+  nextBtn.style.opacity=isToday?'.3':'1';
+  nowBtn.style.display=isToday?'none':'block';
+}
+
+function shiftDay(delta){
+  const d=new Date(viewingDate+'T00:00:00');
+  d.setDate(d.getDate()+delta);
+  const today=new Date().toISOString().slice(0,10);
+  const newDate=d.toISOString().slice(0,10);
+  if(newDate>today)return; // can't go to future
+  viewingDate=newDate;
+  updateDateNav();
+  loadTodayData();
+}
+
+function goToToday(){
+  viewingDate=new Date().toISOString().slice(0,10);
+  updateDateNav();
+  loadTodayData();
+}
+
 // ── Called when Today tab opens ───────────────────────────────────────────
 async function initTodayTab(){
   loadScoreWeights();
   loadWaterGoal();
   recalcWaterGoal();
+  viewingDate=new Date().toISOString().slice(0,10);
+  updateDateNav();
   await loadTodayData();
   await loadTodayMessage();
 }
@@ -2828,22 +2908,30 @@ async function loadTodayMessage(){
   }
 }
 
-// ── Load all today's data ──────────────────────────────────────────────────
+// ── Load data for viewingDate ─────────────────────────────────────────────
 async function loadTodayData(){
   if(!supa){ renderDashboard(); return; }
-  const today=new Date().toISOString().slice(0,10);
+  const date=viewingDate;
+  const nextDate=new Date(date+'T00:00:00');
+  nextDate.setDate(nextDate.getDate()+1);
+  const nextStr=nextDate.toISOString().slice(0,10);
   try{
     const [w,sl,wo,m]=await Promise.all([
-      supa.from('water_logs').select('*').gte('logged_at',today).order('logged_at'),
-      supa.from('sleep_logs').select('*').gte('created_at',today).order('created_at',{ascending:false}).limit(5),
-      supa.from('workouts').select('*').gte('created_at',today).order('created_at',{ascending:false}).limit(10),
-      supa.from('meals').select('*').gte('logged_at',today).order('logged_at',{ascending:false}).limit(20),
+      supa.from('water_logs').select('*').gte('logged_at',date).lt('logged_at',nextStr).order('logged_at'),
+      supa.from('sleep_logs').select('*').gte('created_at',date).lt('created_at',nextStr).order('created_at',{ascending:false}).limit(5),
+      supa.from('workouts').select('*').gte('created_at',date).lt('created_at',nextStr).order('created_at',{ascending:false}).limit(10),
+      supa.from('meals').select('*').gte('logged_at',date).lt('logged_at',nextStr).order('logged_at',{ascending:false}).limit(20),
     ]);
     todayData.water = w.data||[];
     todayData.sleep = sl.data||[];
     todayData.workouts = wo.data||[];
     todayData.meals = m.data||[];
   }catch(e){console.warn('loadTodayData error',e);}
+  // Show/hide log UI based on whether we're viewing today
+  const isToday=date===new Date().toISOString().slice(0,10);
+  document.body.classList.toggle('viewing-past',!isToday);
+  const banner=document.getElementById('past-day-banner');
+  if(banner)banner.style.display=isToday?'none':'flex';
   renderDashboard();
   renderWaterLog();
   renderSleepLog();
@@ -2904,15 +2992,24 @@ function setRing(id,pct){
 // WATER TRACKER
 // ═══════════════════════════════════════════════════════════════════════════
 function loadWaterGoal(){
+  // Restore saved goal
   const stored=localStorage.getItem('jarvis_water_goal');
   if(stored)waterGoalOz=parseInt(stored)||80;
   document.getElementById('water-goal-display').textContent=waterGoalOz+' oz';
+  // Restore saved calculator inputs
+  const p=JSON.parse(localStorage.getItem('jarvis_water_profile')||'{}');
+  if(p.age)document.getElementById('water-age').value=p.age;
+  if(p.gender)document.getElementById('water-gender').value=p.gender;
+  if(p.weight)document.getElementById('water-weight').value=p.weight;
+  if(p.activity)document.getElementById('water-activity').value=p.activity;
+  if(p.climate)document.getElementById('water-climate').value=p.climate;
+  recalcWaterGoal();
 }
 
 function saveWaterGoal(){
   const custom=parseInt(document.getElementById('water-custom-goal').value);
   if(custom&&custom>0){
-    waterGoalOz=Math.max(64,custom); // always at least 64oz (healthy minimum)
+    waterGoalOz=Math.max(32,custom);
     localStorage.setItem('jarvis_water_goal',waterGoalOz);
     document.getElementById('water-goal-display').textContent=waterGoalOz+' oz';
     document.getElementById('water-custom-goal').value='';
@@ -2921,28 +3018,58 @@ function saveWaterGoal(){
   }
 }
 
+// ── Flowchart algorithm (exact per PDF) ─────────────────────────────────────
+function calcWaterOz(age,gender,weight,activity,climate){
+  let result;
+  // Age-based children brackets
+  if(age<1)  return {oz:'4–8',exact:6};
+  if(age<4)  return {oz:'32',exact:32};
+  if(age<9)  return {oz:'40',exact:40};
+  if(age<14) return {oz:'56–64',exact:60};
+  // Adult: base from gender × weight
+  if(gender==='male')   result=weight*0.67;
+  else                  result=weight*0.5;
+  // Activity adjustment
+  if(activity==='light')    result+=6;
+  else if(activity==='moderate') result+=12;
+  else if(activity==='high')     result+=24;
+  else if(activity==='extreme')  result+=32;
+  // Climate adjustment
+  if(climate==='tropical') result+=12;
+  return {oz:Math.round(result)+'',exact:Math.round(result)};
+}
+
 function recalcWaterGoal(){
+  const age=parseInt(document.getElementById('water-age').value)||0;
+  const gender=document.getElementById('water-gender').value;
   const weight=parseFloat(document.getElementById('water-weight').value)||0;
-  const activity=parseFloat(document.getElementById('water-activity').value)||1.2;
-  if(weight>0){
-    const calc=Math.round((weight*0.5)*activity);
-    const final=Math.max(64,calc); // 64oz healthy minimum floor
-    document.getElementById('water-calc-oz').textContent=final+' oz';
-  } else {
-    document.getElementById('water-calc-oz').textContent='-- oz';
-  }
+  const activity=document.getElementById('water-activity').value;
+  const climate=document.getElementById('water-climate').value;
+  const calcEl=document.getElementById('water-calc-oz');
+  // Validate required fields for adults
+  if(!age){calcEl.textContent='-- oz';return;}
+  if(age>=14&&(!gender||!weight)){calcEl.textContent='enter gender & weight';return;}
+  if(age>=14&&weight<=0){calcEl.textContent='enter weight';return;}
+  const {oz}=calcWaterOz(age,gender,weight,activity,climate);
+  calcEl.textContent=oz+' oz';
+  // Persist profile for next visit
+  localStorage.setItem('jarvis_water_profile',JSON.stringify({age,gender,weight,activity,climate}));
 }
 
 function applyCalcGoal(){
-  const oz=document.getElementById('water-calc-oz').textContent;
-  const val=parseInt(oz);
-  if(val&&val>0){
-    waterGoalOz=val;
-    localStorage.setItem('jarvis_water_goal',waterGoalOz);
-    document.getElementById('water-goal-display').textContent=waterGoalOz+' oz';
-    renderDashboard();
-    showToast(`💧 Water goal set to ${waterGoalOz} oz`);
-  }
+  const age=parseInt(document.getElementById('water-age').value)||0;
+  const gender=document.getElementById('water-gender').value;
+  const weight=parseFloat(document.getElementById('water-weight').value)||0;
+  const activity=document.getElementById('water-activity').value;
+  const climate=document.getElementById('water-climate').value;
+  if(!age){showToast('Enter your age first');return;}
+  if(age>=14&&(!gender||!weight)){showToast('Enter gender and weight for adults');return;}
+  const {exact}=calcWaterOz(age,gender,weight,activity,climate);
+  waterGoalOz=Math.max(32,exact);
+  localStorage.setItem('jarvis_water_goal',waterGoalOz);
+  document.getElementById('water-goal-display').textContent=waterGoalOz+' oz';
+  renderDashboard();
+  showToast(`💧 Goal set to ${waterGoalOz} oz ✓`);
 }
 
 function updateWaterDisplay(ozTotal){
@@ -2954,7 +3081,8 @@ function updateWaterDisplay(ozTotal){
 
 async function logWater(oz){
   if(!supa){showToast('⚠️ Connect Supabase first');return;}
-  const entry={amount_oz:oz,logged_at:new Date().toISOString(),note:`Quick log: +${oz}oz`};
+  const logTs=new Date(viewingDate+'T12:00:00').toISOString();
+  const entry={amount_oz:oz,logged_at:logTs,note:`Quick log: +${oz}oz`};
   const{data,error}=await supa.from('water_logs').insert(entry).select().single();
   if(error){showToast('❌ Water: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.water.push(data||entry);
@@ -3018,7 +3146,8 @@ async function logSleep(){
   const hours=parseFloat(document.getElementById('sleep-hours-slider').value);
   const quality=sleepQualityVal||null;
   const notes=document.getElementById('sleep-notes').value.trim();
-  const entry={duration_hours:hours,quality_rating:quality||null,notes};
+  const logTs=new Date(viewingDate+'T08:00:00').toISOString(); // morning of the viewing day
+  const entry={duration_hours:hours,quality_rating:quality||null,notes,created_at:logTs};
   const{data,error}=await supa.from('sleep_logs').insert(entry).select().single();
   if(error){showToast('❌ Sleep: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.sleep.unshift(data||entry);
@@ -3134,11 +3263,13 @@ async function logWorkout(){
   }
 
   const notes=document.getElementById('workout-notes').value.trim();
+  const logTs=new Date(viewingDate+'T12:00:00').toISOString();
   const entry={
     type:workoutType,
     exercises:exercises.length?exercises:null,
     cardio:cardioData,
     notes,
+    created_at:logTs,
   };
 
   const{data,error}=await supa.from('workouts').insert(entry).select().single();
@@ -3240,7 +3371,8 @@ async function logMeal(){
   const fat=parseFloat(document.getElementById('meal-fat').value)||0;
   if(!name&&!calories){showToast('Add a meal name or calories');return;}
 
-  const entry={name:name||'Unnamed meal',calories,protein_g:protein,carbs_g:carbs,fat_g:fat,logged_at:new Date().toISOString()};
+  const logTs=new Date(viewingDate+'T12:00:00').toISOString();
+  const entry={name:name||'Unnamed meal',calories,protein_g:protein,carbs_g:carbs,fat_g:fat,logged_at:logTs};
   const{data,error}=await supa.from('meals').insert(entry).select().single();
   if(error){showToast('❌ Meal: '+(error.message||error.code||JSON.stringify(error)).slice(0,80));return;}
   todayData.meals.unshift(data||entry);
@@ -3373,6 +3505,34 @@ document.addEventListener('DOMContentLoaded',()=>{});
       if(name==='finance')initFinanceTab();
     };
   }
+})();
+
+// ── Auto-reset counters at midnight / when app regains focus ──────────────
+(function(){
+  // Each time the tab/app becomes visible, check if the calendar date rolled over.
+  // If it has, snap viewingDate back to today and reload so counters start fresh.
+  let _lastKnownDate = new Date().toISOString().slice(0,10);
+
+  function checkDateRollover(){
+    const today = new Date().toISOString().slice(0,10);
+    if(today !== _lastKnownDate){
+      _lastKnownDate = today;
+      // Only auto-reset if the user was already viewing today (don't disturb history browsing)
+      if(viewingDate === null || viewingDate < today){
+        viewingDate = today;
+        updateDateNav();
+        loadTodayData();
+      }
+    }
+  }
+
+  // Fire when browser tab / PWA gains visibility (phone unlock, app switch back)
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible') checkDateRollover();
+  });
+
+  // Also poll every 60 s to catch midnight if the page stays open and visible
+  setInterval(checkDateRollover, 60_000);
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════
