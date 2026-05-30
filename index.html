@@ -2823,7 +2823,13 @@ setTimeout(()=>{ if(supa)loadAgentLibrary(); updateActiveAgentUI(); updateModeBa
 // ── State ─────────────────────────────────────────────────────────────────
 let todayData = { water:[], sleep:[], workouts:[], meals:[] };
 let waterGoalOz = 80;
-let viewingDate = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+// Returns today's date as YYYY-MM-DD in LOCAL time (not UTC) so day boundaries
+// align with the user's clock, not UTC midnight (which would be 7pm CDT).
+function localDateStr(d){
+  const dt=d||new Date();
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+let viewingDate = localDateStr(); // YYYY-MM-DD local
 let scoreWeights = { sleep:30, workout:30, water:25, meals:15 };
 let sleepQualityVal = 0;
 let workoutType = 'weights';
@@ -2842,7 +2848,7 @@ function switchTracker(name){
 
 // ── Date navigation ───────────────────────────────────────────────────────
 function updateDateNav(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=localDateStr();
   const isToday=viewingDate===today;
   const d=new Date(viewingDate+'T00:00:00');
   const label=isToday?'Today':d.toLocaleDateString('en-US',{weekday:'long'});
@@ -2859,8 +2865,8 @@ function updateDateNav(){
 function shiftDay(delta){
   const d=new Date(viewingDate+'T00:00:00');
   d.setDate(d.getDate()+delta);
-  const today=new Date().toISOString().slice(0,10);
-  const newDate=d.toISOString().slice(0,10);
+  const today=localDateStr();
+  const newDate=localDateStr(d); // use local date to avoid UTC midnight shift
   if(newDate>today)return; // can't go to future
   viewingDate=newDate;
   updateDateNav();
@@ -2868,7 +2874,7 @@ function shiftDay(delta){
 }
 
 function goToToday(){
-  viewingDate=new Date().toISOString().slice(0,10);
+  viewingDate=localDateStr();
   updateDateNav();
   loadTodayData();
 }
@@ -2878,7 +2884,7 @@ async function initTodayTab(){
   loadScoreWeights();
   loadWaterGoal();
   recalcWaterGoal();
-  viewingDate=new Date().toISOString().slice(0,10);
+  viewingDate=localDateStr();
   updateDateNav();
   await loadTodayData();
   await loadTodayMessage();
@@ -2912,15 +2918,18 @@ async function loadTodayMessage(){
 async function loadTodayData(){
   if(!supa){ renderDashboard(); return; }
   const date=viewingDate;
-  const nextDate=new Date(date+'T00:00:00');
-  nextDate.setDate(nextDate.getDate()+1);
-  const nextStr=nextDate.toISOString().slice(0,10);
+  // Use local midnight → UTC so the day boundary matches the user's timezone,
+  // not UTC midnight (which would be 7pm CDT and cause cross-day leakage).
+  const dayStart=new Date(date+'T00:00:00').toISOString();   // local midnight in UTC
+  const dayEndD=new Date(date+'T00:00:00');
+  dayEndD.setDate(dayEndD.getDate()+1);
+  const dayEnd=dayEndD.toISOString();                        // next local midnight in UTC
   try{
     const [w,sl,wo,m]=await Promise.all([
-      supa.from('water_logs').select('*').gte('logged_at',date).lt('logged_at',nextStr).order('logged_at'),
-      supa.from('sleep_logs').select('*').gte('created_at',date).lt('created_at',nextStr).order('created_at',{ascending:false}).limit(5),
-      supa.from('workouts').select('*').gte('created_at',date).lt('created_at',nextStr).order('created_at',{ascending:false}).limit(10),
-      supa.from('meals').select('*').gte('logged_at',date).lt('logged_at',nextStr).order('logged_at',{ascending:false}).limit(20),
+      supa.from('water_logs').select('*').gte('logged_at',dayStart).lt('logged_at',dayEnd).order('logged_at'),
+      supa.from('sleep_logs').select('*').gte('created_at',dayStart).lt('created_at',dayEnd).order('created_at',{ascending:false}).limit(5),
+      supa.from('workouts').select('*').gte('created_at',dayStart).lt('created_at',dayEnd).order('created_at',{ascending:false}).limit(10),
+      supa.from('meals').select('*').gte('logged_at',dayStart).lt('logged_at',dayEnd).order('logged_at',{ascending:false}).limit(20),
     ]);
     todayData.water = w.data||[];
     todayData.sleep = sl.data||[];
@@ -2928,7 +2937,7 @@ async function loadTodayData(){
     todayData.meals = m.data||[];
   }catch(e){console.warn('loadTodayData error',e);}
   // Show/hide log UI based on whether we're viewing today
-  const isToday=date===new Date().toISOString().slice(0,10);
+  const isToday=date===localDateStr();
   document.body.classList.toggle('viewing-past',!isToday);
   const banner=document.getElementById('past-day-banner');
   if(banner)banner.style.display=isToday?'none':'flex';
@@ -3511,10 +3520,10 @@ document.addEventListener('DOMContentLoaded',()=>{});
 (function(){
   // Each time the tab/app becomes visible, check if the calendar date rolled over.
   // If it has, snap viewingDate back to today and reload so counters start fresh.
-  let _lastKnownDate = new Date().toISOString().slice(0,10);
+  let _lastKnownDate = localDateStr(); // uses global localDateStr()
 
   function checkDateRollover(){
-    const today = new Date().toISOString().slice(0,10);
+    const today = localDateStr();
     if(today !== _lastKnownDate){
       _lastKnownDate = today;
       // Only auto-reset if the user was already viewing today (don't disturb history browsing)
