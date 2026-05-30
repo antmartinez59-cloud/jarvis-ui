@@ -641,6 +641,7 @@ body.viewing-past .tracker-log-only{display:block;}
     <button class="tab" onclick="switchTab('memory',this)" id="memory-tab">💾 Memory</button>
     <button class="tab" onclick="switchTab('today',this)" id="today-tab">📊 Today</button>
     <button class="tab" onclick="switchTab('finance',this)" id="finance-tab">💰 Finance</button>
+    <button class="tab" onclick="switchTab('todos',this)" id="todos-tab">📋 Todos</button>
   </div>
   <div class="header-right">
     <span id="mode-badge" style="font-size:11px;cursor:default;padding:4px 10px;border-radius:20px;border:1px solid var(--border);" title="Loading...">⏳ Loading</span>
@@ -1000,6 +1001,12 @@ body.viewing-past .tracker-log-only{display:block;}
         </div>
       </div>
 
+      <!-- Pinned todos (starred + urgent) -->
+      <div id="today-pinned-todos" style="display:none;padding:0 16px 10px;">
+        <div style="font-size:10px;font-weight:600;color:var(--orange);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">📌 Pinned Todos</div>
+        <div id="today-pinned-list"></div>
+      </div>
+
       <!-- Tracker sub-tabs -->
       <div class="tracker-section">
         <div class="tracker-tabs">
@@ -1008,6 +1015,7 @@ body.viewing-past .tracker-log-only{display:block;}
           <button class="tracker-tab" id="ttab-workout" onclick="switchTracker('workout')">🏋️ Workout</button>
           <button class="tracker-tab" id="ttab-meals" onclick="switchTracker('meals')">🍽️ Meals</button>
         <button class="tracker-tab" id="ttab-gains" onclick="switchTracker('gains')">📈 Gains</button>
+        <button class="tracker-tab" id="ttab-todos" onclick="switchTracker('todos')">📋 Todos</button>
         </div>
 
         <!-- ── WATER PANEL ──────────────────────────────────── -->
@@ -1267,6 +1275,23 @@ body.viewing-past .tracker-log-only{display:block;}
           <div class="log-entries" id="meals-log-list"><div class="mem-empty">No meals logged yet today.</div></div>
         </div>
       </div>
+      <!-- ══ TODOS TRACKER PANEL ══ -->
+      <div class="tracker-panel" id="tp-todos">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input class="fin-input" id="tt-title" type="text" placeholder="Quick add todo…" style="flex:1;" onkeydown="if(event.key==='Enter')quickAddTodo()"/>
+            <select class="fin-input" id="tt-priority" style="flex:0 0 120px;">
+              <option value="urgent">🔴 Urgent</option>
+              <option value="high">🟠 High</option>
+              <option value="medium" selected>🟡 Medium</option>
+              <option value="low">🟢 Low</option>
+            </select>
+          </div>
+          <button class="log-preset-btn primary" onclick="quickAddTodo()" style="width:100%">+ Add Todo</button>
+        </div>
+        <div id="tt-active-list"><div class="mem-empty">No active todos.</div></div>
+      </div>
+
       <!-- ══ GAINS TRACKER PANEL ══ -->
       <div class="tracker-panel" id="tp-gains">
 
@@ -1642,6 +1667,71 @@ body.viewing-past .tracker-log-only{display:block;}
     </div><!-- end fin-scroll -->
   </div><!-- end #view-finance -->
 
+  <!-- ══════════════ TODOS TAB ══════════════ -->
+  <div class="view" id="view-todos">
+    <div class="fin-scroll">
+      <div style="padding:16px 20px 0;">
+
+        <!-- Quick add -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;">+ New Todo</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input class="fin-input" id="todo-title" type="text" placeholder="What needs to get done?" style="flex:1;" onkeydown="if(event.key==='Enter')addTodo()"/>
+            <select class="fin-input" id="todo-priority" style="flex:0 0 130px;">
+              <option value="urgent">🔴 Urgent</option>
+              <option value="high">🟠 High</option>
+              <option value="medium" selected>🟡 Medium</option>
+              <option value="low">🟢 Low</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input class="fin-input" id="todo-notes" type="text" placeholder="Notes (optional)" style="flex:1;"/>
+            <input class="fin-input" id="todo-due" type="date" style="flex:0 0 140px;"/>
+            <button class="fin-btn primary" onclick="addTodo()">Add</button>
+          </div>
+        </div>
+
+        <!-- Pinned: starred + urgent -->
+        <div id="todo-pinned-section" style="display:none;margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:600;color:var(--orange);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">📌 Pinned</div>
+          <div id="todo-pinned-list"></div>
+        </div>
+
+        <!-- Active -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;">Active <span id="todo-active-count" style="color:var(--primary);"></span></div>
+          <select id="todo-filter" class="fin-input" style="font-size:11px;padding:3px 8px;width:auto;" onchange="renderTodos()">
+            <option value="all">All</option>
+            <option value="urgent">🔴 Urgent</option>
+            <option value="high">🟠 High</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+        </div>
+        <div id="todo-active-list"><div class="mem-empty">No todos yet — add one above.</div></div>
+
+        <!-- Completed -->
+        <div style="margin-top:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="toggleTodoSection('completed')">
+            <div style="font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;">✅ Completed <span id="todo-done-count"></span></div>
+            <span id="todo-completed-chevron" style="color:var(--text-muted);font-size:12px;">▶</span>
+          </div>
+          <div id="todo-completed-list" style="display:none;"></div>
+        </div>
+
+        <!-- History log -->
+        <div style="margin-top:16px;padding-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="toggleTodoSection('history')">
+            <div style="font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;">📅 History Log</div>
+            <span id="todo-history-chevron" style="color:var(--text-muted);font-size:12px;">▶</span>
+          </div>
+          <div id="todo-history-list" style="display:none;"></div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- end #view-todos -->
+
 </div><!-- end #main -->
 
 <!-- FLOATING QUICK-LOG FAB -->
@@ -1885,6 +1975,7 @@ function switchTab(name,btn){
   if(name==='map')setTimeout(initMap,50);
   if(name==='memory')loadMemoryTab();
   if(name==='library')loadLibraryTab();
+  if(name==='todos'){ const d=document.getElementById('todo-due'); if(d&&!d.value)d.value=localDateStr(); loadTodos(); }
 }
 function showLibSection(name,btn){
   document.querySelectorAll('.lib-tab').forEach(t=>t.classList.remove('active'));
@@ -3044,6 +3135,7 @@ function switchTracker(name){
     if(bwDate&&!bwDate.value) bwDate.value=localDateStr();
     loadGainsData();
   }
+  if(name==='todos') loadTodos();
 }
 
 // ── Date navigation ───────────────────────────────────────────────────────
@@ -3088,6 +3180,7 @@ async function initTodayTab(){
   updateDateNav();
   await loadTodayData();
   await loadTodayMessage();
+  loadTodos(); // load todos so pinned section shows
 }
 
 // ── Load today's message from briefings table ─────────────────────────────
@@ -3964,6 +4057,222 @@ function renderMuscleFrequency(){
       </div>
     </div>
   `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TODOS
+// ═══════════════════════════════════════════════════════════════════════════
+let todosData = { active:[], completed:[], history:[] };
+
+const PRIORITY_ORDER = { urgent:0, high:1, medium:2, low:3 };
+const PRIORITY_EMOJI = { urgent:'🔴', high:'🟠', medium:'🟡', low:'🟢' };
+const PRIORITY_COLOR = { urgent:'var(--red)', high:'var(--orange)', medium:'var(--orange)', low:'var(--teal)' };
+
+async function loadTodos(){
+  if(!supa) return;
+  try{
+    const today = localDateStr();
+    const { data, error } = await supa.from('todos')
+      .select('*')
+      .neq('status','archived')
+      .order('priority')
+      .order('created_at', {ascending:false})
+      .limit(200);
+    if(error){ logError('frontend:todos','supabase_query',error.message,{action:'loadTodos'}); return; }
+    const all = data || [];
+    todosData.active    = all.filter(t=>t.status==='active'&&(t.due_date>=today||!t.due_date));
+    todosData.completed = all.filter(t=>t.status==='completed');
+    todosData.history   = all.filter(t=>['moved','completed'].includes(t.status));
+    renderTodos();
+    renderTodayPinned();
+    updateTodosTabBadge();
+  }catch(e){ logError('frontend:todos','js_runtime',e?.message||String(e),{action:'loadTodos'}); }
+}
+
+function updateTodosTabBadge(){
+  const urgentCount = todosData.active.filter(t=>t.priority==='urgent'||t.is_starred).length;
+  const tab = document.getElementById('todos-tab');
+  if(tab) tab.textContent = urgentCount ? `📋 Todos (${urgentCount})` : '📋 Todos';
+}
+
+async function addTodo(){
+  if(!supa){ showToast('⚠️ Connect Supabase first'); return; }
+  const title    = document.getElementById('todo-title')?.value.trim();
+  const priority = document.getElementById('todo-priority')?.value || 'medium';
+  const notes    = document.getElementById('todo-notes')?.value.trim() || null;
+  const due_date = document.getElementById('todo-due')?.value || localDateStr();
+  if(!title){ showToast('Enter a title'); return; }
+  try{
+    const { data, error } = await supa.from('todos').insert({
+      title, priority, notes, due_date, status:'active', is_starred:false
+    }).select().single();
+    if(error){ logError('frontend:todos','supabase_query',error.message,{action:'addTodo'}); showToast('❌ Could not add todo'); return; }
+    todosData.active.unshift(data);
+    todosData.active.sort((a,b)=>PRIORITY_ORDER[a.priority]-PRIORITY_ORDER[b.priority]);
+    if(document.getElementById('todo-title')) document.getElementById('todo-title').value='';
+    if(document.getElementById('todo-notes')) document.getElementById('todo-notes').value='';
+    renderTodos(); renderTodayPinned(); updateTodosTabBadge();
+    showToast(`${PRIORITY_EMOJI[priority]} Todo added`);
+  }catch(e){ logError('frontend:todos','js_runtime',e?.message||String(e),{action:'addTodo'}); }
+}
+
+async function quickAddTodo(){
+  if(!supa){ showToast('⚠️ Connect Supabase first'); return; }
+  const title    = document.getElementById('tt-title')?.value.trim();
+  const priority = document.getElementById('tt-priority')?.value || 'medium';
+  if(!title){ showToast('Enter a title'); return; }
+  try{
+    const { data, error } = await supa.from('todos').insert({
+      title, priority, due_date:localDateStr(), status:'active', is_starred:false
+    }).select().single();
+    if(error){ logError('frontend:todos','supabase_query',error.message,{action:'quickAddTodo'}); showToast('❌ Could not add todo'); return; }
+    todosData.active.unshift(data);
+    todosData.active.sort((a,b)=>PRIORITY_ORDER[a.priority]-PRIORITY_ORDER[b.priority]);
+    if(document.getElementById('tt-title')) document.getElementById('tt-title').value='';
+    renderTodos(); renderTodayPinned(); updateTodosTabBadge();
+    showToast(`${PRIORITY_EMOJI[priority]} Added`);
+  }catch(e){ logError('frontend:todos','js_runtime',e?.message||String(e),{action:'quickAddTodo'}); }
+}
+
+async function completeTodo(id){
+  if(!supa) return;
+  const { error } = await supa.from('todos').update({
+    status:'completed', completed:true, completed_at:new Date().toISOString()
+  }).eq('id',id);
+  if(error){ logError('frontend:todos','supabase_query',error.message,{action:'completeTodo'}); return; }
+  const todo = todosData.active.find(t=>t.id===id);
+  if(todo){
+    todo.status='completed'; todo.completed=true;
+    todosData.active    = todosData.active.filter(t=>t.id!==id);
+    todosData.completed.unshift(todo);
+    todosData.history.unshift(todo);
+  }
+  renderTodos(); renderTodayPinned(); updateTodosTabBadge();
+  showToast('✅ Done!');
+}
+
+async function rolloverTodo(id){
+  if(!supa) return;
+  const tomorrow = localDateStr(new Date(Date.now()+86400000));
+  const { error } = await supa.from('todos').update({
+    due_date:tomorrow, moved_date:tomorrow,
+    status:'active', roll_count: (todosData.active.find(t=>t.id===id)?.roll_count||0)+1
+  }).eq('id',id);
+  if(error){ logError('frontend:todos','supabase_query',error.message,{action:'rolloverTodo'}); return; }
+  const todo = todosData.active.find(t=>t.id===id);
+  if(todo){ todo.due_date=tomorrow; todo.moved_date=tomorrow; todo.roll_count=(todo.roll_count||0)+1; }
+  renderTodos();
+  showToast(`→ Rolled to ${tomorrow}`);
+}
+
+async function toggleStar(id){
+  if(!supa) return;
+  const todo = todosData.active.find(t=>t.id===id);
+  if(!todo) return;
+  const starred = !todo.is_starred;
+  await supa.from('todos').update({is_starred:starred}).eq('id',id);
+  todo.is_starred = starred;
+  renderTodos(); renderTodayPinned(); updateTodosTabBadge();
+}
+
+async function archiveTodo(id){
+  if(!supa) return;
+  await supa.from('todos').update({status:'archived',archived_at:new Date().toISOString()}).eq('id',id);
+  todosData.active    = todosData.active.filter(t=>t.id!==id);
+  todosData.completed = todosData.completed.filter(t=>t.id!==id);
+  renderTodos(); renderTodayPinned(); updateTodosTabBadge();
+  showToast('Archived');
+}
+
+function todoCard(t, compact=false){
+  const done = t.status==='completed';
+  const roll = t.roll_count>0 ? `<span style="font-size:10px;color:var(--text-dim);margin-left:4px;">↩${t.roll_count}</span>` : '';
+  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--card);border:1px solid ${t.is_starred?'rgba(255,170,68,.4)':done?'var(--border)':'var(--border)'};border-radius:9px;margin-bottom:6px;opacity:${done?'.6':'1'};">
+    <!-- Checkbox -->
+    <button onclick="${done?'':('completeTodo(\''+t.id+'\')')}" style="width:20px;height:20px;border-radius:50%;border:2px solid ${done?'var(--green)':PRIORITY_COLOR[t.priority]||'var(--border)'};background:${done?'var(--green)':'transparent'};flex-shrink:0;cursor:${done?'default':'pointer'};display:flex;align-items:center;justify-content:center;font-size:11px;">
+      ${done?'✓':''}
+    </button>
+    <!-- Content -->
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;${done?'text-decoration:line-through;color:var(--text-muted);':'color:var(--text);'}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${PRIORITY_EMOJI[t.priority]} ${escHtml(t.title)}${roll}</div>
+      ${t.notes&&!compact?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(t.notes)}</div>`:''}
+      ${t.due_date?`<div style="font-size:10px;color:${t.due_date<localDateStr()?'var(--red)':'var(--text-dim)'};margin-top:1px;">📅 ${t.due_date}</div>`:''}
+    </div>
+    <!-- Actions -->
+    ${!done?`
+      <button onclick="toggleStar('${t.id}')" title="Star" style="background:none;border:none;cursor:pointer;font-size:14px;color:${t.is_starred?'var(--orange)':'var(--text-dim)'};">★</button>
+      ${!compact?`<button onclick="rolloverTodo('${t.id}')" title="Roll to tomorrow" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">→</button>`:''}
+      <button onclick="archiveTodo('${t.id}')" title="Archive" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);">✕</button>
+    `:`<button onclick="archiveTodo('${t.id}')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);">✕</button>`}
+  </div>`;
+}
+
+function renderTodos(){
+  const filter = document.getElementById('todo-filter')?.value || 'all';
+
+  // Active list (full tab)
+  const activeEl = document.getElementById('todo-active-list');
+  const countEl  = document.getElementById('todo-active-count');
+  if(activeEl){
+    let active = todosData.active;
+    if(filter!=='all') active = active.filter(t=>t.priority===filter);
+    if(countEl) countEl.textContent = active.length ? `(${active.length})` : '';
+    activeEl.innerHTML = active.length ? active.map(t=>todoCard(t)).join('') : '<div class="mem-empty">No todos.</div>';
+  }
+
+  // Pinned (starred + urgent, full tab)
+  const pinnedSec = document.getElementById('todo-pinned-section');
+  const pinnedList= document.getElementById('todo-pinned-list');
+  if(pinnedSec && pinnedList){
+    const pinned = todosData.active.filter(t=>t.is_starred||t.priority==='urgent');
+    pinnedSec.style.display = pinned.length ? 'block' : 'none';
+    pinnedList.innerHTML = pinned.map(t=>todoCard(t)).join('');
+  }
+
+  // Completed section
+  const doneEl   = document.getElementById('todo-completed-list');
+  const doneCount= document.getElementById('todo-done-count');
+  if(doneEl){
+    if(doneCount) doneCount.textContent = todosData.completed.length ? `(${todosData.completed.length})` : '';
+    doneEl.innerHTML = todosData.completed.length
+      ? todosData.completed.slice(0,30).map(t=>todoCard(t)).join('')
+      : '<div class="mem-empty">Nothing completed yet.</div>';
+  }
+
+  // History log
+  const histEl = document.getElementById('todo-history-list');
+  if(histEl){
+    histEl.innerHTML = todosData.history.length
+      ? todosData.history.slice(0,50).map(t=>`<div style="padding:6px 10px;font-size:12px;color:var(--text-muted);border-left:3px solid ${PRIORITY_COLOR[t.priority]||'var(--border)'};margin-bottom:4px;">
+          ${PRIORITY_EMOJI[t.priority]} ${escHtml(t.title)} <span style="float:right;font-size:10px;">${t.status} · ${(t.completed_at||t.created_at||'').slice(0,10)}</span>
+        </div>`).join('')
+      : '<div class="mem-empty">No history yet.</div>';
+  }
+
+  // Today tracker panel compact list
+  const ttList = document.getElementById('tt-active-list');
+  if(ttList){
+    const active = todosData.active.slice(0,10);
+    ttList.innerHTML = active.length ? active.map(t=>todoCard(t,true)).join('') : '<div class="mem-empty">No active todos.</div>';
+  }
+}
+
+function renderTodayPinned(){
+  const sec  = document.getElementById('today-pinned-todos');
+  const list = document.getElementById('today-pinned-list');
+  if(!sec||!list) return;
+  const pinned = todosData.active.filter(t=>t.is_starred||t.priority==='urgent').slice(0,5);
+  sec.style.display = pinned.length ? 'block' : 'none';
+  list.innerHTML = pinned.map(t=>todoCard(t,true)).join('');
+}
+
+function toggleTodoSection(section){
+  const listEl  = document.getElementById(`todo-${section}-list`);
+  const chevron = document.getElementById(`todo-${section}-chevron`);
+  if(!listEl) return;
+  const open = listEl.style.display==='none';
+  listEl.style.display = open ? 'block' : 'none';
+  if(chevron) chevron.textContent = open ? '▼' : '▶';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
