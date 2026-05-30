@@ -1277,6 +1277,7 @@ body.viewing-past .tracker-log-only{display:block;}
         <button class="fin-tab" onclick="switchFinanceTab('shifts',this)" id="ftab-shifts">⏱ Shifts</button>
         <button class="fin-tab" onclick="switchFinanceTab('subscriptions',this)" id="ftab-subscriptions">🔁 Subscriptions</button>
         <button class="fin-tab" onclick="switchFinanceTab('goals',this)" id="ftab-goals">🎯 Goals</button>
+        <button class="fin-tab" onclick="switchFinanceTab('paychecks',this)" id="ftab-paychecks">💵 Paychecks</button>
       </div>
 
       <!-- ── OVERVIEW PANEL ── -->
@@ -1480,6 +1481,58 @@ body.viewing-past .tracker-log-only{display:block;}
           <div id="goals-list"><div class="mem-empty">No saving goals yet.</div></div>
         </div>
       </div>
+
+      <!-- ── PAYCHECKS PANEL ── -->
+      <div class="fin-panel" id="fpanel-paychecks">
+
+        <!-- Pending auto-detected banner -->
+        <div id="pc-pending-banner" style="display:none;background:rgba(255,170,68,.08);border:1px solid rgba(255,170,68,.35);border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:6px;">💡 Possible paycheck detected</div>
+          <div style="font-size:12px;color:var(--text-muted);" id="pc-pending-desc"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="fin-btn primary" onclick="confirmDetectedPaycheck()" style="font-size:11px;padding:5px 12px;">✓ Yes, log it</button>
+            <button class="fin-btn" onclick="dismissDetectedPaycheck()" style="font-size:11px;padding:5px 12px;">Dismiss</button>
+          </div>
+        </div>
+
+        <!-- Log form -->
+        <div class="fin-form">
+          <div class="today-section-title" style="margin-bottom:10px;">Log Paycheck</div>
+          <div class="fin-row">
+            <input class="fin-input" id="pc-amount" type="number" placeholder="Amount ($)" min="0" step="0.01" oninput="updateSplitPreview()"/>
+            <input class="fin-input" id="pc-date" type="date"/>
+          </div>
+          <div class="fin-row">
+            <select class="fin-input" id="pc-source">
+              <option value="work">💼 Work / Job</option>
+              <option value="freelance">💻 Freelance</option>
+              <option value="other">📦 Other income</option>
+            </select>
+            <input class="fin-input" id="pc-notes" type="text" placeholder="Notes (optional)"/>
+          </div>
+          <button class="fin-btn primary" onclick="logPaycheck()">💵 Log Paycheck</button>
+        </div>
+
+        <!-- Live split preview -->
+        <div class="today-section" id="pc-split-section" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="today-section-title" style="margin-bottom:0;">How it splits</div>
+            <div id="pc-learn-badge" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--primary-dim);color:var(--primary);display:none;">🧠 JARVIS-learned</div>
+          </div>
+          <div id="pc-split-bars"></div>
+          <div id="pc-learn-hint" style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5;"></div>
+        </div>
+
+        <!-- History -->
+        <div class="today-section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="today-section-title" style="margin-bottom:0;">Paycheck History</div>
+            <div id="pc-total-label" style="font-size:12px;color:var(--teal);"></div>
+          </div>
+          <div id="paychecks-list"><div class="mem-empty">No paychecks logged yet.</div></div>
+        </div>
+
+      </div><!-- end fpanel-paychecks -->
 
     </div><!-- end fin-scroll -->
   </div><!-- end #view-finance -->
@@ -3599,6 +3652,7 @@ let activeFinPanel='overview';
 async function initFinanceTab(){
   if(!supa)return;
   if(!financeLoaded){await loadFinanceData();}
+  await loadPaycheckData();
   populateTxnMonthFilter();
   renderFinanceOverview();
   renderTransactions();
@@ -3606,12 +3660,15 @@ async function initFinanceTab(){
   renderShifts();
   renderSubscriptions();
   renderGoals();
+  renderPaychecks();
   // Default dates for forms
-  const today=new Date().toISOString().slice(0,10);
+  const today=localDateStr();
   const txnDate=document.getElementById('txn-date');
   if(txnDate&&!txnDate.value)txnDate.value=today;
   const shiftDate=document.getElementById('shift-date');
   if(shiftDate&&!shiftDate.value)shiftDate.value=today;
+  const pcDate=document.getElementById('pc-date');
+  if(pcDate&&!pcDate.value)pcDate.value=today;
 }
 
 async function loadFinanceData(){
@@ -3739,6 +3796,8 @@ async function logTransaction(){
       amount,description,category,date,type:activeTxnType
     }).select().single();
     if(error){logError('frontend:finance','supabase_query',error.message||error.code,{action:'logTransaction',amount,category});throw error;}
+    // Auto-detect paychecks from large income transactions
+    if(activeTxnType==='income') checkPaycheckAutoDetect(amount, data?.id, description);
     financeData.transactions.unshift(data);
     document.getElementById('txn-amount').value='';
     document.getElementById('txn-desc').value='';
@@ -4131,6 +4190,181 @@ function getSubIcon(name){
   if(n.includes('insurance'))return '🛡';
   if(n.includes('cloud')||n.includes('dropbox')||n.includes('icloud'))return '☁️';
   return '🔁';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAYCHECK SPLITTER
+// ═══════════════════════════════════════════════════════════════════════════
+let paycheckAllocation = { bills_pct:50, spending_pct:30, savings_pct:15, investing_pct:5, data_weeks:0, use_learned:false };
+let detectedPaycheck = null;
+
+async function loadPaycheckData(){
+  if(!supa) return;
+  try {
+    const { data:alloc } = await supa.from('paycheck_allocation').select('*').eq('id',1).maybeSingle();
+    if(alloc) paycheckAllocation = alloc;
+    const { data:pcs, error } = await supa.from('paychecks').select('*').order('date',{ascending:false}).limit(50);
+    if(error){ logError('frontend:finance','supabase_query',error.message||error.code,{action:'loadPaycheckData'}); }
+    financeData.paychecks = pcs || [];
+  } catch(e){ logError('frontend:finance','js_runtime',e?.message||String(e),{action:'loadPaycheckData'}); }
+}
+
+function updateSplitPreview(){
+  const amt = parseFloat(document.getElementById('pc-amount')?.value) || 0;
+  const sec = document.getElementById('pc-split-section');
+  if(!sec) return;
+  if(amt <= 0){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  const alloc = paycheckAllocation;
+  const useL = alloc.use_learned && alloc.learned_bills_pct;
+  const bp = useL ? alloc.learned_bills_pct    : (alloc.bills_pct||50);
+  const sp = useL ? alloc.learned_spending_pct : (alloc.spending_pct||30);
+  const vp = useL ? alloc.learned_savings_pct  : (alloc.savings_pct||15);
+  const ip = useL ? alloc.learned_investing_pct: (alloc.investing_pct||5);
+  const buckets = [
+    { label:'Bills & Fixed',  pct:bp, amt:amt*(bp/100), color:'var(--orange)', icon:'🏠' },
+    { label:'Spending',        pct:sp, amt:amt*(sp/100), color:'var(--pink)',   icon:'💳' },
+    { label:'Savings',         pct:vp, amt:amt*(vp/100), color:'var(--teal)',   icon:'🐷' },
+    { label:'Investing',       pct:ip, amt:amt*(ip/100), color:'var(--green)',  icon:'📈' },
+  ];
+  document.getElementById('pc-split-bars').innerHTML = buckets.map(b=>`
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:12px;color:var(--text)">${b.icon} ${b.label}</span>
+        <span style="font-size:13px;font-weight:600;color:${b.color}">${fmtMoney(b.amt)} <span style="font-size:10px;font-weight:400;color:var(--text-muted)">(${b.pct}%)</span></span>
+      </div>
+      <div style="height:6px;background:var(--border);border-radius:3px;">
+        <div style="height:6px;background:${b.color};border-radius:3px;width:${b.pct}%;transition:width .3s;"></div>
+      </div>
+    </div>
+  `).join('');
+  const badge = document.getElementById('pc-learn-badge');
+  const hint  = document.getElementById('pc-learn-hint');
+  const weeks = alloc.data_weeks || 0;
+  if(useL){
+    if(badge) badge.style.display='inline-block';
+    if(hint)  hint.textContent = `Percentages adjusted from ${weeks} weeks of your actual spending.`;
+  } else {
+    if(badge) badge.style.display='none';
+    if(hint)  hint.textContent = weeks < 4
+      ? `Using 50/30/15/5 default. After ${4-weeks} more week${4-weeks!==1?'s':''} of data JARVIS will suggest personalized splits.`
+      : `JARVIS has ${weeks} weeks of data — personalized splits are ready.`;
+  }
+}
+
+async function logPaycheck(){
+  if(!supa){ showToast('⚠️ Connect Supabase first'); return; }
+  const amount = parseFloat(document.getElementById('pc-amount').value);
+  const date   = document.getElementById('pc-date').value || localDateStr();
+  const source = document.getElementById('pc-source').value;
+  const notes  = document.getElementById('pc-notes').value.trim();
+  if(!amount || amount <= 0){ showToast('Enter a valid amount'); return; }
+  const alloc = paycheckAllocation;
+  const useL  = alloc.use_learned && alloc.learned_bills_pct;
+  const bp = useL ? alloc.learned_bills_pct    : (alloc.bills_pct||50);
+  const sp = useL ? alloc.learned_spending_pct : (alloc.spending_pct||30);
+  const vp = useL ? alloc.learned_savings_pct  : (alloc.savings_pct||15);
+  const ip = useL ? alloc.learned_investing_pct: (alloc.investing_pct||5);
+  const split_snapshot = {
+    bills_pct:bp, spending_pct:sp, savings_pct:vp, investing_pct:ip,
+    bills_amt:+(amount*(bp/100)).toFixed(2), spending_amt:+(amount*(sp/100)).toFixed(2),
+    savings_amt:+(amount*(vp/100)).toFixed(2), investing_amt:+(amount*(ip/100)).toFixed(2),
+  };
+  try {
+    const { data, error } = await supa.from('paychecks').insert({
+      amount, date, source, notes, split_snapshot, auto_detected:false
+    }).select().single();
+    if(error){ logError('frontend:finance','supabase_query',error.message||error.code,{action:'logPaycheck',amount}); throw error; }
+    financeData.paychecks = financeData.paychecks || [];
+    financeData.paychecks.unshift(data);
+    document.getElementById('pc-amount').value = '';
+    document.getElementById('pc-notes').value  = '';
+    document.getElementById('pc-split-section').style.display = 'none';
+    renderPaychecks();
+    showToast(`💵 ${fmtMoney(amount)} paycheck logged ✓`);
+  } catch(e){ logError('frontend:finance','js_runtime',e?.message||String(e),{action:'logPaycheck'}); showToast('❌ '+(e.message||'Could not log paycheck').slice(0,80)); }
+}
+
+function renderPaychecks(){
+  const list = document.getElementById('paychecks-list');
+  const totalLabel = document.getElementById('pc-total-label');
+  if(!list) return;
+  const pcs = financeData.paychecks || [];
+  if(!pcs.length){ list.innerHTML='<div class="mem-empty">No paychecks logged yet.</div>'; if(totalLabel)totalLabel.textContent=''; return; }
+  const thisMonth = localDateStr().slice(0,7);
+  const monthTotal = pcs.filter(p=>p.date?.slice(0,7)===thisMonth).reduce((s,p)=>s+parseFloat(p.amount||0),0);
+  if(totalLabel) totalLabel.textContent = monthTotal ? `${fmtMoney(monthTotal)} this month` : '';
+  list.innerHTML = pcs.slice(0,20).map(p=>{
+    const ss = p.split_snapshot || {};
+    const src = {work:'💼',freelance:'💻',other:'📦'}[p.source]||'💵';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${ss.bills_amt!==undefined?'8':'0'}px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:18px">${src}</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--teal)">${fmtMoney(p.amount)}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${fmtDate(p.date)} · ${p.source||'work'}${p.notes?' · '+p.notes:''}</div>
+          </div>
+        </div>
+        <button class="txn-del" onclick="deletePaycheck('${p.id}')">✕</button>
+      </div>
+      ${ss.bills_amt!==undefined?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
+        <div style="text-align:center;background:rgba(255,170,68,.1);border-radius:6px;padding:5px;">
+          <div style="font-size:10px;color:var(--orange)">🏠 Bills</div>
+          <div style="font-size:12px;font-weight:600">${fmtMoney(ss.bills_amt)}</div>
+        </div>
+        <div style="text-align:center;background:rgba(255,92,135,.1);border-radius:6px;padding:5px;">
+          <div style="font-size:10px;color:var(--pink)">💳 Spend</div>
+          <div style="font-size:12px;font-weight:600">${fmtMoney(ss.spending_amt)}</div>
+        </div>
+        <div style="text-align:center;background:rgba(0,217,180,.1);border-radius:6px;padding:5px;">
+          <div style="font-size:10px;color:var(--teal)">🐷 Save</div>
+          <div style="font-size:12px;font-weight:600">${fmtMoney(ss.savings_amt)}</div>
+        </div>
+        <div style="text-align:center;background:rgba(68,232,122,.1);border-radius:6px;padding:5px;">
+          <div style="font-size:10px;color:var(--green)">📈 Invest</div>
+          <div style="font-size:12px;font-weight:600">${fmtMoney(ss.investing_amt)}</div>
+        </div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function deletePaycheck(id){
+  if(!id||!supa) return;
+  await supa.from('paychecks').delete().eq('id',id);
+  financeData.paychecks = (financeData.paychecks||[]).filter(p=>p.id!==id);
+  renderPaychecks(); showToast('Deleted');
+}
+
+function checkPaycheckAutoDetect(amount, txnId, description){
+  if(amount >= 100){
+    detectedPaycheck = { amount, txn_id:txnId };
+    const banner = document.getElementById('pc-pending-banner');
+    const desc   = document.getElementById('pc-pending-desc');
+    if(banner && desc){
+      desc.textContent = `A ${fmtMoney(amount)} income was logged${description?' ("'+description+'"   )':''}. Is this a paycheck?`;
+      banner.style.display = 'block';
+      if(!(document.getElementById('fpanel-paychecks')?.classList.contains('active'))){
+        showToast('💡 Possible paycheck detected — check Paychecks tab');
+      }
+    }
+  }
+}
+
+async function confirmDetectedPaycheck(){
+  if(!detectedPaycheck) return;
+  document.getElementById('pc-amount').value = detectedPaycheck.amount;
+  document.getElementById('pc-date').value   = localDateStr();
+  document.getElementById('pc-pending-banner').style.display = 'none';
+  updateSplitPreview();
+  switchFinanceTab('paychecks', document.getElementById('ftab-paychecks'));
+  detectedPaycheck = null;
+  showToast('Fill in details and tap Log Paycheck');
+}
+function dismissDetectedPaycheck(){
+  detectedPaycheck = null;
+  document.getElementById('pc-pending-banner').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
