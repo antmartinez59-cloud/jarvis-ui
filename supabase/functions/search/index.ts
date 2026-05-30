@@ -3,6 +3,8 @@
 // BRAVE_KEY stored in Supabase Vault — never exposed to browser.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const _db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -81,6 +83,7 @@ serve(async (req) => {
       { headers: { ...CORS, 'Content-Type': 'application/json' } }
     )
   } catch (e) {
+    await _db.from('jarvis_errors').insert({ source: 'edge:search', error_type: 'edge_fn', message: String(e?.message||e).slice(0,500) }).catch(()=>{});
     return new Response(
       JSON.stringify({ results: [], error: e.message }),
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }

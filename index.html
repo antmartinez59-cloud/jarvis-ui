@@ -2458,6 +2458,7 @@ async function loadAgentLibrary(){
   }
   grid.innerHTML='<div class="mem-empty" style="grid-column:1/-1" class="dot-anim">Loading agents...</div>';
   const{data,error}=await supa.from('agents').select('*').order('created_at',{ascending:false}).limit(50);
+  if(error){logError('frontend:library','supabase_query',error.message||error.code,{action:'loadAgentLibrary'});}
   agentLibrary=data||[];
   if(!agentLibrary.length){
     grid.innerHTML='<div class="mem-empty" style="grid-column:1/-1">No agents built yet. Go to 🔭 Mastery to create your first expert agent.</div>';
@@ -2484,7 +2485,8 @@ async function loadMasteryHistory(){
     list.innerHTML='<div class="mem-empty">Loading mastery history...</div>';
     return;
   }
-  const{data}=await supa.from('mastery_runs').select('*').order('started_at',{ascending:false}).limit(30);
+  const{data,error:mrErr}=await supa.from('mastery_runs').select('*').order('started_at',{ascending:false}).limit(30);
+  if(mrErr){logError('frontend:library','supabase_query',mrErr.message||mrErr.code,{action:'loadMasteryHistory'});}
   const runs=data||[];
   list.innerHTML=runs.length?runs.map(r=>`
     <div class="lib-run-card">
@@ -2503,7 +2505,8 @@ async function loadMasteryHistory(){
 async function loadConnections(){
   const grid=document.getElementById('lib-connections-grid');
   if(!supa){grid.innerHTML='<div class="mem-empty" style="grid-column:1/-1">Loading connections...</div>';return;}
-  const{data}=await supa.from('connections').select('*').order('type').order('name');
+  const{data,error:connErr}=await supa.from('connections').select('*').order('type').order('name');
+  if(connErr){logError('frontend:library','supabase_query',connErr.message||connErr.code,{action:'loadConnections'});}
   const conns=data||[];
   const typeColor={mcp:'#7c6fff',api:'#00d9b4',orm:'#ffaa44',integration:'#ff5c87',tool:'#44e87a'};
   const typeIcon={mcp:'🔌',api:'🌐',orm:'🗄',integration:'🔗',tool:'⚙️'};
@@ -2662,7 +2665,7 @@ async function loadMemory(){
     if(memory.learnings.length){
       document.getElementById('memory-tab').textContent=`💾 Memory (${memory.learnings.length})`;
     }
-  }catch(e){console.warn('loadMemory error:',e);}
+  }catch(e){logError('frontend:memory','js_runtime',e?.message||String(e),{action:'loadMemory'});console.warn('loadMemory error:',e);}
 }
 
 async function refreshBriefings(){
@@ -2944,6 +2947,7 @@ async function loadTodayMessage(){
       msgEl.textContent='No briefing yet today — your 7am brief will appear here.';
     }
   }catch(e){
+    logError('frontend:today','js_runtime',e?.message||String(e),{action:'loadTodayMessage'});
     msgEl.textContent='Good morning, Tony. Track your habits below.';
   }
 }
@@ -3624,7 +3628,7 @@ async function loadFinanceData(){
     financeData.subscriptions=subRes.data||[];
     financeData.goals=goalRes.data||[];
     financeLoaded=true;
-  }catch(e){console.warn('loadFinanceData error:',e);}
+  }catch(e){logError('frontend:finance','js_runtime',e?.message||String(e),{action:'loadFinanceData'});console.warn('loadFinanceData error:',e);}
 }
 
 // ── Sub-tab switch ───────────────────────────────────────────────────────────
@@ -3734,7 +3738,7 @@ async function logTransaction(){
     const{data,error}=await supa.from('transactions').insert({
       amount,description,category,date,type:activeTxnType
     }).select().single();
-    if(error)throw error;
+    if(error){logError('frontend:finance','supabase_query',error.message||error.code,{action:'logTransaction',amount,category});throw error;}
     financeData.transactions.unshift(data);
     document.getElementById('txn-amount').value='';
     document.getElementById('txn-desc').value='';
@@ -3818,7 +3822,7 @@ async function loadPayRules(){
       document.getElementById('pay-tax').value=data.tax_rate||'';
       document.getElementById('pay-deduct').value=data.deductions||'';
     }
-  }catch(e){}
+  }catch(e){logError('frontend:finance','js_runtime',e?.message||String(e),{action:'loadPayRules'});}
 }
 
 async function savePayRules(){
@@ -3832,11 +3836,11 @@ async function savePayRules(){
     const{data,error}=await supa.from('pay_config').upsert({
       id:1,hourly_rate,ot_threshold,ot_multiplier,tax_rate,deductions,updated_at:new Date().toISOString()
     }).select().single();
-    if(error)throw error;
+    if(error){logError('frontend:finance','supabase_query',error.message||error.code,{action:'savePayRules'});throw error;}
     financeData.payRules=data;
     renderShifts();
     showToast('Pay rules saved ✓');
-  }catch(e){showToast('❌ Pay rules: '+(e.message||e.code||'unknown').slice(0,80));}
+  }catch(e){logError('frontend:finance','js_runtime',e?.message||String(e),{action:'savePayRules'});showToast('❌ Pay rules: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 async function logShift(){
@@ -3856,7 +3860,7 @@ async function logShift(){
     const{data,error}=await supa.from('shifts').insert({
       date,start_time,end_time,duration_hours,gross_pay,notes
     }).select().single();
-    if(error)throw error;
+    if(error){logError('frontend:finance','supabase_query',error.message||error.code,{action:'logShift',date,duration_hours});throw error;}
     financeData.shifts.unshift(data);
     document.getElementById('shift-start').value='';
     document.getElementById('shift-end').value='';
@@ -3864,7 +3868,7 @@ async function logShift(){
     renderShifts();
     updateShiftCalcBox();
     showToast('Shift logged ✓');
-  }catch(e){showToast('❌ Shift: '+(e.message||e.code||'unknown').slice(0,80));}
+  }catch(e){logError('frontend:finance','js_runtime',e?.message||String(e),{action:'logShift',date});showToast('❌ Shift: '+(e.message||e.code||'unknown').slice(0,80));}
 }
 
 function timeToMins(t){const[h,m]=t.split(':').map(Number);return h*60+m;}

@@ -12,6 +12,8 @@
 // ║  POST { title, notes?, dueDate?, priority? }             ║
 // ╚══════════════════════════════════════════════════════════╝
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const _db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const APPLE_USER = Deno.env.get('APPLE_CALDAV_USER');
 const APPLE_PASS = Deno.env.get('APPLE_CALDAV_PASSWORD');
 
@@ -206,6 +208,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
+    await _db.from('jarvis_errors').insert({ source: 'edge:apple-remind', error_type: 'edge_fn', message: String(err).slice(0,500) }).catch(()=>{});
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
     });

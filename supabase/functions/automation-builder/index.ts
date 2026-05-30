@@ -264,6 +264,7 @@ Deno.serve(async (req) => {
 
   } catch (err) {
     console.error('[automation-builder] Error:', err);
+    await db.from('jarvis_errors').insert({ source: 'edge:automation-builder', error_type: 'edge_fn', message: String(err).slice(0,500) }).catch(()=>{});
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
     });

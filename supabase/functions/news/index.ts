@@ -5,6 +5,8 @@
 // ║  Also: random fact + Wordle link                         ║
 // ╚══════════════════════════════════════════════════════════╝
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const _db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const NEWS_API_KEY = Deno.env.get('NEWS_API_KEY');
 const BRAVE_KEY    = Deno.env.get('BRAVE_KEY');
 
@@ -217,6 +219,7 @@ Deno.serve(async (req) => {
 
   } catch (err) {
     console.error('[news] Error:', err);
+    await _db.from('jarvis_errors').insert({ source: 'edge:news', error_type: 'edge_fn', message: String(err).slice(0,500) }).catch(()=>{});
     return new Response(JSON.stringify({ ok: false, error: String(err) }), {
       status: 500,
       headers: { ...CORS, 'Content-Type': 'application/json' },
