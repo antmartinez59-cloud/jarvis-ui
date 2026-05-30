@@ -642,6 +642,7 @@ body.viewing-past .tracker-log-only{display:block;}
     <button class="tab" onclick="switchTab('today',this)" id="today-tab">📊 Today</button>
     <button class="tab" onclick="switchTab('finance',this)" id="finance-tab">💰 Finance</button>
     <button class="tab" onclick="switchTab('todos',this)" id="todos-tab">📋 Todos</button>
+    <button class="tab" onclick="switchTab('calendar',this)" id="calendar-tab">📅 Calendar</button>
   </div>
   <div class="header-right">
     <span id="mode-badge" style="font-size:11px;cursor:default;padding:4px 10px;border-radius:20px;border:1px solid var(--border);" title="Loading...">⏳ Loading</span>
@@ -1005,6 +1006,12 @@ body.viewing-past .tracker-log-only{display:block;}
       <div id="today-pinned-todos" style="display:none;padding:0 16px 10px;">
         <div style="font-size:10px;font-weight:600;color:var(--orange);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">📌 Pinned Todos</div>
         <div id="today-pinned-list"></div>
+      </div>
+
+      <!-- Today's calendar events -->
+      <div id="today-cal-section" style="display:none;padding:0 16px 10px;">
+        <div style="font-size:10px;font-weight:600;color:var(--teal);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">📅 Today's Events</div>
+        <div id="today-cal-list"></div>
       </div>
 
       <!-- Tracker sub-tabs -->
@@ -1732,6 +1739,57 @@ body.viewing-past .tracker-log-only{display:block;}
     </div>
   </div><!-- end #view-todos -->
 
+  <!-- ══════════════ CALENDAR TAB ══════════════ -->
+  <div class="view" id="view-calendar">
+    <div class="fin-scroll">
+      <div style="padding:16px 20px 0;">
+
+        <!-- Week nav -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <button class="fin-btn" onclick="calShiftWeek(-1)" style="padding:6px 14px;">‹ Prev</button>
+          <div id="cal-week-label" style="font-size:14px;font-weight:600;color:var(--text);"></div>
+          <button class="fin-btn" onclick="calShiftWeek(1)" style="padding:6px 14px;">Next ›</button>
+        </div>
+
+        <!-- Week strip -->
+        <div id="cal-week-strip" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px;"></div>
+
+        <!-- Create event form -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;">+ New Event</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input class="fin-input" id="cal-title" type="text" placeholder="Event title" style="flex:1;"/>
+            <input class="fin-input" id="cal-start" type="datetime-local" style="flex:1;"/>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input class="fin-input" id="cal-end" type="datetime-local" style="flex:1;"/>
+            <input class="fin-input" id="cal-location" type="text" placeholder="Location (optional)" style="flex:1;"/>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input class="fin-input" id="cal-notes" type="text" placeholder="Notes (optional)" style="flex:1;"/>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);white-space:nowrap;">
+              <input type="checkbox" id="cal-allday" onchange="toggleCalAllDay()"/> All day
+            </label>
+            <button class="fin-btn primary" onclick="createCalEvent()">Add</button>
+          </div>
+        </div>
+
+        <!-- Events for selected day -->
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;" id="cal-day-label">Today's Events</div>
+          <div id="cal-events-list"><div class="mem-empty">Loading events…</div></div>
+        </div>
+
+        <!-- Upcoming this week -->
+        <div style="margin-top:16px;padding-bottom:20px;">
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">This Week</div>
+          <div id="cal-week-events"><div class="mem-empty">Loading…</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- end #view-calendar -->
+
 </div><!-- end #main -->
 
 <!-- FLOATING QUICK-LOG FAB -->
@@ -1976,6 +2034,7 @@ function switchTab(name,btn){
   if(name==='memory')loadMemoryTab();
   if(name==='library')loadLibraryTab();
   if(name==='todos'){ const d=document.getElementById('todo-due'); if(d&&!d.value)d.value=localDateStr(); loadTodos(); }
+  if(name==='calendar') initCalendarTab();
 }
 function showLibSection(name,btn){
   document.querySelectorAll('.lib-tab').forEach(t=>t.classList.remove('active'));
@@ -3180,7 +3239,8 @@ async function initTodayTab(){
   updateDateNav();
   await loadTodayData();
   await loadTodayMessage();
-  loadTodos(); // load todos so pinned section shows
+  loadTodos();          // load todos so pinned section shows
+  loadTodayCalEvents(); // load today's calendar events
 }
 
 // ── Load today's message from briefings table ─────────────────────────────
@@ -5236,6 +5296,202 @@ function dismissDetectedPaycheck(){
 // END LAYER 4
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════════════════════════════════════
+let calEvents = [];           // all events loaded for the current range
+let calSelectedDate = localDateStr(); // YYYY-MM-DD
+let calWeekOffset = 0;        // 0 = this week, -1 = last week, +1 = next week
+
+// ── Load events from apple-calendar Edge Function ─────────────────────────
+async function loadCalEvents(start, end){
+  if(!supabaseUrl || !supabaseKey){ return []; }
+  try{
+    const res = await callEndpoint(`apple-calendar?start=${start}&end=${end}`, {}, 'GET');
+    if(!res.ok) return [];
+    const { events } = await res.json();
+    return events || [];
+  }catch(e){
+    logError('frontend:calendar','network',e?.message||String(e),{action:'loadCalEvents'});
+    return [];
+  }
+}
+
+// ── Week helpers ─────────────────────────────────────────────────────────
+function getWeekDates(offset=0){
+  const now = new Date(); now.setHours(0,0,0,0);
+  const day = now.getDay();
+  const sunday = new Date(now); sunday.setDate(now.getDate() - day + offset*7);
+  return Array.from({length:7}, (_,i)=>{ const d=new Date(sunday); d.setDate(sunday.getDate()+i); return localDateStr(d); });
+}
+
+// ── Init calendar tab ─────────────────────────────────────────────────────
+async function initCalendarTab(){
+  calWeekOffset = 0;
+  calSelectedDate = localDateStr();
+  await refreshCalendar();
+}
+
+async function refreshCalendar(){
+  const days = getWeekDates(calWeekOffset);
+  const start = days[0], end = days[6];
+
+  // Week label
+  const labelEl = document.getElementById('cal-week-label');
+  if(labelEl){
+    const s = new Date(start+'T00:00:00');
+    const e = new Date(end+'T00:00:00');
+    labelEl.textContent = calWeekOffset===0 ? 'This Week'
+      : `${s.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${e.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+  }
+
+  // Load events
+  calEvents = await loadCalEvents(start, end);
+
+  renderWeekStrip(days);
+  renderDayEvents(calSelectedDate);
+  renderWeekEvents(days);
+}
+
+// ── Week strip (7 day buttons) ────────────────────────────────────────────
+function renderWeekStrip(days){
+  const strip = document.getElementById('cal-week-strip');
+  if(!strip) return;
+  const today = localDateStr();
+  const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  strip.innerHTML = days.map(d=>{
+    const dt = new Date(d+'T00:00:00');
+    const dayName = DAY_NAMES[dt.getDay()];
+    const dayNum  = dt.getDate();
+    const isToday = d===today;
+    const isSelected = d===calSelectedDate;
+    const hasEvents = calEvents.some(e=>e.start?.slice(0,10)===d);
+
+    return `<button onclick="calSelectDay('${d}')" style="
+      display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:10px;
+      border:1px solid ${isSelected?'var(--primary)':isToday?'var(--primary-border)':'var(--border)'};
+      background:${isSelected?'var(--primary)':isToday?'var(--primary-dim)':'var(--card)'};
+      cursor:pointer;transition:all .2s;gap:3px;">
+      <span style="font-size:10px;color:${isSelected?'#fff':'var(--text-muted)'};">${dayName}</span>
+      <span style="font-size:14px;font-weight:${isToday||isSelected?'700':'400'};color:${isSelected?'#fff':isToday?'var(--primary)':'var(--text)'};">${dayNum}</span>
+      <div style="width:5px;height:5px;border-radius:50%;background:${hasEvents?(isSelected?'#fff':'var(--teal)'):'transparent'};"></div>
+    </button>`;
+  }).join('');
+}
+
+function calSelectDay(date){
+  calSelectedDate = date;
+  renderWeekStrip(getWeekDates(calWeekOffset));
+  renderDayEvents(date);
+  const label = document.getElementById('cal-day-label');
+  if(label){
+    const dt = new Date(date+'T00:00:00');
+    const isToday = date===localDateStr();
+    label.textContent = isToday ? "Today's Events" : dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  }
+}
+
+// ── Render events for a specific day ─────────────────────────────────────
+function renderDayEvents(date){
+  const el = document.getElementById('cal-events-list');
+  if(!el) return;
+  const dayEvents = calEvents.filter(e=>e.start?.slice(0,10)===date);
+  if(!dayEvents.length){
+    el.innerHTML='<div class="mem-empty">No events.</div>';
+    return;
+  }
+  el.innerHTML = dayEvents.map(e=>eventCard(e)).join('');
+}
+
+// ── Render all week events grouped by day ─────────────────────────────────
+function renderWeekEvents(days){
+  const el = document.getElementById('cal-week-events');
+  if(!el) return;
+  const today = localDateStr();
+  let html = '';
+  for(const d of days){
+    const dayEvts = calEvents.filter(e=>e.start?.slice(0,10)===d);
+    if(!dayEvts.length) continue;
+    const dt = new Date(d+'T00:00:00');
+    const label = d===today ? 'Today' : dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    html += `<div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">${label}</div>
+      ${dayEvts.map(e=>eventCard(e,true)).join('')}
+    </div>`;
+  }
+  el.innerHTML = html || '<div class="mem-empty">No events this week.</div>';
+}
+
+// ── Event card ────────────────────────────────────────────────────────────
+function eventCard(e, compact=false){
+  const timeStr = e.allDay ? 'All day' : (e.start?.slice(11,16)||'');
+  const endStr  = e.end && !e.allDay ? ` – ${e.end.slice(11,16)}` : '';
+  return `<div style="background:var(--card);border:1px solid var(--teal-border);border-left:3px solid var(--teal);border-radius:9px;padding:10px 12px;margin-bottom:6px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${e.location||e.notes?'4':'0'}px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text);">${escHtml(e.title||'')}</div>
+      <div style="font-size:11px;color:var(--teal);flex-shrink:0;margin-left:8px;">${timeStr}${endStr}</div>
+    </div>
+    ${e.location&&!compact?`<div style="font-size:11px;color:var(--text-muted);">📍 ${escHtml(e.location)}</div>`:''}
+    ${e.notes&&!compact?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(e.notes.slice(0,100))}</div>`:''}
+  </div>`;
+}
+
+// ── Week navigation ───────────────────────────────────────────────────────
+async function calShiftWeek(dir){
+  calWeekOffset += dir;
+  await refreshCalendar();
+}
+
+// ── Toggle all-day on create form ─────────────────────────────────────────
+function toggleCalAllDay(){
+  const allDay = document.getElementById('cal-allday')?.checked;
+  const startEl = document.getElementById('cal-start');
+  const endEl   = document.getElementById('cal-end');
+  if(startEl) startEl.type = allDay ? 'date' : 'datetime-local';
+  if(endEl)   endEl.type   = allDay ? 'date' : 'datetime-local';
+}
+
+// ── Create event ──────────────────────────────────────────────────────────
+async function createCalEvent(){
+  const title    = document.getElementById('cal-title')?.value.trim();
+  const start    = document.getElementById('cal-start')?.value;
+  const end      = document.getElementById('cal-end')?.value;
+  const location = document.getElementById('cal-location')?.value.trim() || null;
+  const notes    = document.getElementById('cal-notes')?.value.trim() || null;
+  const allDay   = document.getElementById('cal-allday')?.checked || false;
+
+  if(!title||!start){ showToast('Title and start time are required'); return; }
+
+  try{
+    const res = await callEndpoint('apple-calendar', { title, start, end:end||start, location, notes, allDay }, 'POST');
+    const json = await res.json();
+    if(!json.ok){ showToast('❌ '+(json.error||'Could not create event').slice(0,80)); return; }
+    showToast('📅 Event added to Apple Calendar ✓');
+    // Clear form
+    ['cal-title','cal-start','cal-end','cal-location','cal-notes'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    await refreshCalendar(); // refresh to show new event
+  }catch(e){
+    logError('frontend:calendar','network',e?.message||String(e),{action:'createCalEvent'});
+    showToast('❌ Could not create event');
+  }
+}
+
+// ── Load today's events for Today tab ────────────────────────────────────
+async function loadTodayCalEvents(){
+  const today = localDateStr();
+  const events = await loadCalEvents(today, today);
+  const sec  = document.getElementById('today-cal-section');
+  const list = document.getElementById('today-cal-list');
+  if(!sec||!list) return;
+  if(!events.length){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  list.innerHTML = events.map(e=>eventCard(e,true)).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Supabase connection check — show a one-time hint if keys aren't configured yet
 if(!supabaseUrl || !supabaseKey){
   const b=document.createElement('div');

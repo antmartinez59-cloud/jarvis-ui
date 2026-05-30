@@ -51,6 +51,9 @@ supabase functions deploy meal-photo          --no-verify-jwt
 :: ── Debug Agent ─────────────────────────────────────────────
 supabase functions deploy debug-agent         --no-verify-jwt
 
+:: ── Layer 7 — Integrations ───────────────────────────────────
+supabase functions deploy apple-calendar      --no-verify-jwt
+
 echo.
 echo [3/3] Done! Your Edge Function URLs are:
 echo.
