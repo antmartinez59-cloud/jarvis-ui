@@ -1199,7 +1199,10 @@ body.viewing-past .tracker-log-only{display:block;}
             </div>
 
             <textarea id="workout-notes" class="form-input" placeholder="Notes (optional)… e.g. 'felt strong today', 'knee was tight'" rows="2" style="margin-bottom:12px;font-size:12px;resize:none;"></textarea>
-            <button class="log-preset-btn primary" onclick="logWorkout()" style="width:100%">💪 Log Workout</button>
+            <div style="display:flex;gap:8px;">
+              <button class="log-preset-btn primary" onclick="logWorkout()" style="flex:1">💪 Log Workout</button>
+              <button class="log-preset-btn" onclick="logRestDay()" id="rest-day-btn" style="flex:0 0 auto;background:rgba(119,119,170,.1);border-color:var(--border);color:var(--text-muted);">🛌 Rest Day</button>
+            </div>
           </div>
 
           <!-- Workout history -->
@@ -1266,6 +1269,59 @@ body.viewing-past .tracker-log-only{display:block;}
       </div>
       <!-- ══ GAINS TRACKER PANEL ══ -->
       <div class="tracker-panel" id="tp-gains">
+
+        <!-- Overall fitness score + streak -->
+        <div class="today-section">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <!-- Score ring -->
+            <div style="position:relative;flex-shrink:0;width:80px;height:80px;display:flex;align-items:center;justify-content:center;">
+              <svg width="80" height="80" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="6"/>
+                <circle id="gains-score-ring" cx="40" cy="40" r="34" fill="none" stroke="var(--primary)" stroke-width="6"
+                  stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
+                  style="transition:stroke-dashoffset 1s ease"/>
+              </svg>
+              <div style="text-align:center;z-index:1;">
+                <div id="gains-score-num" style="font-size:22px;font-weight:800;color:var(--primary);">0</div>
+                <div style="font-size:9px;color:var(--text-muted);">SCORE</div>
+              </div>
+            </div>
+            <!-- Stats beside ring -->
+            <div style="flex:1;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                  <div style="font-size:10px;color:var(--text-muted);">🔥 Streak</div>
+                  <div id="gains-streak-num" style="font-size:20px;font-weight:700;color:var(--orange);">0</div>
+                  <div id="gains-streak-label" style="font-size:10px;color:var(--text-muted);">days</div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:var(--text-muted);">📅 This Week</div>
+                  <div id="gains-week-sessions" style="font-size:20px;font-weight:700;color:var(--teal);">0</div>
+                  <div style="font-size:10px;color:var(--text-muted);">sessions</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="gains-score-label" style="font-size:11px;color:var(--text-muted);margin-top:10px;text-align:center;"></div>
+        </div>
+
+        <!-- Total volume line chart (8 weeks) -->
+        <div class="today-section">
+          <div class="today-section-title" style="margin-bottom:10px;">📈 Overall Volume (8 weeks)</div>
+          <svg id="gains-volume-chart" width="100%" height="140" style="overflow:visible;"></svg>
+          <div id="gains-volume-empty" class="mem-empty" style="display:none;">Log at least 2 weeks of workouts to see the chart.</div>
+        </div>
+
+        <!-- Body weight + strength chart -->
+        <div class="today-section">
+          <div class="today-section-title" style="margin-bottom:10px;">⚖️ Body Weight + Strength</div>
+          <svg id="gains-bw-chart" width="100%" height="140" style="overflow:visible;"></svg>
+          <div id="gains-bw-empty" class="mem-empty" style="display:none;">Log body stats in Settings and workouts to see this chart.</div>
+          <div style="display:flex;gap:16px;margin-top:6px;justify-content:center;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--teal)"><div style="width:12px;height:3px;background:var(--teal);border-radius:2px;"></div>Body weight</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--primary)"><div style="width:12px;height:3px;background:var(--primary);border-radius:2px;"></div>Volume</div>
+          </div>
+        </div>
 
         <!-- PR Cards -->
         <div class="today-section">
@@ -3477,21 +3533,231 @@ function getMuscleGroups(exerciseName){
   return ['other'];
 }
 
+async function logRestDay(){
+  if(!supa){ showToast('⚠️ Connect Supabase first'); return; }
+  const btn = document.getElementById('rest-day-btn');
+  const logTs = new Date(viewingDate+'T12:00:00').toISOString();
+  // Check if already logged today
+  const existing = todayData.workouts.find(w=>w.type==='rest');
+  if(existing){ showToast('Rest day already logged for today'); return; }
+  const { data, error } = await supa.from('workouts').insert({
+    type:'rest', exercises:null, cardio:null, notes:'Rest day', created_at:logTs
+  }).select().single();
+  if(error){ showToast('❌ Could not log rest day'); return; }
+  todayData.workouts.unshift(data);
+  renderDashboard(); renderWorkoutLog();
+  if(btn){ btn.textContent='✓ Rest Day'; btn.style.color='var(--green)'; btn.style.borderColor='var(--green)'; }
+  showToast('🛌 Rest day logged — streak protected');
+}
+
 async function loadGainsData(){
   if(!supa){ return; }
   try{
-    const { data, error } = await supa.from('workouts')
-      .select('id,created_at,type,exercises')
-      .not('exercises','is',null)
-      .order('created_at',{ascending:true})
-      .limit(200);
-    if(error){ logError('frontend:today','supabase_query',error.message,{action:'loadGainsData'}); return; }
-    gainsData = (data||[]).filter(w=>w.exercises&&w.exercises.length);
+    const [workoutRes, bodyRes] = await Promise.all([
+      supa.from('workouts').select('id,created_at,type,exercises').order('created_at',{ascending:true}).limit(300),
+      supa.from('body_stats').select('date,weight_lbs').order('date',{ascending:true}).limit(100),
+    ]);
+    if(workoutRes.error){ logError('frontend:today','supabase_query',workoutRes.error.message,{action:'loadGainsData'}); }
+    gainsData = (workoutRes.data||[]);
+    const bodyStats = bodyRes.data||[];
+    renderGainsScore();
+    renderTotalVolumeChart();
+    renderBodyStrengthChart(bodyStats);
     renderPRs();
     populateLiftSelect();
     renderWeeklyVolume();
     renderMuscleFrequency();
   }catch(e){ logError('frontend:today','js_runtime',e?.message||String(e),{action:'loadGainsData'}); }
+}
+
+function renderGainsScore(){
+  // Streak: consecutive days going back from today where workout OR rest day exists
+  const now = new Date(); now.setHours(0,0,0,0);
+  const daySet = new Set(gainsData.map(w=>w.created_at?.slice(0,10)));
+  let streak=0;
+  for(let i=0;i<60;i++){
+    const d=new Date(now); d.setDate(d.getDate()-i);
+    const ds=localDateStr(d);
+    if(daySet.has(ds)) streak++;
+    else if(i>0) break; // only stop on miss after day 0
+  }
+
+  // Sessions this week (non-rest)
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay());
+  const weekSessions=gainsData.filter(w=>w.type!=='rest'&&new Date(w.created_at)>=weekStart).length;
+
+  // Volume this week vs last
+  const lastWeekStart=new Date(weekStart); lastWeekStart.setDate(weekStart.getDate()-7);
+  const calcVol=ws=>gainsData.filter(w=>w.type!=='rest'&&new Date(w.created_at)>=ws)
+    .reduce((s,w)=>s+(w.exercises||[]).reduce((a,ex)=>a+(parseFloat(ex.weight)||0)*(parseInt(ex.reps)||0)*(parseInt(ex.sets)||1),0),0);
+  const thisVol=calcVol(weekStart);
+  const lastVol=calcVol(lastWeekStart)-thisVol;
+
+  // Score: frequency(40) + volume trend(40) + streak(20)
+  const freqScore = Math.min(1, weekSessions/4)*40;
+  const volScore  = lastVol>0 ? Math.min(1, thisVol/lastVol)*40 : (thisVol>0?40:0);
+  const strScore  = Math.min(1, streak/7)*20;
+  const score     = Math.round(freqScore+volScore+strScore);
+
+  // Ring: dasharray=213.6 (2π×34)
+  const circ=213.6;
+  const el=document.getElementById('gains-score-ring');
+  if(el) el.setAttribute('stroke-dashoffset', circ*(1-score/100));
+  const numEl=document.getElementById('gains-score-num');
+  if(numEl) numEl.textContent=score;
+
+  const streakEl=document.getElementById('gains-streak-num');
+  const streakLabel=document.getElementById('gains-streak-label');
+  const weekEl=document.getElementById('gains-week-sessions');
+  if(streakEl) streakEl.textContent=streak;
+  if(streakLabel) streakLabel.textContent=streak===1?'day':'days';
+  if(weekEl) weekEl.textContent=weekSessions;
+
+  const label=document.getElementById('gains-score-label');
+  if(label){
+    const msg=score>=80?'🔥 You\'re crushing it this week!'
+      :score>=60?'💪 Solid week — keep the momentum'
+      :score>=40?'📈 Building consistency'
+      :'🌱 Log your first workout to start tracking';
+    label.textContent=msg;
+  }
+}
+
+function renderTotalVolumeChart(){
+  const svgEl=document.getElementById('gains-volume-chart');
+  const emptyEl=document.getElementById('gains-volume-empty');
+  if(!svgEl)return;
+
+  // Aggregate weekly volume over last 8 weeks
+  const weeks=[];
+  const now=new Date(); now.setHours(0,0,0,0);
+  for(let i=7;i>=0;i--){
+    const ws=new Date(now); ws.setDate(now.getDate()-now.getDay()-i*7);
+    const we=new Date(ws); we.setDate(ws.getDate()+7);
+    const vol=gainsData.filter(w=>w.type!=='rest').reduce((s,w)=>{
+      const d=new Date(w.created_at);
+      if(d>=ws&&d<we) return s+(w.exercises||[]).reduce((a,ex)=>a+(parseFloat(ex.weight)||0)*(parseInt(ex.reps)||0)*(parseInt(ex.sets)||1),0);
+      return s;
+    },0);
+    const label=`${ws.getMonth()+1}/${ws.getDate()}`;
+    weeks.push({label,vol,week:i});
+  }
+
+  const nonZero=weeks.filter(w=>w.vol>0);
+  if(nonZero.length<2){ svgEl.innerHTML=''; if(emptyEl)emptyEl.style.display='block'; return; }
+  if(emptyEl) emptyEl.style.display='none';
+
+  const W=svgEl.getBoundingClientRect().width||300, H=140;
+  const pad={t:16,r:16,b:28,l:50};
+  const maxV=Math.max(...weeks.map(w=>w.vol))||1;
+  const xStep=(W-pad.l-pad.r)/(weeks.length-1);
+  const yScale=v=>pad.t+(H-pad.t-pad.b)*(1-v/maxV);
+  const pathD=weeks.map((w,i)=>`${i===0?'M':'L'}${pad.l+i*xStep},${yScale(w.vol)}`).join(' ');
+  // Fill area under line
+  const areaD=pathD+` L${pad.l+(weeks.length-1)*xStep},${H-pad.b} L${pad.l},${H-pad.b} Z`;
+
+  svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svgEl.innerHTML=`
+    <defs>
+      <linearGradient id="vol-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7c6fff" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#7c6fff" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <text x="${pad.l-6}" y="${yScale(maxV)+4}" fill="#7777aa" font-size="9" text-anchor="end">${Math.round(maxV/1000)}k</text>
+    <text x="${pad.l-6}" y="${H-pad.b+4}" fill="#7777aa" font-size="9" text-anchor="end">0</text>
+    <path d="${areaD}" fill="url(#vol-grad)"/>
+    <path d="${pathD}" fill="none" stroke="#7c6fff" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${weeks.map((w,i)=>`
+      <circle cx="${pad.l+i*xStep}" cy="${yScale(w.vol)}" r="${w.vol>0?3.5:2}" fill="${w.vol>0?'#7c6fff':'#22224a'}"/>
+      <text x="${pad.l+i*xStep}" y="${H-8}" fill="#7777aa" font-size="9" text-anchor="middle">${w.label}</text>
+    `).join('')}
+  `;
+}
+
+function renderBodyStrengthChart(bodyStats){
+  const svgEl=document.getElementById('gains-bw-chart');
+  const emptyEl=document.getElementById('gains-bw-empty');
+  if(!svgEl)return;
+
+  // Body weight points by date
+  const bwPts=bodyStats.map(b=>({date:b.date,val:parseFloat(b.weight_lbs)||0})).filter(b=>b.val>0);
+
+  // Weekly strength volume points (last 8 weeks, same as volume chart)
+  const now=new Date(); now.setHours(0,0,0,0);
+  const volPts=[];
+  for(let i=7;i>=0;i--){
+    const ws=new Date(now); ws.setDate(now.getDate()-now.getDay()-i*7);
+    const we=new Date(ws); we.setDate(ws.getDate()+7);
+    const vol=gainsData.filter(w=>w.type!=='rest').reduce((s,w)=>{
+      const d=new Date(w.created_at);
+      if(d>=ws&&d<we) return s+(w.exercises||[]).reduce((a,ex)=>a+(parseFloat(ex.weight)||0)*(parseInt(ex.reps)||0)*(parseInt(ex.sets)||1),0);
+      return s;
+    },0);
+    volPts.push({date:localDateStr(ws),val:vol});
+  }
+
+  if(bwPts.length<2&&volPts.filter(v=>v.val>0).length<2){
+    svgEl.innerHTML=''; if(emptyEl)emptyEl.style.display='block'; return;
+  }
+  if(emptyEl) emptyEl.style.display='none';
+
+  const W=svgEl.getBoundingClientRect().width||300, H=140;
+  const pad={t:16,r:40,b:28,l:40};
+  const innerW=W-pad.l-pad.r, innerH=H-pad.t-pad.b;
+
+  // Body weight scale (left axis, teal)
+  const bwMin=bwPts.length?Math.min(...bwPts.map(b=>b.val))-5:100;
+  const bwMax=bwPts.length?Math.max(...bwPts.map(b=>b.val))+5:200;
+  const bwY=v=>pad.t+innerH*(1-(v-bwMin)/(bwMax-bwMin||1));
+
+  // Volume scale (right axis, purple) — normalize to same height
+  const volMax=Math.max(...volPts.map(v=>v.val))||1;
+  const volY=v=>pad.t+innerH*(1-v/volMax);
+
+  // X scale across 8 weeks
+  const xStep=innerW/(volPts.length-1);
+
+  // Body weight path — map by nearest week
+  const bwPath=bwPts.length>=2?bwPts.map((b,i)=>{
+    const allDates=bwPts.map(p=>p.date);
+    const minDate=allDates[0],maxDate=allDates[allDates.length-1];
+    const span=new Date(maxDate)-new Date(minDate)||1;
+    const x=pad.l+((new Date(b.date)-new Date(minDate))/span)*innerW;
+    return `${i===0?'M':'L'}${x},${bwY(b.val)}`;
+  }).join(' '):'';
+
+  // Volume path
+  const volPath=volPts.map((v,i)=>`${i===0?'M':'L'}${pad.l+i*xStep},${volY(v.val)}`).join(' ');
+
+  svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svgEl.innerHTML=`
+    <!-- Left axis (body weight) -->
+    ${bwPts.length?`<text x="${pad.l-4}" y="${pad.t+4}" fill="#00d9b4" font-size="9" text-anchor="end">${Math.round(bwMax)}</text>
+    <text x="${pad.l-4}" y="${H-pad.b+4}" fill="#00d9b4" font-size="9" text-anchor="end">${Math.round(bwMin)}</text>`:''}
+    <!-- Right axis (volume) -->
+    <text x="${W-pad.r+4}" y="${pad.t+4}" fill="#7c6fff" font-size="9" text-anchor="start">${Math.round(volMax/1000)}k</text>
+    <text x="${W-pad.r+4}" y="${H-pad.b+4}" fill="#7c6fff" font-size="9" text-anchor="start">0</text>
+    <!-- Grid -->
+    <line x1="${pad.l}" y1="${pad.t+innerH/2}" x2="${W-pad.r}" y2="${pad.t+innerH/2}" stroke="#22224a" stroke-width="1" stroke-dasharray="4,4"/>
+    <!-- Volume bars (subtle) -->
+    ${volPts.map((v,i)=>v.val>0?`<rect x="${pad.l+i*xStep-4}" y="${volY(v.val)}" width="8" height="${H-pad.b-volY(v.val)}" fill="rgba(124,111,255,.15)" rx="2"/>`:'').join('')}
+    <!-- Volume line -->
+    <path d="${volPath}" fill="none" stroke="#7c6fff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="none"/>
+    <!-- Body weight line -->
+    ${bwPath?`<path d="${bwPath}" fill="none" stroke="#00d9b4" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`:''}
+    <!-- Body weight dots -->
+    ${bwPts.length>=2?bwPts.map((b,i)=>{
+      const allDates=bwPts.map(p=>p.date);
+      const minDate=allDates[0],maxDate=allDates[allDates.length-1];
+      const span=new Date(maxDate)-new Date(minDate)||1;
+      const x=pad.l+((new Date(b.date)-new Date(minDate))/span)*innerW;
+      return `<circle cx="${x}" cy="${bwY(b.val)}" r="3.5" fill="#00d9b4"/>
+              <text x="${x}" y="${bwY(b.val)-7}" fill="#00d9b4" font-size="9" text-anchor="middle">${b.val}</text>`;
+    }).join(''):''}
+    <!-- X labels -->
+    ${volPts.filter((_,i)=>i%2===0).map((v,i)=>`<text x="${pad.l+i*2*xStep}" y="${H-8}" fill="#7777aa" font-size="9" text-anchor="middle">${v.date?.slice(5)}</text>`).join('')}
+  `;
 }
 
 function renderPRs(){
