@@ -2644,7 +2644,7 @@ function appendAutoAgentBanner(agent){
 async function loadMemory(){
   if(!supa){ return; }
   try{
-    const today=new Date().toISOString().slice(0,10);
+    const today=localDateStr();
     const[profileRes,learningsRes,sessionsRes,synthRes,briefRes]=await Promise.all([
       supa.from('profile').select('*').eq('id',1).single(),
       supa.from('learnings').select('*').order('created_at',{ascending:false}).limit(50),
@@ -2668,7 +2668,7 @@ async function loadMemory(){
 async function refreshBriefings(){
   if(!supa)return;
   try{
-    const today=new Date().toISOString().slice(0,10);
+    const today=localDateStr();
     const{data}=await supa.from('briefings').select('*').gte('created_at',today).order('created_at',{ascending:false}).limit(10);
     memory.briefings=data||[];
     renderBriefings();
@@ -2930,7 +2930,7 @@ async function loadTodayMessage(){
   const timeEl=document.getElementById('today-msg-time');
   if(!supa){ msgEl.textContent='Connect Supabase in Settings to see your briefings.'; return; }
   try{
-    const today=new Date().toISOString().slice(0,10);
+    const today=localDateStr();
     const{data}=await supa.from('briefings')
       .select('*').eq('briefing_type','morning').gte('created_at',today)
       .order('created_at',{ascending:false}).limit(1);
