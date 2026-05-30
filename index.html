@@ -2898,7 +2898,7 @@ async function loadMemory(){
   try{
     const today=localDateStr();
     const[profileRes,learningsRes,sessionsRes,synthRes,briefRes]=await Promise.all([
-      supa.from('profile').select('*').eq('id',1).single(),
+      supa.from('profile').select('*').eq('id',1).maybeSingle(),
       supa.from('learnings').select('*').order('created_at',{ascending:false}).limit(50),
       supa.from('sessions').select('*').order('created_at',{ascending:false}).limit(30),
       supa.from('profile_history').select('*').order('created_at',{ascending:false}).limit(1),
