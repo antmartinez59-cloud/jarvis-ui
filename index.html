@@ -4186,24 +4186,28 @@ async function archiveTodo(id){
 
 function todoCard(t, compact=false){
   const done = t.status==='completed';
+  const id = t.id;
   const roll = t.roll_count>0 ? `<span style="font-size:10px;color:var(--text-dim);margin-left:4px;">↩${t.roll_count}</span>` : '';
-  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--card);border:1px solid ${t.is_starred?'rgba(255,170,68,.4)':done?'var(--border)':'var(--border)'};border-radius:9px;margin-bottom:6px;opacity:${done?'.6':'1'};">
-    <!-- Checkbox -->
-    <button onclick="${done?'':('completeTodo(\''+t.id+'\')')}" style="width:20px;height:20px;border-radius:50%;border:2px solid ${done?'var(--green)':PRIORITY_COLOR[t.priority]||'var(--border)'};background:${done?'var(--green)':'transparent'};flex-shrink:0;cursor:${done?'default':'pointer'};display:flex;align-items:center;justify-content:center;font-size:11px;">
+  const borderColor = t.is_starred ? 'rgba(255,170,68,.4)' : 'var(--border)';
+  const checkColor  = done ? 'var(--green)' : (PRIORITY_COLOR[t.priority]||'var(--border)');
+  const textStyle   = done ? 'text-decoration:line-through;color:var(--text-muted);' : 'color:var(--text);';
+  const starColor   = t.is_starred ? 'var(--orange)' : 'var(--text-dim)';
+  const overdue     = t.due_date && t.due_date < localDateStr();
+
+  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--card);border:1px solid ${borderColor};border-radius:9px;margin-bottom:6px;opacity:${done?'.6':'1'};">
+    <button onclick="completeTodo('${id}')" ${done?'disabled':''} style="width:20px;height:20px;border-radius:50%;border:2px solid ${checkColor};background:${done?'var(--green)':'transparent'};flex-shrink:0;cursor:${done?'default':'pointer'};display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;">
       ${done?'✓':''}
     </button>
-    <!-- Content -->
     <div style="flex:1;min-width:0;">
-      <div style="font-size:13px;${done?'text-decoration:line-through;color:var(--text-muted);':'color:var(--text);'}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${PRIORITY_EMOJI[t.priority]} ${escHtml(t.title)}${roll}</div>
+      <div style="font-size:13px;${textStyle}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${PRIORITY_EMOJI[t.priority]} ${escHtml(t.title)}${roll}</div>
       ${t.notes&&!compact?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(t.notes)}</div>`:''}
-      ${t.due_date?`<div style="font-size:10px;color:${t.due_date<localDateStr()?'var(--red)':'var(--text-dim)'};margin-top:1px;">📅 ${t.due_date}</div>`:''}
+      ${t.due_date?`<div style="font-size:10px;color:${overdue?'var(--red)':'var(--text-dim)'};margin-top:1px;">📅 ${t.due_date}</div>`:''}
     </div>
-    <!-- Actions -->
     ${!done?`
-      <button onclick="toggleStar('${t.id}')" title="Star" style="background:none;border:none;cursor:pointer;font-size:14px;color:${t.is_starred?'var(--orange)':'var(--text-dim)'};">★</button>
-      ${!compact?`<button onclick="rolloverTodo('${t.id}')" title="Roll to tomorrow" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">→</button>`:''}
-      <button onclick="archiveTodo('${t.id}')" title="Archive" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);">✕</button>
-    `:`<button onclick="archiveTodo('${t.id}')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);">✕</button>`}
+      <button onclick="toggleStar('${id}')" title="Star" style="background:none;border:none;cursor:pointer;font-size:14px;color:${starColor};">★</button>
+      ${!compact?`<button onclick="rolloverTodo('${id}')" title="Roll to tomorrow" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-dim);">→</button>`:''}
+      <button onclick="archiveTodo('${id}')" title="Archive" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);">✕</button>
+    `:`<button onclick="archiveTodo('${id}')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);">✕</button>`}
   </div>`;
 }
 
