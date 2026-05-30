@@ -1314,9 +1314,19 @@ body.viewing-past .tracker-log-only{display:block;}
 
         <!-- Body weight + strength chart -->
         <div class="today-section">
-          <div class="today-section-title" style="margin-bottom:10px;">⚖️ Body Weight + Strength</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="today-section-title" style="margin-bottom:0;">⚖️ Body Weight + Strength</div>
+            <button class="log-preset-btn" onclick="document.getElementById('bw-log-form').style.display=document.getElementById('bw-log-form').style.display==='none'?'flex':'none'" style="font-size:11px;padding:4px 10px;">+ Log Weight</button>
+          </div>
+          <!-- Quick log form -->
+          <div id="bw-log-form" style="display:none;gap:8px;align-items:center;margin-bottom:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;">
+            <input type="number" id="bw-input" class="fin-input" placeholder="Weight (lbs)" step="0.1" min="50" max="500" style="flex:1;"/>
+            <input type="date" id="bw-date" class="fin-input" style="flex:1;"/>
+            <input type="number" id="bw-bodyfat" class="fin-input" placeholder="Body fat % (opt)" step="0.1" min="1" max="60" style="flex:1;"/>
+            <button class="log-preset-btn primary" onclick="logBodyWeight()" style="white-space:nowrap;">Save</button>
+          </div>
           <svg id="gains-bw-chart" width="100%" height="140" style="overflow:visible;"></svg>
-          <div id="gains-bw-empty" class="mem-empty" style="display:none;">Log body stats in Settings and workouts to see this chart.</div>
+          <div id="gains-bw-empty" class="mem-empty" style="display:none;">Tap "+ Log Weight" above to start tracking your body weight trend.</div>
           <div style="display:flex;gap:16px;margin-top:6px;justify-content:center;">
             <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--teal)"><div style="width:12px;height:3px;background:var(--teal);border-radius:2px;"></div>Body weight</div>
             <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--primary)"><div style="width:12px;height:3px;background:var(--primary);border-radius:2px;"></div>Volume</div>
@@ -3029,7 +3039,11 @@ function switchTracker(name){
   const tp=document.getElementById(`tp-${name}`);
   if(tb)tb.classList.add('active');
   if(tp)tp.classList.add('active');
-  if(name==='gains') loadGainsData();
+  if(name==='gains'){
+    const bwDate=document.getElementById('bw-date');
+    if(bwDate&&!bwDate.value) bwDate.value=localDateStr();
+    loadGainsData();
+  }
 }
 
 // ── Date navigation ───────────────────────────────────────────────────────
@@ -3758,6 +3772,23 @@ function renderBodyStrengthChart(bodyStats){
     <!-- X labels -->
     ${volPts.filter((_,i)=>i%2===0).map((v,i)=>`<text x="${pad.l+i*2*xStep}" y="${H-8}" fill="#7777aa" font-size="9" text-anchor="middle">${v.date?.slice(5)}</text>`).join('')}
   `;
+}
+
+async function logBodyWeight(){
+  if(!supa){ showToast('⚠️ Connect Supabase first'); return; }
+  const weight=parseFloat(document.getElementById('bw-input').value);
+  const date=document.getElementById('bw-date').value||localDateStr();
+  const bodyfat=parseFloat(document.getElementById('bw-bodyfat').value)||null;
+  if(!weight||weight<=0){ showToast('Enter a valid weight'); return; }
+  try{
+    const{error}=await supa.from('body_stats').upsert({date,weight_lbs:weight,body_fat_pct:bodyfat},{onConflict:'date'});
+    if(error){ logError('frontend:today','supabase_query',error.message,{action:'logBodyWeight'}); showToast('❌ '+(error.message||'Could not save').slice(0,80)); return; }
+    document.getElementById('bw-input').value='';
+    document.getElementById('bw-bodyfat').value='';
+    document.getElementById('bw-log-form').style.display='none';
+    showToast(`⚖️ ${weight} lbs logged ✓`);
+    loadGainsData();
+  }catch(e){ logError('frontend:today','js_runtime',e?.message||String(e),{action:'logBodyWeight'}); showToast('❌ Could not save'); }
 }
 
 function renderPRs(){
