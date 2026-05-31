@@ -18,8 +18,27 @@ set PROJECT_REF=evedwhwepnuloqougztv
 :: Looks like: abcdefghijklmnop  (16 chars)
 :: ───────────────────────────────────────────────────────────────
 
+:: Navigate to the JARVIS project folder (same folder as this .bat file)
+cd /d "%~dp0"
+
+:: ── TIMESTAMPED BACKUP — saved before every deploy ──────────────
+:: If deploy breaks something, restore from BACKUPS\JARVIS_YYYY-MM-DD_HH-MM\
+set BACKUP_TS=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%-%time:~3,2%
+set BACKUP_TS=%BACKUP_TS: =0%
+set BACKUP_DIR=%~dp0BACKUPS\JARVIS_%BACKUP_TS%
 echo.
-echo [1/3] Linking to Supabase project...
+echo [0/4] Creating pre-deploy backup...
+mkdir "%BACKUP_DIR%" 2>nul
+copy /Y "%~dp0index.html"            "%BACKUP_DIR%\index.html"            >nul
+copy /Y "%~dp0server.py"             "%BACKUP_DIR%\server.py"             >nul
+copy /Y "%~dp0schema_v9.sql"         "%BACKUP_DIR%\schema_v9.sql"         >nul
+copy /Y "%~dp0pg_cron-setup.sql"     "%BACKUP_DIR%\pg_cron-setup.sql"     >nul
+echo     Backup saved to: %BACKUP_DIR%
+echo     (To restore: copy files from BACKUPS folder back here)
+:: ────────────────────────────────────────────────────────────────
+
+echo.
+echo [1/4] Linking to Supabase project...
 supabase link --project-ref %PROJECT_REF%
 if errorlevel 1 (echo ERROR: Link failed. Check PROJECT_REF and run "supabase login" first. & pause & exit /b 1)
 

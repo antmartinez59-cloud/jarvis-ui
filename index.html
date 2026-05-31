@@ -520,9 +520,11 @@ body.viewing-past .tracker-log-only{display:block;}
 
 /* Category bar */
 .cat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.cat-bar-label{font-size:12px;color:var(--text);width:110px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-bar-label{font-size:12px;color:var(--text);width:160px;flex-shrink:0;display:flex;justify-content:space-between;gap:6px;}
+.cat-bar-label span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-bar-label span:last-child{color:var(--text-muted);flex-shrink:0;}
 .cat-bar-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
-.cat-bar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
+.cat-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary),var(--teal));transition:width .6s ease;}
 .cat-bar-amt{font-size:11px;color:var(--text-muted);width:60px;text-align:right;flex-shrink:0;}
 
 /* Transaction list */
@@ -591,6 +593,7 @@ body.viewing-past .tracker-log-only{display:block;}
 
 /* Goal cards */
 .goal-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;}
+.goal-card.complete{border-color:var(--teal-border);background:var(--teal-dim);}
 .goal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .goal-name{font-size:14px;font-weight:600;}
 .goal-pct{font-size:13px;font-weight:700;color:var(--primary);}
@@ -620,6 +623,62 @@ body.viewing-past .tracker-log-only{display:block;}
   .fin-stats{grid-template-columns:repeat(2,1fr);}
   .fin-row{gap:6px;}
   .fin-input.sm{width:80px;}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VOICE SYSTEM
+════════════════════════════════════════════════════════════ */
+#voice-btn{
+  position:fixed;bottom:80px;right:82px;width:52px;height:52px;border-radius:50%;
+  background:var(--card);border:1px solid var(--border);color:var(--text-muted);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.3);z-index:150;transition:all .2s;
+}
+#voice-btn:hover{border-color:var(--primary-border);color:var(--primary);}
+#voice-btn.listening{background:var(--primary);border-color:var(--primary);color:#fff;
+  box-shadow:0 0 0 4px rgba(124,111,255,.25),0 2px 12px rgba(124,111,255,.4);
+  animation:voice-pulse 1.5s infinite;}
+#voice-btn.processing{background:var(--teal-dim);border-color:var(--teal-border);color:var(--teal);}
+#voice-btn svg{width:20px;height:20px;}
+@keyframes voice-pulse{0%,100%{box-shadow:0 0 0 4px rgba(124,111,255,.25);}50%{box-shadow:0 0 0 8px rgba(124,111,255,.1);}}
+
+#voice-overlay{display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);
+  align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+#voice-overlay.open{display:flex;}
+#voice-modal{background:var(--surface);border:1px solid var(--border-light);border-radius:20px;
+  padding:36px 32px;text-align:center;min-width:280px;max-width:380px;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);}
+#voice-waveform{display:flex;align-items:center;justify-content:center;gap:4px;height:50px;margin-bottom:18px;}
+#voice-waveform span{display:inline-block;width:5px;border-radius:3px;background:var(--primary);
+  animation:wave 1.2s ease-in-out infinite;}
+#voice-waveform span:nth-child(1){animation-delay:0s;}
+#voice-waveform span:nth-child(2){animation-delay:.1s;}
+#voice-waveform span:nth-child(3){animation-delay:.2s;}
+#voice-waveform span:nth-child(4){animation-delay:.3s;}
+#voice-waveform span:nth-child(5){animation-delay:.4s;}
+#voice-waveform span:nth-child(6){animation-delay:.3s;}
+#voice-waveform span:nth-child(7){animation-delay:.2s;}
+#voice-waveform span:nth-child(8){animation-delay:.1s;}
+#voice-waveform span:nth-child(9){animation-delay:0s;}
+#voice-waveform span:nth-child(10){animation-delay:.15s;}
+#voice-waveform.idle span{animation:none;height:6px;}
+#voice-waveform.speaking span{background:var(--teal);}
+@keyframes wave{0%,100%{height:8px;}50%{height:42px;}}
+#voice-status-text{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;}
+#voice-transcript-text{font-size:13px;color:var(--text-muted);min-height:20px;margin-bottom:18px;
+  font-style:italic;line-height:1.5;}
+#voice-cancel-btn{padding:8px 24px;border-radius:8px;border:1px solid var(--border);
+  background:var(--card);color:var(--text-muted);font-size:13px;cursor:pointer;transition:all .2s;}
+#voice-cancel-btn:hover{border-color:var(--primary-border);color:var(--primary);}
+
+/* Wake-word status indicator in header */
+#voice-wake-indicator{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:12px;
+  border:1px solid var(--border);font-size:10px;color:var(--text-dim);cursor:pointer;transition:all .2s;}
+#voice-wake-indicator.active{color:var(--primary);border-color:var(--primary-border);background:var(--primary-dim);}
+#voice-wake-indicator .wake-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+@media(max-width:768px){
+  #voice-btn{bottom:70px;right:82px;}
 }
 
 </style>
@@ -759,6 +818,7 @@ body.viewing-past .tracker-log-only{display:block;}
           <option value="99">99% — No limit</option>
         </select>
         <span id="mastery-statusline" class="dot-anim" style="display:none">Initializing</span>
+        <button onclick="testMasterySearch()" class="mbtn mbtn-stop" style="font-size:11px;padding:5px 12px;" title="Test if search is working before a full run">🔍 Test Search</button>
       </div>
     </div>
     <div id="mastery-body">
@@ -857,11 +917,24 @@ body.viewing-past .tracker-log-only{display:block;}
       <div>
         <div class="mem-section-title">
           Today's Briefings
-          <span onclick="refreshBriefings()" style="cursor:pointer;color:var(--primary);font-weight:400;font-size:11px;text-transform:none;letter-spacing:0;">↻ refresh</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span onclick="refreshBriefings()" style="cursor:pointer;color:var(--primary);font-weight:400;font-size:11px;text-transform:none;letter-spacing:0;">↻ refresh</span>
+            <span onclick="manualBriefing()" id="brief-trigger-btn" style="cursor:pointer;color:var(--teal);font-weight:500;font-size:11px;text-transform:none;letter-spacing:0;border:1px solid var(--teal-border);padding:2px 8px;border-radius:6px;">▶ send now</span>
+            <span onclick="manualSynthesize()" style="cursor:pointer;color:var(--text-muted);font-weight:400;font-size:11px;text-transform:none;letter-spacing:0;">⚡ synthesize</span>
+          </div>
         </div>
         <div class="briefing-strip" id="briefings-strip">
           <div class="bc-empty"><div style="font-size:20px">☁️</div>Briefings appear here after 7am</div>
         </div>
+      </div>
+
+      <!-- Debug Agent Status -->
+      <div id="debug-agent-section" style="display:none;">
+        <div class="mem-section-title">
+          🐛 Debug Agent
+          <span onclick="runDebugAgent()" style="cursor:pointer;color:var(--orange);font-weight:500;font-size:11px;text-transform:none;letter-spacing:0;border:1px solid rgba(255,170,68,.3);padding:2px 8px;border-radius:6px;">▶ run now</span>
+        </div>
+        <div id="debug-agent-status" style="font-size:12px;color:var(--text-muted);padding:8px 0;"></div>
       </div>
 
       <!-- Synthesized Profile -->
@@ -1693,7 +1766,8 @@ body.viewing-past .tracker-log-only{display:block;}
           </div>
           <div style="display:flex;gap:8px;">
             <input class="fin-input" id="todo-notes" type="text" placeholder="Notes (optional)" style="flex:1;"/>
-            <input class="fin-input" id="todo-due" type="date" style="flex:0 0 140px;"/>
+            <input class="fin-input" id="todo-due" type="date" style="flex:0 0 130px;" title="Due date"/>
+            <input class="fin-input" id="todo-remind-time" type="time" value="09:00" style="flex:0 0 100px;" title="Reminder time"/>
             <button class="fin-btn primary" onclick="addTodo()">Add</button>
           </div>
         </div>
@@ -1744,10 +1818,16 @@ body.viewing-past .tracker-log-only{display:block;}
     <div class="fin-scroll">
       <div style="padding:16px 20px 0;">
 
+        <!-- Calendar connection status -->
+        <div id="cal-connect-status" style="font-size:12px;color:var(--orange);margin-bottom:10px;min-height:18px;"></div>
+
         <!-- Week nav -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
           <button class="fin-btn" onclick="calShiftWeek(-1)" style="padding:6px 14px;">‹ Prev</button>
-          <div id="cal-week-label" style="font-size:14px;font-weight:600;color:var(--text);"></div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div id="cal-week-label" style="font-size:14px;font-weight:600;color:var(--text);"></div>
+            <button class="fin-btn" onclick="refreshCalendar()" style="padding:4px 10px;font-size:11px;">↻</button>
+          </div>
           <button class="fin-btn" onclick="calShiftWeek(1)" style="padding:6px 14px;">Next ›</button>
         </div>
 
@@ -1858,6 +1938,82 @@ body.viewing-past .tracker-log-only{display:block;}
 
 <div id="toast"></div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     VOICE SYSTEM — UI ELEMENTS
+════════════════════════════════════════════════════════════ -->
+
+<!-- Mic button (tap-to-talk, always visible) -->
+<button id="voice-btn" onclick="toggleVoice()" title="Tap to talk (or say Hey Jarvis on desktop)">
+  <svg id="voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <line x1="12" y1="19" x2="12" y2="23"/>
+    <line x1="8" y1="23" x2="16" y2="23"/>
+  </svg>
+</button>
+
+<!-- Listening overlay -->
+<div id="voice-overlay">
+  <div id="voice-modal">
+    <div id="voice-waveform">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div id="voice-status-text">Listening…</div>
+    <div id="voice-transcript-text"></div>
+    <button onclick="cancelVoice()" id="voice-cancel-btn">Cancel</button>
+  </div>
+</div>
+
+<!-- Voice settings modal -->
+<div class="modal-overlay" id="voice-settings-overlay">
+  <div class="modal" style="width:420px;">
+    <h3>🎙️ Voice Settings</h3>
+    <p class="modal-sub">Configure how Jarvis listens and speaks.</p>
+    <div class="form-group">
+      <label class="form-label">Wake Word (desktop only)</label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="text" id="vs-wakeword" class="form-input" value="hey jarvis" style="flex:1;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;">
+          <input type="checkbox" id="vs-wake-enabled" checked style="accent-color:var(--primary);"> Enabled
+        </label>
+      </div>
+      <div class="form-hint">Say this phrase to activate voice on desktop without pressing anything.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Voice Response</label>
+      <select id="vs-tts-engine" class="form-input">
+        <option value="browser">Browser built-in (free)</option>
+        <option value="elevenlabs">ElevenLabs (premium quality)</option>
+      </select>
+    </div>
+    <div id="vs-el-group" class="form-group" style="display:none;">
+      <label class="form-label">ElevenLabs API Key</label>
+      <input type="password" id="vs-el-key" class="form-input" placeholder="sk_...">
+      <div class="form-hint">Get your key at elevenlabs.io → Profile → API Key</div>
+    </div>
+    <div id="vs-el-voice-group" class="form-group" style="display:none;">
+      <label class="form-label">ElevenLabs Voice ID</label>
+      <input type="text" id="vs-el-voice" class="form-input" placeholder="Paste voice ID from ElevenLabs">
+      <div class="form-hint">ElevenLabs → Voice Library → click a voice → copy ID. Try "Adam" or "Rachel".</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Response Volume</label>
+      <input type="range" id="vs-volume" min="0" max="1" step="0.1" value="0.9" style="width:100%;accent-color:var(--primary);">
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+        <input type="checkbox" id="vs-voice-reply" checked style="accent-color:var(--primary);">
+        Jarvis speaks responses out loud
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('voice-settings-overlay').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVoiceSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1923,13 +2079,14 @@ async function callEndpoint(name, body={}, method='POST'){
   if(isEdgeMode()){
     // ── Supabase Edge Functions ─────────────────────────────────────────
     // Works from phone, tablet, anywhere. Computer doesn't need to be on.
+    const isGet = method==='GET';
+    const headers = {'Authorization':`Bearer ${supabaseKey}`};
+    // Don't send Content-Type on GET requests — causes 400 on some Edge Functions
+    if(!isGet) headers['Content-Type'] = 'application/json';
     return fetch(`${supabaseUrl}/functions/v1/${name}`,{
       method,
-      headers:{
-        'Authorization':`Bearer ${supabaseKey}`,
-        'Content-Type':'application/json'
-      },
-      body:method!=='GET'?JSON.stringify(body):undefined
+      headers,
+      body: isGet ? undefined : JSON.stringify(body)
     });
   } else {
     // ── Local server.py fallback ────────────────────────────────────────
@@ -2559,10 +2716,57 @@ async function searchAndRead(query,label){
   if(mAbort)return;
   try{
     const res=await callEndpoint('search',{query,brave_key:braveKey});
+    if(!res.ok){
+      const rawErr=await res.text().catch(()=>'');
+      addFeedEntry('gap',`Search HTTP ${res.status}`,`Query: "${query}" — ${rawErr.slice(0,150)}`,'');
+      return;
+    }
     const data=await res.json();
-    const results=(data.results||[]).filter(r=>r.link&&!mVisited.has(r.link)).slice(0,2);
+    // Log the search engine used for debugging
+    const engine=data.engine||'unknown';
+    if(!data.results?.length){
+      addFeedEntry('gap',`No results (engine: ${engine})`,`Nothing found for: "${query}". If engine=duckduckgo, set BRAVE_KEY in Supabase Vault.`,'');
+      return;
+    }
+    const results=data.results.filter(r=>r.link&&!mVisited.has(r.link)).slice(0,2);
+    if(results.length===0) return;
     await Promise.all(results.map(r=>readSource(r,label)));
-  }catch(e){}
+  }catch(e){
+    addFeedEntry('gap','Search exception',e.message||String(e),'');
+  }
+}
+
+// Pre-flight search test
+async function testMasterySearch(){
+  const btn=document.querySelector('[onclick="testMasterySearch()"]');
+  if(btn){btn.textContent='Testing...';btn.disabled=true;}
+  addFeedEntry('learn','🔍 Testing search...','Checking if Brave Search is working from Supabase...','');
+  try{
+    const res=await callEndpoint('search',{query:'test',brave_key:braveKey});
+    if(!res.ok){
+      const err=await res.text().catch(()=>'');
+      addFeedEntry('gap',`Search test FAILED (HTTP ${res.status})`,err.slice(0,200)||'No error details','');
+      showToast('Search not working — see feed for details');
+    }else{
+      const data=await res.json();
+      const engine=data.engine||'unknown';
+      const count=data.results?.length||0;
+      if(count>0){
+        addFeedEntry('learn',`Search OK (${engine})`,`Got ${count} results. Mastery engine will work.`,'');
+        showToast(`Search working via ${engine}`);
+      }else{
+        addFeedEntry('gap',`Search returned 0 results (engine: ${engine})`,
+          engine==='duckduckgo'
+            ? 'DuckDuckGo blocked from Supabase servers. Set BRAVE_KEY in Supabase Vault → run: supabase secrets set BRAVE_KEY=your_key'
+            : 'Search returned empty. Check your BRAVE_KEY in Supabase Vault.','');
+        showToast('Search returning 0 results — check feed');
+      }
+    }
+  }catch(e){
+    addFeedEntry('gap','Search test exception',e.message||String(e),'');
+    showToast('Search error — check feed');
+  }
+  if(btn){btn.textContent='🔍 Test Search';btn.disabled=false;}
 }
 
 async function readSource(result,label){
@@ -2571,8 +2775,13 @@ async function readSource(result,label){
   setStatus(`Reading: ${(result.title||result.link).slice(0,50)}...`);
   try{
     const res=await callEndpoint('browse',{url:result.link});
+    if(!res.ok){ return; }
     const data=await res.json();
-    if(data.error||!data.text||data.text.length<100)return;
+    if(data.error){
+      addFeedEntry('gap','Browse error',`${result.link.slice(0,60)}: ${data.error}`,'');
+      return;
+    }
+    if(!data.text||data.text.length<100){ return; }
     const text=data.text.slice(0,3000);
     const summary=await callHaiku(`From this text about "${label}", extract the 3 most important facts or concepts in 2-3 sentences:\n\n${text.slice(0,2000)}`,200);
     const note={source:result.title||result.link,url:result.link,label,text,summary};
@@ -2590,7 +2799,9 @@ async function readSource(result,label){
     if(supa&&mRunId){
       dbInsert('mastery_notes',{run_id:mRunId,label,source_title:result.title||'',source_url:result.link,summary,raw_text:text.slice(0,2000)});
     }
-  }catch(e){}
+  }catch(e){
+    addFeedEntry('gap','Read error',`${result.link?.slice(0,60)||''}: ${e.message||String(e)}`,'');
+  }
 }
 
 async function assessMastery(topic){
@@ -2987,6 +3198,62 @@ async function refreshBriefings(){
   }catch(e){showToast('Could not refresh briefings');}
 }
 
+// ── Manual triggers for scheduled Edge Functions ──────────────────────────
+async function manualBriefing(){
+  const btn=document.getElementById('brief-trigger-btn');
+  if(btn){btn.textContent='⏳ sending...';btn.style.pointerEvents='none';}
+  try{
+    const res=await callEndpoint('morning-brief',{type:'morning',force:true});
+    const data=await res.json().catch(()=>({}));
+    showToast(data.ok!==false?'📬 Briefing sent! Check your email.':'❌ '+(data.error||'Could not send briefing'));
+    setTimeout(()=>refreshBriefings(),3000);
+  }catch(e){showToast('❌ Could not reach briefing function');}
+  finally{if(btn){btn.textContent='▶ send now';btn.style.pointerEvents='';}}
+}
+
+async function manualSynthesize(){
+  showToast('⚡ Synthesizing your memory profile...');
+  try{
+    const res=await callEndpoint('synthesize',{force:true});
+    const data=await res.json().catch(()=>({}));
+    if(data.ok!==false){
+      showToast('✓ Synthesis complete — reloading memory');
+      setTimeout(()=>loadMemory(),1500);
+    }else{showToast('❌ '+(data.error||'Synthesis failed'));}
+  }catch(e){showToast('❌ Could not reach synthesize function');}
+}
+
+async function runDebugAgent(){
+  showToast('🐛 Running debug agent...');
+  try{
+    const res=await callEndpoint('debug-agent',{mode:'monitor',error_threshold:5,notify:['briefing','obsidian'],force:true});
+    const data=await res.json().catch(()=>({}));
+    const statusEl=document.getElementById('debug-agent-status');
+    if(data.errors_found>=0){
+      const msg=data.errors_found===0
+        ?'✅ No new errors found.'
+        :`⚠️ ${data.errors_found} error${data.errors_found!==1?'s':''} found. ${data.briefing_created?'Briefing logged.':''} ${data.obsidian_written?'Report saved to Obsidian.':''}`;
+      if(statusEl)statusEl.textContent=msg;
+      showToast(data.errors_found===0?'✅ System healthy':'⚠️ Errors found — check briefings');
+    }else{showToast('🐛 Debug agent ran — check briefings for results');}
+  }catch(e){showToast('❌ Debug agent unreachable');}
+}
+
+// Show debug agent section if errors exist in last 24h
+async function checkDebugAgentStatus(){
+  if(!supa)return;
+  try{
+    const since=new Date(Date.now()-86400000).toISOString();
+    const{data,count}=await supa.from('jarvis_errors').select('*',{count:'exact'}).gte('created_at',since).limit(1);
+    const sec=document.getElementById('debug-agent-section');
+    if(sec&&count>0){
+      sec.style.display='block';
+      const statusEl=document.getElementById('debug-agent-status');
+      if(statusEl)statusEl.textContent=`${count} error${count!==1?'s':''} logged in the last 24 hours.`;
+    }
+  }catch(e){}
+}
+
 async function saveSession(question,response){
   const row={question:question.slice(0,500),response:response.slice(0,2000),summary:question.slice(0,80)};
   if(supa){
@@ -3006,7 +3273,7 @@ async function triggerReflection(question,response){
   const badge=document.createElement('span');badge.className='reflect-badge';badge.id='reflect-live';badge.textContent='⚡ Learning...';
   document.getElementById('reflect-status').appendChild(badge);
   try{
-    const res=await callEndpoint('reflect',{question,response});
+    const res=await callEndpoint('reflect',{question,response,api_key:apiKey});
     if(!res.ok)return;
     const data=await res.json();
     if(!data.ok||!data.insights)return;
@@ -4173,7 +4440,39 @@ async function addTodo(){
     if(document.getElementById('todo-notes')) document.getElementById('todo-notes').value='';
     renderTodos(); renderTodayPinned(); updateTodosTabBadge();
     showToast(`${PRIORITY_EMOJI[priority]} Todo added`);
+    // Wire Apple Reminder if due date set
+    if(due_date && data?.id){
+      const remindTime = document.getElementById('todo-remind-time')?.value || '09:00';
+      createAppleReminder(data.id, title, due_date, remindTime, notes);
+    }
   }catch(e){ logError('frontend:todos','js_runtime',e?.message||String(e),{action:'addTodo'}); }
+}
+
+
+// ── Wire apple-remind when todo is created with due date ─────────────────
+async function createAppleReminder(todoId, title, due_date, remindTime, notes){
+  if(!supabaseUrl||!supabaseKey) return;
+  try{
+    const remind_at = `${due_date}T${remindTime}:00`;
+    // Save to reminders table
+    const {data:rem, error} = await supa.from('reminders').insert({
+      title, notes, remind_at, linked_todo_id:todoId, repeat_rule:'none'
+    }).select().single();
+    if(error){ console.warn('Reminder DB insert failed:', error.message); return; }
+    // Call apple-remind Edge Function
+    const res = await callEndpoint('apple-remind',{
+      title, notes:notes||'', remind_at, todo_id:todoId, reminder_id:rem?.id
+    });
+    if(res.ok){
+      showToast('Reminder set in Apple Reminders');
+    }else{
+      const err = await res.text().catch(()=>'');
+      console.warn('apple-remind failed:', res.status, err.slice(0,100));
+      // Still saved to DB - will show in app even if Apple sync failed
+    }
+  }catch(e){
+    console.warn('createAppleReminder error:', e.message);
+  }
 }
 
 async function quickAddTodo(){
@@ -4516,16 +4815,12 @@ document.addEventListener('click',e=>{
   if(fabOpen&&!e.target.closest('#fab')&&!e.target.closest('#fab-panel'))closeFab();
 });
 
-// ── Hook into tab switching to load Today data ─────────────────────────────
-const _origSwitchTab=switchTab;
-// Patch initTodayTab into tab switch
-document.addEventListener('DOMContentLoaded',()=>{});
-// We'll patch switchTab inline — watch for 'today' tab activation
+// ── Hook Today + Finance init into tab switching ─────────────────────────────
 (function(){
-  const origSwitch=window.switchTab;
-  if(typeof origSwitch==='function'){
+  const _orig=window.switchTab;
+  if(typeof _orig==='function'){
     window.switchTab=function(name,btn){
-      origSwitch(name,btn);
+      _orig(name,btn);
       if(name==='today')initTodayTab();
       if(name==='finance')initFinanceTab();
     };
@@ -5268,7 +5563,7 @@ function checkPaycheckAutoDetect(amount, txnId, description){
     const banner = document.getElementById('pc-pending-banner');
     const desc   = document.getElementById('pc-pending-desc');
     if(banner && desc){
-      desc.textContent = `A ${fmtMoney(amount)} income was logged${description?' ("'+description+'"   )':''}. Is this a paycheck?`;
+      desc.textContent = `A ${fmtMoney(amount)} income was logged${description?' ("'+description+'")':''}. Is this a paycheck?`;
       banner.style.display = 'block';
       if(!(document.getElementById('fpanel-paychecks')?.classList.contains('active'))){
         showToast('💡 Possible paycheck detected — check Paychecks tab');
@@ -5305,16 +5600,47 @@ let calWeekOffset = 0;        // 0 = this week, -1 = last week, +1 = next week
 
 // ── Load events from apple-calendar Edge Function ─────────────────────────
 async function loadCalEvents(start, end){
-  if(!supabaseUrl || !supabaseKey){ return []; }
+  const statusEl = document.getElementById('cal-connect-status');
+  if(!supabaseUrl || !supabaseKey){
+    if(statusEl) statusEl.textContent = '⚠️ Supabase not connected';
+    return [];
+  }
   try{
     const res = await callEndpoint(`apple-calendar?start=${start}&end=${end}`, {}, 'GET');
-    if(!res.ok) return [];
-    const { events } = await res.json();
-    return events || [];
+    if(!res.ok){
+      // Read full body as text first so we never lose the error message
+      const rawText = await res.text().catch(()=>'');
+      let msg = `HTTP ${res.status}`;
+      try{
+        const parsed = JSON.parse(rawText);
+        msg = parsed?.error || parsed?.message || parsed?.msg || rawText.slice(0,120) || msg;
+      }catch{ msg = rawText.slice(0,120) || msg; }
+
+      // Specific 400 guidance
+      let hint = 'check credentials';
+      if(res.status===400) hint = 'missing CalDAV credentials in Supabase Vault';
+      if(res.status===401) hint = 'invalid CalDAV password — regenerate app-specific password';
+      if(res.status===404) hint = 'function not deployed — run deploy-edge-functions.bat';
+
+      if(statusEl) statusEl.innerHTML = `❌ ${res.status}: ${msg} — <a href="#" onclick="openCalSettings('${hint}')" style="color:var(--primary)">fix: ${hint}</a>`;
+      logError('frontend:calendar','http_error', `${res.status}: ${msg}`, {action:'loadCalEvents'});
+      return [];
+    }
+    const json = await res.json();
+    if(statusEl) statusEl.textContent = '';
+    return json.events || [];
   }catch(e){
+    if(statusEl) statusEl.innerHTML = `❌ Could not reach calendar — <a href="#" onclick="openCalSettings()" style="color:var(--primary)">check setup</a>`;
     logError('frontend:calendar','network',e?.message||String(e),{action:'loadCalEvents'});
     return [];
   }
+}
+
+function openCalSettings(hint=''){
+  const msg = hint
+    ? `📅 Calendar fix needed: ${hint}\n\nSee secrets-setup.md for full setup instructions.\n\nQuick fix: Supabase Dashboard → Settings → Vault → add:\n  APPLE_CALDAV_USER = your@icloud.com\n  APPLE_CALDAV_PASSWORD = xxxx-xxxx-xxxx-xxxx (app-specific password)`
+    : 'Set APPLE_CALDAV_USER + APPLE_CALDAV_PASSWORD in Supabase Vault → see secrets-setup.md';
+  alert(msg);
 }
 
 // ── Week helpers ─────────────────────────────────────────────────────────
@@ -5367,12 +5693,7 @@ function renderWeekStrip(days){
     const isToday = d===today;
     const isSelected = d===calSelectedDate;
     const hasEvents = calEvents.some(e=>e.start?.slice(0,10)===d);
-
-    return `<button onclick="calSelectDay('${d}')" style="
-      display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:10px;
-      border:1px solid ${isSelected?'var(--primary)':isToday?'var(--primary-border)':'var(--border)'};
-      background:${isSelected?'var(--primary)':isToday?'var(--primary-dim)':'var(--card)'};
-      cursor:pointer;transition:all .2s;gap:3px;">
+    return `<button onclick="calSelectDay('${d}')" style="display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:10px;border:1px solid ${isSelected?'var(--primary)':isToday?'var(--primary-border)':'var(--border)'};background:${isSelected?'var(--primary)':isToday?'var(--primary-dim)':'var(--card)'};cursor:pointer;transition:all .2s;gap:3px;">
       <span style="font-size:10px;color:${isSelected?'#fff':'var(--text-muted)'};">${dayName}</span>
       <span style="font-size:14px;font-weight:${isToday||isSelected?'700':'400'};color:${isSelected?'#fff':isToday?'var(--primary)':'var(--text)'};">${dayNum}</span>
       <div style="width:5px;height:5px;border-radius:50%;background:${hasEvents?(isSelected?'#fff':'var(--teal)'):'transparent'};"></div>
@@ -5381,122 +5702,106 @@ function renderWeekStrip(days){
 }
 
 function calSelectDay(date){
-  calSelectedDate = date;
+  calSelectedDate=date;
   renderWeekStrip(getWeekDates(calWeekOffset));
   renderDayEvents(date);
-  const label = document.getElementById('cal-day-label');
-  if(label){
-    const dt = new Date(date+'T00:00:00');
-    const isToday = date===localDateStr();
-    label.textContent = isToday ? "Today's Events" : dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  }
+  const label=document.getElementById('cal-day-label');
+  if(label){const dt=new Date(date+'T00:00:00');label.textContent=date===localDateStr()?"Today's Events":dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
 }
 
-// ── Render events for a specific day ─────────────────────────────────────
 function renderDayEvents(date){
-  const el = document.getElementById('cal-events-list');
-  if(!el) return;
-  const dayEvents = calEvents.filter(e=>e.start?.slice(0,10)===date);
-  if(!dayEvents.length){
-    el.innerHTML='<div class="mem-empty">No events.</div>';
-    return;
-  }
-  el.innerHTML = dayEvents.map(e=>eventCard(e)).join('');
+  const el=document.getElementById('cal-events-list');if(!el)return;
+  const dayEvents=calEvents.filter(e=>e.start?.slice(0,10)===date);
+  if(!dayEvents.length){el.innerHTML='<div class="mem-empty">No events.</div>';return;}
+  el.innerHTML=dayEvents.map(e=>eventCard(e)).join('');
 }
 
-// ── Render all week events grouped by day ─────────────────────────────────
 function renderWeekEvents(days){
-  const el = document.getElementById('cal-week-events');
-  if(!el) return;
-  const today = localDateStr();
-  let html = '';
+  const el=document.getElementById('cal-week-events');if(!el)return;
+  const today=localDateStr();let html='';
   for(const d of days){
-    const dayEvts = calEvents.filter(e=>e.start?.slice(0,10)===d);
-    if(!dayEvts.length) continue;
-    const dt = new Date(d+'T00:00:00');
-    const label = d===today ? 'Today' : dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-    html += `<div style="margin-bottom:12px;">
-      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">${label}</div>
-      ${dayEvts.map(e=>eventCard(e,true)).join('')}
-    </div>`;
+    const dayEvts=calEvents.filter(e=>e.start?.slice(0,10)===d);if(!dayEvts.length)continue;
+    const dt=new Date(d+'T00:00:00');
+    const label=d===today?'Today':dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    html+='<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">'+label+'</div>'+dayEvts.map(e=>eventCard(e,true)).join('')+'</div>';
   }
-  el.innerHTML = html || '<div class="mem-empty">No events this week.</div>';
+  el.innerHTML=html||'<div class="mem-empty">No events this week.</div>';
 }
 
-// ── Event card ────────────────────────────────────────────────────────────
-function eventCard(e, compact=false){
-  const timeStr = e.allDay ? 'All day' : (e.start?.slice(11,16)||'');
-  const endStr  = e.end && !e.allDay ? ` – ${e.end.slice(11,16)}` : '';
-  return `<div style="background:var(--card);border:1px solid var(--teal-border);border-left:3px solid var(--teal);border-radius:9px;padding:10px 12px;margin-bottom:6px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${e.location||e.notes?'4':'0'}px;">
-      <div style="font-size:13px;font-weight:600;color:var(--text);">${escHtml(e.title||'')}</div>
-      <div style="font-size:11px;color:var(--teal);flex-shrink:0;margin-left:8px;">${timeStr}${endStr}</div>
-    </div>
-    ${e.location&&!compact?`<div style="font-size:11px;color:var(--text-muted);">📍 ${escHtml(e.location)}</div>`:''}
-    ${e.notes&&!compact?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(e.notes.slice(0,100))}</div>`:''}
-  </div>`;
+function eventCard(e,compact=false){
+  const timeStr=e.allDay?'All day':(e.start?.slice(11,16)||'');
+  const endStr=e.end&&!e.allDay?' - '+e.end.slice(11,16):'';
+  let html='<div style="background:var(--card);border:1px solid var(--teal-border);border-left:3px solid var(--teal);border-radius:9px;padding:10px 12px;margin-bottom:6px;">';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(e.location||e.notes?'4':'0')+'px;">';
+  html+='<div style="font-size:13px;font-weight:600;color:var(--text);">'+escHtml(e.title||'')+'</div>';
+  html+='<div style="font-size:11px;color:var(--teal);flex-shrink:0;margin-left:8px;">'+timeStr+endStr+'</div></div>';
+  if(e.location&&!compact)html+='<div style="font-size:11px;color:var(--text-muted);">'+escHtml(e.location)+'</div>';
+  if(e.notes&&!compact)html+='<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'+escHtml(e.notes.slice(0,100))+'</div>';
+  html+='</div>';
+  return html;
 }
 
-// ── Week navigation ───────────────────────────────────────────────────────
-async function calShiftWeek(dir){
-  calWeekOffset += dir;
-  await refreshCalendar();
-}
+async function calShiftWeek(dir){calWeekOffset+=dir;await refreshCalendar();}
 
-// ── Toggle all-day on create form ─────────────────────────────────────────
 function toggleCalAllDay(){
-  const allDay = document.getElementById('cal-allday')?.checked;
-  const startEl = document.getElementById('cal-start');
-  const endEl   = document.getElementById('cal-end');
-  if(startEl) startEl.type = allDay ? 'date' : 'datetime-local';
-  if(endEl)   endEl.type   = allDay ? 'date' : 'datetime-local';
+  const allDay=document.getElementById('cal-allday')?.checked;
+  const s=document.getElementById('cal-start'),en=document.getElementById('cal-end');
+  if(s)s.type=allDay?'date':'datetime-local';
+  if(en)en.type=allDay?'date':'datetime-local';
 }
 
-// ── Create event ──────────────────────────────────────────────────────────
 async function createCalEvent(){
-  const title    = document.getElementById('cal-title')?.value.trim();
-  const start    = document.getElementById('cal-start')?.value;
-  const end      = document.getElementById('cal-end')?.value;
-  const location = document.getElementById('cal-location')?.value.trim() || null;
-  const notes    = document.getElementById('cal-notes')?.value.trim() || null;
-  const allDay   = document.getElementById('cal-allday')?.checked || false;
-
-  if(!title||!start){ showToast('Title and start time are required'); return; }
-
+  const title=document.getElementById('cal-title')?.value.trim();
+  const start=document.getElementById('cal-start')?.value;
+  const end=document.getElementById('cal-end')?.value;
+  const location=document.getElementById('cal-location')?.value.trim()||null;
+  const notes=document.getElementById('cal-notes')?.value.trim()||null;
+  const allDay=document.getElementById('cal-allday')?.checked||false;
+  if(!title||!start){showToast('Title and start time are required');return;}
   try{
-    const res = await callEndpoint('apple-calendar', { title, start, end:end||start, location, notes, allDay }, 'POST');
-    const json = await res.json();
-    if(!json.ok){ showToast('❌ '+(json.error||'Could not create event').slice(0,80)); return; }
-    showToast('📅 Event added to Apple Calendar ✓');
-    // Clear form
-    ['cal-title','cal-start','cal-end','cal-location','cal-notes'].forEach(id=>{
-      const el=document.getElementById(id); if(el) el.value='';
-    });
-    await refreshCalendar(); // refresh to show new event
-  }catch(e){
-    logError('frontend:calendar','network',e?.message||String(e),{action:'createCalEvent'});
-    showToast('❌ Could not create event');
-  }
+    const res=await callEndpoint('apple-calendar',{title,start,end:end||start,location,notes,allDay},'POST');
+    const json=await res.json();
+    if(!json.ok){showToast('Error: '+(json.error||'Could not create event').slice(0,80));return;}
+    showToast('Event added to Apple Calendar');
+    ['cal-title','cal-start','cal-end','cal-location','cal-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    await refreshCalendar();
+  }catch(e){logError('frontend:calendar','network',e?.message||String(e),{action:'createCalEvent'});showToast('Could not create event');}
 }
 
-// ── Load today's events for Today tab ────────────────────────────────────
 async function loadTodayCalEvents(){
-  const today = localDateStr();
-  const events = await loadCalEvents(today, today);
-  const sec  = document.getElementById('today-cal-section');
-  const list = document.getElementById('today-cal-list');
-  if(!sec||!list) return;
-  if(!events.length){ sec.style.display='none'; return; }
+  const today=localDateStr();
+  const events=await loadCalEvents(today,today);
+  const sec=document.getElementById('today-cal-section'),list=document.getElementById('today-cal-list');
+  if(!sec||!list)return;
+  if(!events.length){sec.style.display='none';return;}
   sec.style.display='block';
-  list.innerHTML = events.map(e=>eventCard(e,true)).join('');
+  list.innerHTML=events.map(e=>eventCard(e,true)).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Supabase connection check — show a one-time hint if keys aren't configured yet
-if(!supabaseUrl || !supabaseKey){
+function toggleVoice(){showToast('Voice controls coming in Layer 1!');}
+function cancelVoice(){document.getElementById('voice-overlay').classList.remove('open');}
+function saveVoiceSettings(){
+  localStorage.setItem('jarvis_vs_tts',document.getElementById('vs-tts-engine')?.value||'browser');
+  localStorage.setItem('jarvis_vs_el_key',document.getElementById('vs-el-key')?.value||'');
+  localStorage.setItem('jarvis_vs_el_voice',document.getElementById('vs-el-voice')?.value||'');
+  localStorage.setItem('jarvis_vs_wake',document.getElementById('vs-wakeword')?.value||'hey jarvis');
+  localStorage.setItem('jarvis_vs_reply',document.getElementById('vs-voice-reply')?.checked?'1':'0');
+  document.getElementById('voice-settings-overlay').classList.remove('open');
+  showToast('Voice settings saved');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const eng=document.getElementById('vs-tts-engine');
+  if(eng)eng.addEventListener('change',function(){
+    const isEL=this.value==='elevenlabs';
+    document.getElementById('vs-el-group').style.display=isEL?'block':'none';
+    document.getElementById('vs-el-voice-group').style.display=isEL?'block':'none';
+  });
+});
+
+if(!supabaseUrl||!supabaseKey){
   const b=document.createElement('div');
   b.style.cssText='position:fixed;top:56px;left:0;right:0;z-index:50;background:rgba(124,111,255,.08);border-bottom:1px solid rgba(124,111,255,.25);padding:8px 20px;font-size:12px;color:var(--primary);display:flex;align-items:center;justify-content:space-between;';
-  b.innerHTML=`<span>⚙️ JARVIS needs your Supabase keys to connect — open <b>index.html</b> in a text editor, find <b>JARVIS_CONFIG</b>, and paste your <b>Supabase URL</b> and <b>anon key</b>. One time only.</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px">✕</button>`;
+  b.innerHTML='<span>JARVIS needs Supabase keys - find JARVIS_CONFIG in index.html and paste your Supabase URL and anon key.</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px">X</button>';
   document.body.appendChild(b);
 }
 </script>
