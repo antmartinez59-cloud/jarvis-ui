@@ -3005,6 +3005,7 @@ async function loadAgentLibrary(){
       <div class="lib-agent-actions">
         <button class="mbtn mbtn-agent" style="font-size:11px;padding:5px 12px" onclick="viewLibAgent(${i})">View Agent</button>
         <button class="mbtn mbtn-start" style="font-size:11px;padding:5px 12px" onclick="loadLibAgentIntoCouncil(${i})">→ Council</button>
+        <button class="mbtn" style="font-size:11px;padding:5px 12px;background:var(--primary-dim);color:var(--primary);border:1px solid var(--primary-border)" onclick="continueAgentMastery(${i})">↑ Continue</button>
       </div>
     </div>
   `).join('');
@@ -5812,10 +5813,4 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 if(!supabaseUrl||!supabaseKey){
   const b=document.createElement('div');
-  b.style.cssText='position:fixed;top:56px;left:0;right:0;z-index:50;background:rgba(124,111,255,.08);border-bottom:1px solid rgba(124,111,255,.25);padding:8px 20px;font-size:12px;color:var(--primary);display:flex;align-items:center;justify-content:space-between;';
-  b.innerHTML='<span>JARVIS needs Supabase keys - find JARVIS_CONFIG in index.html and paste your Supabase URL and anon key.</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px">X</button>';
-  document.body.appendChild(b);
-}
-</script>
-</body>
-</html>
+  b.style.cssText='position:fixed;top:56px;left:0;right:0;z-index:50;background:rgba(124,111,255,.08);border-bottom:1px solid rgba(124,111,255,.25);padding:8px 20px;font-siz
