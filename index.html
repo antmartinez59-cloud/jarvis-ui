@@ -2933,11 +2933,25 @@ function loadAgentIntoCouncil(){
 // Model helpers
 async function callHaiku(prompt,maxTokens=400){return callProxyModel('claude-haiku-4-5-20251001',prompt,maxTokens);}
 async function callSonnet(prompt,maxTokens=1200){return callProxyModel('claude-sonnet-4-6',prompt,maxTokens);}
-async function callProxyModel(model,prompt,maxTokens){
-  const res=await callEndpoint('proxy',{model,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]});
-  const data=await res.json();
-  if(data.error)throw new Error(data.error.message||'API error');
-  return data.content?.[0]?.text||'';
+async function callProxyModel(model,prompt,maxTokens,retries=3){
+  for(let attempt=0;attempt<retries;attempt++){
+    try{
+      const res=await callEndpoint('proxy',{model,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]});
+      if(res.status===429){
+        const wait=(attempt+1)*15000; // 15s, 30s, 45s
+        setStatus(`Rate limited — waiting ${wait/1000}s before retry ${attempt+1}/${retries}...`);
+        await new Promise(r=>setTimeout(r,wait));
+        continue;
+      }
+      const data=await res.json();
+      if(data.error)throw new Error(data.error.message||'API error');
+      return data.content?.[0]?.text||'';
+    }catch(e){
+      if(attempt===retries-1)throw e;
+      await new Promise(r=>setTimeout(r,5000));
+    }
+  }
+  throw new Error('Max retries reached');
 }
 
 function addFeedEntry(type,label,text,source){
