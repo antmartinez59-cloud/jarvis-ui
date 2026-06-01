@@ -2809,7 +2809,7 @@ async function readSource(result,label){
     addFeedEntry('learn',label,summary,result.title||result.link);
     // Save note to Supabase
     if(supa&&mRunId){
-      dbInsert('mastery_notes',{run_id:mRunId,label,source_title:result.title||'',source_url:result.link,summary,raw_text:text.slice(0,2000)});
+      const cleanText=text.replace(/\u0000/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');const cleanSummary=summary.replace(/\u0000/g,'');dbInsert('mastery_notes',{run_id:mRunId,label,source_title:result.title||'',source_url:result.link,summary:cleanSummary,raw_text:cleanText.slice(0,2000)});
     }
   }catch(e){
     addFeedEntry('gap','Read error',`${result.link?.slice(0,60)||''}: ${e.message||String(e)}`,'');
