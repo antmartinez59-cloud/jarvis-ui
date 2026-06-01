@@ -2149,18 +2149,28 @@ function updateSupaBadge(ok){
 async function dbInsert(table,row){
   if(!supa)return null;
   const{data,error}=await supa.from(table).insert(row).select().single();
-  if(error)console.warn(`Supabase insert ${table}:`,error.message);
+  if(error){
+    console.error(`Supabase insert ${table}:`,error.message,error.code,error.details);
+    logError('frontend:db','supabase_insert',error.message,{table,code:error.code,hint:error.hint});
+    showToast(`❌ DB save failed (${table}): ${error.message?.slice(0,60)}`);
+  }
   return data;
 }
 async function dbUpdate(table,id,row){
   if(!supa)return;
   const{error}=await supa.from(table).update(row).eq('id',id);
-  if(error)console.warn(`Supabase update ${table}:`,error.message);
+  if(error){
+    console.error(`Supabase update ${table}:`,error.message,error.code);
+    logError('frontend:db','supabase_update',error.message,{table,code:error.code});
+  }
 }
 async function dbUpsert(table,row,onConflict='id'){
   if(!supa)return;
   const{error}=await supa.from(table).upsert(row,{onConflict});
-  if(error)console.warn(`Supabase upsert ${table}:`,error.message);
+  if(error){
+    console.error(`Supabase upsert ${table}:`,error.message,error.code);
+    logError('frontend:db','supabase_upsert',error.message,{table,code:error.code});
+  }
 }
 async function dbSelect(table,opts={}){
   if(!supa)return [];
@@ -2611,7 +2621,7 @@ async function startMastery(){
     const target=parseInt(document.getElementById('mastery-target').value);
     let iteration=0;
     while(!mAbort){
-      setPhase(`Phase 3: Assessing Mastery (Round ${iteration+1})`);
+      setPhase(`Phase 3: Assessing Mastery (Round ${iteration+1}/${target>=95?100:40})`);
       setStatus('Synthesizing knowledge and assessing mastery...');
       const assessment=await assessMastery(topic);
       mCurrentMastery=assessment.score;
@@ -2637,7 +2647,9 @@ async function startMastery(){
         for(const g of gaps){if(mAbort)break;await researchGap(topic,g);}
       }
       iteration++;
-      if(iteration>20)break;
+      // Max gap rounds scales with target (99% = keep going longer)
+      const maxIter = target >= 95 ? 100 : target >= 80 ? 40 : 25;
+      if(iteration > maxIter) break;
     }
 
     if(!mAbort){
@@ -2806,7 +2818,7 @@ async function readSource(result,label){
 
 async function assessMastery(topic){
   if(!mNotes.length)return{score:0,summary:'No data yet',gaps:[topic+' basics']};
-  const notesSample=mNotes.slice(-20).map(n=>`[${n.label}] ${n.summary||n.text.slice(0,200)}`).join('\n');
+  const notesSample=mNotes.slice(-50).map(n=>`[${n.label}] ${n.summary||n.text.slice(0,200)}`).join('\n');
   const prompt=`You are evaluating mastery of "${topic}" based on research notes.
 
 NOTES (sample of ${mNotes.length} total):

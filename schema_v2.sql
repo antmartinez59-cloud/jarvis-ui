@@ -394,6 +394,40 @@ alter table watchlist        disable row level security;
 alter table notifications    disable row level security;
 
 -- ═══════════════════════════════════════════════════════════════
+-- GRANT ANON ACCESS — required for frontend to read/write
+-- RLS disabled is not enough — anon role needs explicit grants
+-- ═══════════════════════════════════════════════════════════════
+grant select, insert, update, delete on agents          to anon;
+grant select, insert, update, delete on mastery_runs    to anon;
+grant select, insert, update, delete on mastery_notes   to anon;
+grant select, insert, update, delete on profile_history to anon;
+grant select, insert, update, delete on briefings       to anon;
+grant select, insert, update, delete on learnings       to anon;
+grant select, insert, update, delete on sessions        to anon;
+grant select, insert, update, delete on profile         to anon;
+grant select, insert, update, delete on transactions    to anon;
+grant select, insert, update, delete on water_logs      to anon;
+grant select, insert, update, delete on sleep_logs      to anon;
+grant select, insert, update, delete on workouts        to anon;
+grant select, insert, update, delete on exercises       to anon;
+grant select, insert, update, delete on meals           to anon;
+grant select, insert, update, delete on todos           to anon;
+grant select, insert, update, delete on reminders       to anon;
+grant select, insert, update, delete on saving_goals    to anon;
+grant select, insert, update, delete on subscriptions   to anon;
+grant select, insert, update, delete on shifts          to anon;
+grant select, insert, update, delete on pay_config      to anon;
+grant select, insert, update, delete on paychecks       to anon;
+grant select, insert, update, delete on paycheck_allocation to anon;
+grant select, insert, update, delete on body_stats      to anon;
+grant select, insert, update, delete on portfolio       to anon;
+grant select, insert, update, delete on watchlist       to anon;
+grant select, insert, update, delete on repos           to anon;
+grant select, insert, update, delete on connections     to anon;
+grant select, insert, update, delete on jarvis_errors   to anon;
+grant select, insert, update, delete on notifications   to anon;
+
+-- ═══════════════════════════════════════════════════════════════
 -- ENABLE pg_cron EXTENSION (for scheduled jobs)
 -- NOTE: Must be enabled in Supabase dashboard first:
 --   Database → Extensions → search "pg_cron" → Enable
