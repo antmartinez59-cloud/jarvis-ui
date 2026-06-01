@@ -5811,6 +5811,35 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 
+// ── Continue mastery from prior run ──────────────────────────────────────
+async function continueAgentMastery(i){
+  const a=agentLibrary[i];if(!a)return;
+  switchTab('mastery',Array.from(document.querySelectorAll('.tab')).find(t=>t.textContent.includes('Mastery')));
+  document.getElementById('mastery-topic').value=a.topic;
+  if(supa&&a.run_id){
+    try{
+      const{data:priorNotes}=await supa.from('mastery_notes').select('label,summary,source_title,source_url,raw_text').eq('run_id',a.run_id).limit(100);
+      if(priorNotes&&priorNotes.length){
+        mNotes=priorNotes.map(n=>({label:n.label,summary:n.summary,source:n.source_title||'',url:n.source_url||'',text:n.raw_text||n.summary||''}));
+        mConcepts=new Set();
+        mNotes.forEach(n=>{(n.summary||'').replace(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)\b/g,(_,c)=>{if(c.length>3&&c.length<30)mConcepts.add(c);});});
+        mCurrentMastery=a.mastery_score||0;
+        document.getElementById('stat-sources').textContent=mNotes.length;
+        document.getElementById('stat-concepts').textContent=mConcepts.size;
+        updateMasteryRing(mCurrentMastery);
+        addFeedEntry('learn','Continuing '+a.topic,'Loaded '+priorNotes.length+' prior sources. Starting from '+a.mastery_score+'% — hit Start to research new gaps.','');
+        showToast('Loaded '+priorNotes.length+' prior sources — hit Start to continue from '+a.mastery_score+'%');
+      }else{showToast('No prior notes — starting fresh for '+a.topic);}
+    }catch(e){showToast('Starting fresh run for '+a.topic);}
+  }else{showToast('Hit Start to deepen mastery of '+a.topic);}
+}
+
 if(!supabaseUrl||!supabaseKey){
   const b=document.createElement('div');
-  b.style.cssText='position:fixed;top:56px;left:0;right:0;z-index:50;background:rgba(124,111,255,.08);border-bottom:1px solid rgba(124,111,255,.25);padding:8px 20px;font-siz
+  b.style.cssText='position:fixed;top:56px;left:0;right:0;z-index:50;background:rgba(124,111,255,.08);border-bottom:1px solid rgba(124,111,255,.25);padding:8px 20px;font-size:12px;color:var(--primary);display:flex;align-items:center;justify-content:space-between;';
+  b.innerHTML='<span>JARVIS needs Supabase keys - find JARVIS_CONFIG in index.html and paste your Supabase URL and anon key.</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px">X</button>';
+  document.body.appendChild(b);
+}
+</script>
+</body>
+</html>
