@@ -1,0 +1,38 @@
+name: Deploy JARVIS to Supabase + Vercel
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  deploy-functions:
+    name: Deploy Edge Functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy all Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: evedwhwepnuloqougztv
+        run: |
+          supabase link --project-ref $PROJECT_REF
+          supabase functions deploy proxy          --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy search         --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy browse         --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy reflect        --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy github-sync    --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy obsidian-write --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy synthesize     --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy weather        --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy news           --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy morning-brief  --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy apple-remind   --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy apple-calendar --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy automate       --no-verify-jwt --project-ref $PROJECT_REF
+          supabase functions deploy debug-agent    --no-verify-jwt --project-ref $PROJECT_REF
+          echo "All functions deployed."

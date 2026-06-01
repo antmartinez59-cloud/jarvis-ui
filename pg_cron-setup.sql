@@ -76,7 +76,27 @@ SELECT cron.schedule(
 );
 
 -- ════════════════════════════════════════════════════════════
--- Verify — should see 3 jarvis- jobs
+-- DEBUG AGENT — hourly error monitor
+-- Checks jarvis_errors. If 5+ new errors in last hour:
+--   • Creates a briefing entry (shows in Today + Memory tabs)
+--   • Writes detailed report to Obsidian vault
+--   • Sends SMS if errors are critical (when Twilio upgraded)
+-- Sandbox-first: never auto-deploys fixes without verification.
+-- ════════════════════════════════════════════════════════════
+SELECT cron.schedule(
+  'jarvis-debug-agent',
+  '0 * * * *',      -- every hour on the hour
+  $$
+  SELECT net.http_post(
+    url     := 'https://evedwhwepnuloqougztv.supabase.co/functions/v1/debug-agent',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer ' || current_setting('app.service_role_key', true) || '"}'::jsonb,
+    body    := '{"mode":"monitor","error_threshold":5,"notify":["briefing","obsidian"]}'::jsonb
+  );
+  $$
+);
+
+-- ════════════════════════════════════════════════════════════
+-- Verify — should see 4 jarvis- jobs
 -- ════════════════════════════════════════════════════════════
 SELECT jobid, jobname, schedule, active
 FROM cron.job

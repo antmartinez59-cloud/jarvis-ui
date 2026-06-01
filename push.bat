@@ -5,9 +5,12 @@
 :: ║  Phone updates within ~30 seconds                           ║
 :: ╚══════════════════════════════════════════════════════════════╝
 
+:: Navigate to the JARVIS project folder (same folder as this .bat file)
+cd /d "%~dp0"
+
 echo.
 echo [1/3] Staging all changes...
-git add .
+git add index.html supabase\ deploy-edge-functions.bat
 
 echo.
 echo [2/3] Committing...
