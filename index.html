@@ -5796,7 +5796,7 @@ function renderWeekEvents(days){
 function eventCard(e,compact=false){
   const timeStr=e.allDay?'All day':(e.start?.slice(11,16)||'');
   const endStr=e.end&&!e.allDay?' - '+e.end.slice(11,16):'';
-  const delBtn=!compact&&e.id?`<button onclick="deleteCalEvent('${escHtml(e.id)}')" title="Delete event" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 0 0 8px;flex-shrink:0;line-height:1;" onmouseover="this.style.color='#e05252'" onmouseout="this.style.color='var(--text-muted)'">🗑</button>`:'';
+  const delBtn=!compact&&e.id?`<button onclick="deleteCalEvent('${escHtml(e.id)}','${escHtml(e.href||'')}')" title="Delete event" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 0 0 8px;flex-shrink:0;line-height:1;" onmouseover="this.style.color='#e05252'" onmouseout="this.style.color='var(--text-muted)'">🗑</button>`:'';
   let html='<div style="background:var(--card);border:1px solid var(--teal-border);border-left:3px solid var(--teal);border-radius:9px;padding:10px 12px;margin-bottom:6px;">';
   html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(e.location||e.notes?'4':'0')+'px;">';
   html+='<div style="font-size:13px;font-weight:600;color:var(--text);flex:1;">'+escHtml(e.title||'')+'</div>';
@@ -5807,10 +5807,10 @@ function eventCard(e,compact=false){
   return html;
 }
 
-async function deleteCalEvent(uid){
+async function deleteCalEvent(uid, href=''){
   if(!confirm('Delete this event from Apple Calendar?')) return;
   try{
-    const res = await callEndpoint('apple-calendar', {uid}, 'DELETE');
+    const res = await callEndpoint('apple-calendar', {uid, href: href||undefined}, 'DELETE');
     const data = await res.json().catch(()=>({}));
     if(data.ok!==false){
       showToast('🗑 Event deleted');

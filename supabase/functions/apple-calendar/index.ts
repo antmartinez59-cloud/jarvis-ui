@@ -168,14 +168,26 @@ async function fetchEvents(calUrl: string, startDate: string, endDate: string): 
   if (!resp.ok) return [];
   const text = await resp.text();
 
-  // Extract calendar-data blocks
-  const dataBlocks = text.match(/<[^:]*:calendar-data[^>]*>([\s\S]*?)<\/[^:]*:calendar-data>/gi) || [];
+  // Extract response blocks (each has href + calendar-data)
+  const responseBlocks = text.match(/<[^:]*:?response[^>]*>[\s\S]*?<\/[^:]*:?response>/gi) || [];
   const events: any[] = [];
 
-  for (const block of dataBlocks) {
-    const ical = block.replace(/<[^>]+>/g, '').trim();
+  const proto = calUrl.startsWith('https') ? 'https' : 'http';
+  const host  = calUrl.split('/')[2];
+
+  for (const resp of responseBlocks) {
+    const hrefMatch = resp.match(/<[^:]*:?href[^>]*>([^<]+\.ics)<\/[^:]*:?href>/i);
+    const dataMatch = resp.match(/<[^:]*:?calendar-data[^>]*>([\s\S]*?)<\/[^:]*:?calendar-data>/i);
+    if (!dataMatch) continue;
+    const ical = dataMatch[1].replace(/<[^>]+>/g, '').trim();
     const parsed = parseVEvent(ical);
-    if (parsed) events.push(parsed);
+    if (parsed) {
+      if (hrefMatch) {
+        const hrefPath = hrefMatch[1].trim();
+        parsed.href = hrefPath.startsWith('http') ? hrefPath : `${proto}://${host}${hrefPath}`;
+      }
+      events.push(parsed);
+    }
   }
 
   return events;
@@ -240,10 +252,12 @@ async function createEvent(calUrl: string, event: any): Promise<string> {
 
   const fmtDT = (s: string, allDay: boolean) => {
     if (allDay) return s.replace(/-/g, '').slice(0, 8);
-    // Normalize to YYYYMMDDTHHMMSSZ — input may be "2026-05-31T09:00" or "2026-05-31T09:00:00"
-    const clean = s.replace(/[-:]/g, '').replace('T', 'T'); // "20260531T0900" or "20260531T090000"
-    const base  = clean.slice(0, 13).padEnd(13, '0'); // ensure at least YYYYMMDDTHHMM
-    return base + '00'; // floating local time — no Z so Apple Calendar shows it in the user's tz
+    // Input: "2026-05-31T09:00" or "2026-05-31T09:00:00" → "20260531T090000"
+    const clean = s.replace(/[-:]/g, ''); // "20260531T0900" or "20260531T090000"
+    const tIdx = clean.indexOf('T');
+    const datePart = clean.slice(0, tIdx);
+    const timePart = clean.slice(tIdx + 1).padEnd(6, '0').slice(0, 6);
+    return datePart + 'T' + timePart; // floating local time — no Z so Apple shows it in user's tz
   };
 
   const vevent = [
@@ -286,12 +300,23 @@ async function createEvent(calUrl: string, event: any): Promise<string> {
 }
 
 // ── Find and delete an event by UID ──────────────────────────────────────────
-async function deleteEvent(calendars: string[], uid: string): Promise<boolean> {
+async function deleteEvent(calendars: string[], uid: string, href?: string): Promise<boolean> {
+  // Strategy 1: Use stored href directly (most reliable for all event sources)
+  if (href) {
+    console.log('[calendar] DELETE via stored href:', href);
+    const del = await fetch(href, {
+      method: 'DELETE',
+      headers: { 'Authorization': authHeader()['Authorization'] },
+    });
+    console.log('[calendar] href DELETE status:', del.status);
+    if (del.status === 204 || del.status === 200) return true;
+  }
+
+  // Strategy 2: REPORT search across all calendars
   for (const calUrl of calendars) {
-    // Search for the event by UID using a calendar-query REPORT
     const body = `<?xml version="1.0" encoding="UTF-8"?>
 <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-  <d:prop><d:getetag/><d:getcontenttype/></d:prop>
+  <d:prop><d:getetag/></d:prop>
   <c:filter>
     <c:comp-filter name="VCALENDAR">
       <c:comp-filter name="VEVENT">
@@ -308,28 +333,117 @@ async function deleteEvent(calendars: string[], uid: string): Promise<boolean> {
       headers: { ...authHeader(), Depth: '1' },
       body,
     });
-
     if (!report.ok) continue;
     const text = await report.text();
 
-    // Extract all hrefs from the response
     const hrefMatches = text.match(/<[^:]*:?href[^>]*>([^<]+\.ics)<\/[^:]*:?href>/gi) || [];
     for (const match of hrefMatches) {
       const path = match.replace(/<[^>]+>/g, '').trim();
       if (!path) continue;
-
-      // Build absolute URL for DELETE
-      const proto = calUrl.startsWith('https') ? 'https' : 'http';
-      const hostWithPort = calUrl.split('/')[2];
-      const deleteUrl = path.startsWith('http') ? path : `${proto}://${hostWithPort}${path}`;
-
+      const deleteUrl = path.startsWith('http') ? path : `${proto_base(calUrl)}${path}`;
       const del = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: { 'Authorization': authHeader()['Authorization'] },
       });
-
       if (del.status === 204 || del.status === 200) {
-        console.log('[calendar] deleted event:', deleteUrl);
+        console.log('[calendar] deleted event via REPORT:', deleteUrl);
         return true;
       }
-      console.warn('[calendar] DELETE failed:', del.
+    }
+  }
+
+  console.warn('[calendar] could not find event to delete:', uid);
+  return false;
+}
+
+// ── Main request handler ──────────────────────────────────────────────────────
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+
+  try {
+    if (!APPLE_USER || !APPLE_PASS) {
+      return new Response(JSON.stringify({ ok: false, error: 'APPLE_CALDAV_USER or APPLE_CALDAV_PASSWORD not set' }), {
+        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const url = new URL(req.url);
+    const homeUrl = await getCalendarHome();
+    const calendars = await listCalendars(homeUrl);
+
+    // ── GET: fetch events for date range ────────────────────────────────
+    if (req.method === 'GET') {
+      const start = url.searchParams.get('start') || new Date().toISOString().slice(0,10);
+      const end   = url.searchParams.get('end')   || start;
+      const events: any[] = [];
+      for (const calUrl of calendars) {
+        const evts = await fetchEvents(calUrl, start, end);
+        events.push(...evts);
+      }
+      events.sort((a,b)=> (a.start||'').localeCompare(b.start||''));
+      return new Response(JSON.stringify({ ok: true, events }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── POST: create event ────────────────────────────────────────────
+    if (req.method === 'POST') {
+      const body = await req.json();
+      if (body.uid && !body.title) {
+        // DELETE via POST fallback (some clients can't send DELETE with body)
+        const deleted = await deleteEvent(calendars, body.uid);
+        return new Response(JSON.stringify({ ok: deleted, error: deleted ? undefined : 'Event not found' }), {
+          headers: { ...CORS, 'Content-Type': 'application/json' },
+        });
+      }
+      const { title, start, end, notes, location, allDay } = body;
+      if (!title || !start) {
+        return new Response(JSON.stringify({ ok: false, error: 'title and start are required' }), {
+          status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
+        });
+      }
+      // Try each calendar until one accepts the PUT (skip Reminders/VTODO collections)
+      const REMINDERS_UUID = '3BD98F0E-5C87-4BBE-9791-E4778E866A2E';
+      const calTargets = calendars.filter(c => !c.toUpperCase().includes(REMINDERS_UUID));
+      if (!calTargets.length) calTargets.push(...calendars);
+      let uid = '';
+      let createErr = '';
+      for (const calTarget of calTargets) {
+        console.log('[calendar] creating event in:', calTarget);
+        try { uid = await createEvent(calTarget, { title, start, end, notes, location, allDay }); break; }
+        catch(e) { createErr = String(e); console.warn('[calendar] create failed for', calTarget, e); }
+      }
+      if (!uid) throw new Error(createErr || 'All calendars rejected the event');
+      return new Response(JSON.stringify({ ok: true, uid }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── DELETE: remove event by uid ───────────────────────────────────
+    if (req.method === 'DELETE') {
+      const body = await req.json().catch(() => ({}));
+      const uid = body.uid;
+      const href = body.href;
+      if (!uid) {
+        return new Response(JSON.stringify({ ok: false, error: 'uid required' }), {
+          status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
+        });
+      }
+      const deleted = await deleteEvent(calendars, uid, href);
+      return new Response(JSON.stringify({ ok: deleted, error: deleted ? undefined : 'Event not found or already deleted' }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: false, error: 'Method not allowed' }), {
+      status: 405, headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+
+  } catch (err) {
+    console.error('[calendar] handler error:', err);
+    try { await _db.from('jarvis_errors').insert({ source: 'edge:apple-calendar', error_type: 'edge_fn', message: String(err).slice(0,500) }); } catch(_){}
+    return new Response(JSON.stringify({ ok: false, error: String(err) }), {
+      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+  }
+});
