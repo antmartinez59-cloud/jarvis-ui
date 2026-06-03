@@ -1,73 +1,224 @@
-// JARVIS — Weather Edge Function
-// Gets current weather + forecast for Prosper, TX using OpenWeatherMap
+// ╔══════════════════════════════════════════════════════════╗
+// ║  JARVIS — weather Edge Function                          ║
+// ║  Provider: OpenWeatherMap free tier                      ║
+// ║  Location: Prosper TX 76227 (lat 33.2362, lon -96.8009)  ║
+// ║                                                          ║
+// ║  CACHING:                                                ║
+// ║  - Briefing calls use cached data (30-min TTL)           ║
+// ║  - On-demand "what's the weather" always fetches live    ║
+// ║  - Cache stored in user_settings as weather_cache        ║
+// ╚══════════════════════════════════════════════════════════╝
 
-const corsHeaders = {
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const OPENWEATHER_KEY     = Deno.env.get('OPENWEATHER_KEY');
+const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const CITY = 'Prosper,TX,US';
-const UNITS = 'imperial'; // Fahrenheit
+// Prosper TX 76227 coordinates
+const LAT   = '33.2362';
+const LON   = '-96.8009';
+const UNITS = 'imperial'; // Fahrenheit + mph
 
+const CACHE_TTL_MINUTES = 30;
+
+// ── Check for cached weather ──────────────────────────────────
+async function getCachedWeather(): Promise<any | null> {
+  try {
+    const { data } = await db
+      .from('user_settings')
+      .select('value')
+      .eq('key', 'weather_cache')
+      .maybeSingle();
+
+    if (!data?.value) return null;
+
+    const cached = JSON.parse(data.value);
+    const age = (Date.now() - new Date(cached.cached_at).getTime()) / 60000; // minutes
+    if (age <= CACHE_TTL_MINUTES) {
+      console.log(`[weather] Serving cache (${Math.round(age)} min old)`);
+      return { ...cached.weather, from_cache: true, cache_age_minutes: Math.round(age) };
+    }
+    return null; // cache expired
+  } catch {
+    return null;
+  }
+}
+
+// ── Store weather to cache ────────────────────────────────────
+async function cacheWeather(weather: any) {
+  try {
+    await db.from('user_settings').upsert({
+      key:   'weather_cache',
+      value: JSON.stringify({ weather, cached_at: new Date().toISOString() }),
+    }, { onConflict: 'key' });
+  } catch (e) {
+    console.error('[weather] Cache write error:', e);
+  }
+}
+
+// ── Fetch live weather from OpenWeatherMap ───────────────────
+async function fetchLiveWeather(): Promise<any> {
+  if (!OPENWEATHER_KEY) {
+    return {
+      error: 'OPENWEATHER_KEY not set',
+      setup: 'supabase secrets set OPENWEATHER_KEY=YOUR_KEY',
+    };
+  }
+
+  // Current + forecast in parallel
+  // NOTE: The /data/2.5/uvi endpoint is deprecated and no longer works.
+  // UV index is available via the OneCall API (paid plan) — skipping for now.
+  const [currentRes, forecastRes] = await Promise.allSettled([
+    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&units=${UNITS}&appid=${OPENWEATHER_KEY}`),
+    fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${LAT}&lon=${LON}&units=${UNITS}&cnt=40&appid=${OPENWEATHER_KEY}`),
+  ]);
+
+  if (currentRes.status !== 'fulfilled' || !currentRes.value.ok) {
+    throw new Error('OpenWeatherMap current weather failed');
+  }
+
+  const current     = await currentRes.value.json();
+  const forecastRaw = forecastRes.status === 'fulfilled' && forecastRes.value.ok
+    ? await forecastRes.value.json()
+    : { list: [] };
+
+  // Group forecast by day
+  const dailyMap: Record<string, any[]> = {};
+  for (const item of forecastRaw.list || []) {
+    const date = new Date(item.dt * 1000).toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+    if (!dailyMap[date]) dailyMap[date] = [];
+    dailyMap[date].push(item);
+  }
+
+  const forecast = Object.entries(dailyMap).slice(0, 5).map(([date, items]) => {
+    const temps = items.map((i: any) => i.main.temp);
+    const descs = items.map((i: any) => i.weather[0].description);
+    const icons = items.map((i: any) => i.weather[0].icon);
+    const pop   = Math.max(...items.map((i: any) => (i.pop || 0) * 100));
+    return {
+      date,
+      high:        Math.round(Math.max(...temps)),
+      low:         Math.round(Math.min(...temps)),
+      description: descs[Math.floor(descs.length / 2)],
+      icon:        icons[Math.floor(icons.length / 2)],
+      rain_chance: Math.round(pop),
+    };
+  });
+
+  const weather = {
+    location:    'Prosper, TX',
+    fetched_at:  new Date().toISOString(),
+    from_cache:  false,
+    current: {
+      temp:          Math.round(current.main.temp),
+      feels_like:    Math.round(current.main.feels_like),
+      high:          Math.round(current.main.temp_max),
+      low:           Math.round(current.main.temp_min),
+      humidity:      current.main.humidity,
+      description:   current.weather[0].description,
+      icon:          current.weather[0].icon,
+      wind_mph:      Math.round(current.wind.speed),
+      wind_dir:      current.wind.deg,
+      visibility_mi: current.visibility ? Math.round(current.visibility / 1609) : null,
+      clouds_pct:    current.clouds.all,
+      sunrise:       new Date(current.sys.sunrise * 1000).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' }),
+      sunset:        new Date(current.sys.sunset  * 1000).toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' }),
+      // UV index: /data/2.5/uvi is deprecated; OneCall API requires a paid plan — skipping for now.
+      uv_index:      null,
+    },
+    forecast,
+    summary: buildWeatherSummary(current, forecast, null),
+  };
+
+  return weather;
+}
+
+// ── Main handler ─────────────────────────────────────────────
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    });
+  }
 
   try {
-    const key = Deno.env.get('OPENWEATHER_KEY') || '';
-    if (!key) return new Response(JSON.stringify({ error: 'OPENWEATHER_KEY not set in Vault' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Check if this is an on-demand (live) request or a briefing (cached ok) request
+    let forceLive = false;
+    try {
+      const body = await req.json();
+      forceLive = body?.live === true; // Pass { live: true } for on-demand queries
+    } catch { /* default: use cache */ }
+
+    let weather: any;
+
+    if (!forceLive) {
+      // Try cache first (briefing calls, background fetches)
+      weather = await getCachedWeather();
+    }
+
+    if (!weather) {
+      // Cache miss, expired, or forced live — fetch from OpenWeatherMap
+      console.log('[weather] Fetching live data...');
+      weather = await fetchLiveWeather();
+
+      // Store to cache for next call (only if successful)
+      if (!weather.error) {
+        await cacheWeather(weather);
+      }
+    }
+
+    return new Response(JSON.stringify({ ok: !weather.error, weather }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
-    // Current weather
-    const [currentRes, forecastRes] = await Promise.all([
-      fetch(`https://api.openweathermap.org/data/2.5/weather?q=${CITY}&units=${UNITS}&appid=${key}`),
-      fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${CITY}&units=${UNITS}&cnt=8&appid=${key}`),
-    ]);
-
-    const current = await currentRes.json();
-    const forecast = await forecastRes.json();
-
-    const weather = {
-      temp: Math.round(current.main?.temp || 0),
-      feels_like: Math.round(current.main?.feels_like || 0),
-      condition: current.weather?.[0]?.description || '',
-      icon: current.weather?.[0]?.icon || '',
-      humidity: current.main?.humidity || 0,
-      wind_mph: Math.round((current.wind?.speed || 0)),
-      city: current.name || 'Prosper',
-      high: Math.round(current.main?.temp_max || 0),
-      low: Math.round(current.main?.temp_min || 0),
-      forecast: (forecast.list || []).slice(0, 4).map((f: any) => ({
-        time: f.dt_txt?.slice(11, 16) || '',
-        temp: Math.round(f.main?.temp || 0),
-        condition: f.weather?.[0]?.description || '',
-        icon: f.weather?.[0]?.icon || '',
-      })),
-      activity_suggestion: getActivitySuggestion(
-        Math.round(current.main?.temp || 0),
-        current.weather?.[0]?.main || '',
-        current.wind?.speed || 0
-      ),
-    };
-
-    return new Response(JSON.stringify({ ok: true, weather }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: e.message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  } catch (err) {
+    console.error('[weather] Error:', err);
+    // Log to jarvis_errors
+    try {
+      const _db = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      await _db.from('jarvis_errors').insert({
+        source:     'edge:weather',
+        error_type: 'edge_fn',
+        message:    String(err),
+        resolved:   false,
+      });
+    } catch(_e) {}
+    return new Response(JSON.stringify({ ok: false, error: String(err), weather: null }), {
+      status: 500,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });
 
-function getActivitySuggestion(temp: number, condition: string, wind: number): string {
-  const cond = condition.toLowerCase();
-  if (cond.includes('rain') || cond.includes('storm') || cond.includes('snow')) {
-    return 'Stay in — good day for indoor workout, reading, or meal prep.';
-  }
-  if (temp > 95) return 'Very hot — early morning run only, stay hydrated, consider indoor workout.';
-  if (temp > 85) return `Warm at ${temp}°F — morning walk or evening outdoor workout recommended.`;
-  if (temp >= 65 && temp <= 85 && wind < 20) return `Perfect at ${temp}°F — great day for a run, park walk, or outdoor activity.`;
-  if (temp < 40) return `Cold at ${temp}°F — layer up or take workout indoors.`;
-  return `${temp}°F — decent conditions for outdoor activity.`;
-}
+// ── Human-readable weather summary ───────────────────────────
+function buildWeatherSummary(current: any, forecast: any[], uvIndex: number | null): string {
+  const temp     = Math.round(current.main.temp);
+  const desc     = current.weather[0].description;
+  const high     = Math.round(current.main.temp_max);
+  const low      = Math.round(current.main.temp_min);
+  const wind     = Math.round(current.wind.speed);
+  const humidity = current.main.humidity;
+
+  let summary = `${temp}°F and ${desc} in Prosper. High ${high}°F, low ${low}°F.`;
+
+  if (wind > 15) summary += ` Windy at ${wind} mph.`;
+  if (humidity > 80) summary += ` Humid (${humidity}%).`;
+  if (uvIndex !== null && uvIndex > 6) summary += ` High UV (${uvIndex}) — sunscreen recommended.`;
+
+  const rainyDays = forecast.filter

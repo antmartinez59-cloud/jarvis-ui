@@ -45,13 +45,10 @@ Deno.serve(async (req) => {
         .select('name,amount,next_renewal').lte('next_renewal', soon7).eq('is_active', true);
       for (const sub of (subs || [])) {
         const daysLeft = Math.ceil((new Date(sub.next_renewal).getTime() - Date.now()) / 86400000);
-        await supa.from('briefings').insert({
-          briefing_type: 'automation',
-          headline: `💳 ${sub.name} renews in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
-          preview: `$${sub.amount} renewal coming on ${sub.next_renewal}`,
-          content: `Subscription reminder: ${sub.name} ($${sub.amount}) renews on ${sub.next_renewal} — ${daysLeft} days away.`,
-          created_at: new Date().toISOString(),
-        });
+          await supa.from('briefings').insert({
+            briefing_type: 'automation',
+            content: `Subscription reminder: ${sub.name} ($${sub.amount}) renews on ${sub.next_renewal} — ${daysLeft} days away.`,
+          });
       }
       if ((subs || []).length > 0) fired.push('subscription_alerts');
     }
@@ -67,13 +64,10 @@ Deno.serve(async (req) => {
         .limit(5);
       if ((staleTodos || []).length > 0) {
         const list = (staleTodos || []).map((t: any) => `• [${t.priority}] ${t.title}`).join('\n');
-        await supa.from('briefings').insert({
-          briefing_type: 'automation',
-          headline: `📋 ${staleTodos!.length} stale high-priority todo${staleTodos!.length !== 1 ? 's' : ''}`,
-          preview: list.slice(0, 150),
-          content: `High-priority todos that have been active for 3+ days:\n\n${list}`,
-          created_at: new Date().toISOString(),
-        });
+          await supa.from('briefings').insert({
+            briefing_type: 'automation',
+            content: `High-priority todos that have been active for 3+ days:\n\n${list}`,
+          });
         fired.push('stale_todos');
       }
     }
@@ -85,13 +79,10 @@ Deno.serve(async (req) => {
       const totalOz = (waterLogs || []).reduce((s: number, w: any) => s + (w.amount_oz || 0), 0);
       const targetByNow = Math.round((hour / 21) * 80); // 80oz goal
       if (totalOz < targetByNow - 16) {
-        await supa.from('briefings').insert({
-          briefing_type: 'automation',
-          headline: `💧 Water check — ${totalOz}oz so far (goal: 80oz)`,
-          preview: `You're ${targetByNow - totalOz}oz behind pace. Time to hydrate!`,
-          content: `Water nudge: ${totalOz}oz logged today. Target by ${hour}:00 is ${targetByNow}oz. Drink up!`,
-          created_at: new Date().toISOString(),
-        });
+          await supa.from('briefings').insert({
+            briefing_type: 'automation',
+            content: `Water nudge: ${totalOz}oz logged today. Target by ${hour}:00 is ${targetByNow}oz. Drink up!`,
+          });
         fired.push('water_nudge');
       }
     }
@@ -101,13 +92,10 @@ Deno.serve(async (req) => {
       const { data: meals } = await supa.from('meals')
         .select('id').gte('logged_at', `${dateStr}T00:00:00`);
       if ((meals || []).length < 2) {
-        await supa.from('briefings').insert({
-          briefing_type: 'automation',
-          headline: `🍽️ Don't forget to log your meals today`,
-          preview: `Only ${meals?.length || 0} meal${meals?.length !== 1 ? 's' : ''} logged. Track nutrition to hit your goals.`,
-          content: `Meal reminder: ${meals?.length || 0} meal(s) logged today. Log what you ate to track your nutrition.`,
-          created_at: new Date().toISOString(),
-        });
+          await supa.from('briefings').insert({
+            briefing_type: 'automation',
+            content: `Meal reminder: ${meals?.length || 0} meal(s) logged today. Log what you ate to track your nutrition.`,
+          });
         fired.push('meal_reminder');
       }
     }
@@ -119,10 +107,7 @@ Deno.serve(async (req) => {
       if (!(workouts || []).length) {
         await supa.from('briefings').insert({
           briefing_type: 'automation',
-          headline: `🏋️ Workout not logged today`,
-          preview: 'No workout logged yet. Even a quick session counts toward your consistency.',
-          content: 'Workout reminder: No workout logged today. Log a session to keep your streak going.',
-          created_at: new Date().toISOString(),
+          content: '🏋️ Workout not logged today — No workout logged yet. Even a quick session counts toward your consistency.',
         });
         fired.push('workout_reminder');
       }
@@ -135,13 +120,10 @@ Deno.serve(async (req) => {
         .select('amount,type,category').gte('date', weekAgo);
       const income = (txns || []).filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + parseFloat(t.amount || 0), 0);
       const expenses = (txns || []).filter((t: any) => t.type !== 'income').reduce((s: number, t: any) => s + parseFloat(t.amount || 0), 0);
-      await supa.from('briefings').insert({
-        briefing_type: 'automation',
-        headline: `💰 Weekly finance: $${income.toFixed(0)} in, $${expenses.toFixed(0)} out`,
-        preview: `Net: ${(income - expenses) >= 0 ? '+' : ''}$${(income - expenses).toFixed(0)} this week`,
-        content: `Weekly Finance Summary:\n• Income: $${income.toFixed(2)}\n• Expenses: $${expenses.toFixed(2)}\n• Net: $${(income - expenses).toFixed(2)}\n• Transactions: ${(txns || []).length}`,
-        created_at: new Date().toISOString(),
-      });
+          await supa.from('briefings').insert({
+            briefing_type: 'automation',
+            content: `Weekly Finance Summary:\n• Income: $${income.toFixed(2)}\n• Expenses: $${expenses.toFixed(2)}\n• Net: $${(income - expenses).toFixed(2)}\n• Transactions: ${(txns || []).length}`,
+          });
       fired.push('weekly_finance');
     }
 

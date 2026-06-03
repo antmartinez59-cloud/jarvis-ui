@@ -1,22 +1,24 @@
-// JARVIS — Reflect Edge Function
-// Extracts structured insights from Council conversations → saved to profile/learnings
+// JARVIS Edge Function — reflect
+// Extracts structured insights from a Council conversation using Claude Haiku.
+// Anthropic key lives in Supabase Vault, never in the browser.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const corsHeaders = {
+const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { question, response } = await req.json();
-    const apiKey = Deno.env.get('ANTHROPIC_KEY') || '';
-    if (!apiKey) return new Response(JSON.stringify({ ok: false, error: 'ANTHROPIC_KEY not set' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_KEY')
+    if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_KEY not set in Supabase Vault')
+
+    const { question, response } = await req.json()
+    const now = new Date().toISOString().slice(0, 16).replace('T', ' ')
 
     const prompt = `Extract structured insights from this AI conversation.
 
@@ -31,14 +33,14 @@ Return ONLY valid JSON (no markdown fences):
   "projects": ["project or topic mentioned"],
   "preferences": ["style or approach they prefer"],
   "patterns": ["behavioral pattern observed"],
-  "date": "${new Date().toISOString().slice(0, 16).replace('T', ' ')}"
+  "date": "${now}"
 }
-Max 3 items per array. Only include items clearly evidenced.`;
+Max 3 items per array. Only include items clearly evidenced.`
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': apiKey,
+        'x-api-key': ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
@@ -47,20 +49,26 @@ Max 3 items per array. Only include items clearly evidenced.`;
         max_tokens: 500,
         messages: [{ role: 'user', content: prompt }],
       }),
-    });
+    })
 
-    const data = await res.json();
-    const raw = data?.content?.[0]?.text || '';
-    const clean = raw.replace(/```json?/g, '').replace(/```/g, '').trim();
-    const match = clean.match(/\{[\s\S]*\}/);
-    const insights = JSON.parse(match ? match[0] : clean);
+    const data = await res.json()
+    const raw = data.content?.[0]?.text || '{}'
+    const clean = raw.replace(/```json?/g, '').replace(/```/g, '').trim()
+    const m = clean.match(/\{[\s\S]*\}/)
+    const insights = JSON.parse(m ? m[0] : clean)
 
-    return new Response(JSON.stringify({ ok: true, insights }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ ok: true, insights }),
+      { headers: { ...CORS, 'Content-Type': 'application/json' } }
+    )
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: e.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    try {
+      const _db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      await _db.from('jarvis_errors').insert({ source: 'edge:reflect', error_type: 'edge_fn', message: String(e?.message || e), resolved: false });
+    } catch(_) {}
+    return new Response(
+      JSON.stringify({ ok: false, error: e.message }),
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
+    )
   }
-});
+})

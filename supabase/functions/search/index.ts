@@ -1,60 +1,92 @@
-// JARVIS Search — Brave primary, DuckDuckGo fallback
-const cors = {
+// JARVIS Edge Function — search
+// Brave Search primary, DuckDuckGo fallback.
+// BRAVE_KEY stored in Supabase Vault — never exposed to browser.
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const _db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+function stripTags(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ').trim()
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+
   try {
-    const { query, brave_key } = await req.json();
-    if (!query) return new Response(JSON.stringify({ results: [], engine: 'none' }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+    const { query } = await req.json()
+    if (!query) throw new Error('query required')
 
-    // Read key: Vault → request body
-    const key = Deno.env.get('BRAVE_KEY') || brave_key || '';
-    let results: any[] = [];
-    let engine = 'none';
+    const BRAVE_KEY = Deno.env.get('BRAVE_KEY') || ''
+    const results: { title: string; link: string; snippet: string }[] = []
+    let engine = 'duckduckgo'
 
-    // 1. Brave Search
-    if (key) {
+    // ── 1. Brave Search ──────────────────────────────────────────────────
+    if (BRAVE_KEY) {
       try {
-        const r = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10`, {
-          headers: { 'Accept': 'application/json', 'X-Subscription-Token': key }
-        });
-        if (r.ok) {
-          const d = await r.json();
-          results = (d?.web?.results || []).map((x: any) => ({ title: x.title, link: x.url, snippet: x.description || '' }));
-          engine = 'brave';
-        } else {
-          const err = await r.text();
-          console.error('Brave error:', r.status, err.slice(0, 100));
-        }
-      } catch (e) { console.error('Brave exception:', e.message); }
-    }
-
-    // 2. DuckDuckGo fallback
-    if (results.length < 3) {
-      try {
-        const r = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`, {
-          headers: { 'User-Agent': 'JARVIS/4.0' }
-        });
-        if (r.ok) {
-          const d = await r.json();
-          if (d.AbstractURL) results.push({ title: d.Heading || query, link: d.AbstractURL, snippet: d.AbstractText || '' });
-          for (const t of (d.RelatedTopics || []).slice(0, 6)) {
-            if (t.FirstURL) results.push({ title: (t.Text || '').slice(0, 80), link: t.FirstURL, snippet: t.Text || '' });
+        const r = await fetch(
+          `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10&safesearch=off`,
+          {
+            headers: {
+              'X-Subscription-Token': BRAVE_KEY,
+              'Accept': 'application/json',
+            },
           }
-          engine = results.length > 0 ? (engine === 'brave' ? 'brave+ddg' : 'duckduckgo') : engine;
+        )
+        const data = await r.json()
+        for (const item of data.web?.results || []) {
+          results.push({ title: item.title || '', link: item.url || '', snippet: item.description || '' })
         }
-      } catch (e) { console.error('DDG exception:', e.message); }
+        if (results.length > 0) engine = 'brave'
+        console.log(`[Brave] ${results.length} results for: ${query}`)
+      } catch (e) {
+        console.warn('[Brave] error:', e.message)
+      }
     }
 
-    return new Response(JSON.stringify({ results: results.slice(0, 10), engine }), {
-      headers: { ...cors, 'Content-Type': 'application/json' }
-    });
+    // ── 2. DuckDuckGo instant answer fallback ────────────────────────────
+    if (results.length < 4) {
+      try {
+        const r = await fetch(
+          `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`,
+          { headers: { 'User-Agent': 'JARVIS/4.0' } }
+        )
+        const ddg = await r.json()
+        if (ddg.AbstractURL) {
+          results.push({ title: ddg.Heading || query, link: ddg.AbstractURL, snippet: ddg.AbstractText || '' })
+        }
+        for (const t of (ddg.RelatedTopics || []).slice(0, 8)) {
+          if (t && t.FirstURL) {
+            results.push({ title: stripTags(t.Text || '').slice(0, 100), link: t.FirstURL, snippet: stripTags(t.Text || '') })
+          }
+        }
+      } catch (e) {
+        console.warn('[DDG] error:', e.message)
+      }
+    }
+
+    // Deduplicate
+    const seen = new Set<string>()
+    const dedup = results.filter(r => { if (seen.has(r.link)) return false; seen.add(r.link); return true })
+
+    return new Response(
+      JSON.stringify({ results: dedup.slice(0, 10), engine }),
+      { headers: { ...CORS, 'Content-Type': 'application/json' } }
+    )
   } catch (e) {
-    return new Response(JSON.stringify({ results: [], engine: 'error', error: e.message }), {
-      status: 500, headers: { ...cors, 'Content-Type': 'application/json' }
-    });
+    await _db.from('jarvis_errors').insert({ source: 'edge:search', error_type: 'edge_fn', message: String(e?.message||e).slice(0,500) }).catch(()=>{});
+    return new Response(
+      JSON.stringify({ results: [], error: e.message }),
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
+    )
   }
-});
+})

@@ -1,242 +1,335 @@
-// JARVIS — Apple Calendar Edge Function (iCloud CalDAV)
-// Secrets: APPLE_CALDAV_USER, APPLE_CALDAV_PASSWORD (app-specific password)
+// ╔══════════════════════════════════════════════════════════╗
+// ║  JARVIS — apple-calendar Edge Function                   ║
+// ║  Read + create Apple Calendar events via iCloud CalDAV   ║
+// ║                                                          ║
+// ║  GET    ?start=YYYY-MM-DD&end=YYYY-MM-DD                 ║
+// ║    → { events: [{id,title,start,end,location,notes,...}] }║
+// ║  POST   { title, start, end, notes?, location?, allDay? }║
+// ║    → { ok: true, uid }                                   ║
+// ║  DELETE { uid }                                          ║
+// ║    → { ok: true }                                        ║
+// ║                                                          ║
+// ║  Secrets: APPLE_CALDAV_USER, APPLE_CALDAV_PASSWORD       ║
+// ╚══════════════════════════════════════════════════════════╝
 
-const cors = {
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const _db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+const APPLE_USER = Deno.env.get('APPLE_CALDAV_USER') || '';
+const APPLE_PASS = Deno.env.get('APPLE_CALDAV_PASSWORD') || '';
+
+const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
 };
 
-const CALDAV_BASE = 'https://caldav.icloud.com';
+const authHeader = () => ({
+  'Authorization': 'Basic ' + btoa(`${APPLE_USER}:${APPLE_PASS}`),
+  'Content-Type': 'application/xml; charset=utf-8',
+});
 
-function basicAuth(user: string, pass: string) {
-  return 'Basic ' + btoa(`${user}:${pass}`);
+// ── Discover iCloud calendar home URL ────────────────────────────────────────
+async function getCalendarHome(): Promise<string> {
+  const auth = authHeader()['Authorization'];
+  const headers = {
+    'Authorization': auth,
+    'Depth': '0',
+    'Content-Type': 'application/xml; charset=utf-8',
+  };
+
+  // Step 1: well-known PROPFIND
+  const wk = await fetch('https://caldav.icloud.com/.well-known/caldav', {
+    method: 'PROPFIND',
+    headers,
+    body: `<?xml version="1.0" encoding="UTF-8"?>
+<D:propfind xmlns:D="DAV:">
+  <D:prop><D:current-user-principal/></D:prop>
+</D:propfind>`,
+  });
+  const wkText = await wk.text();
+  console.log('[calendar] well-known status:', wk.status);
+
+  // Extract principal path (same regex as apple-remind)
+  const principalMatch = wkText.match(/<D:href>([^<]+principal[^<]*)<\/D:href>/i)
+    || wkText.match(/<href>([^<]+principal[^<]*)<\/href>/i);
+
+  let principalUrl: string;
+  if (principalMatch) {
+    const p = principalMatch[1];
+    principalUrl = p.startsWith('http') ? p : `https://caldav.icloud.com${p}`;
+  } else {
+    // Fallback: derive from email prefix (same as apple-remind)
+    const prefix = APPLE_USER.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase();
+    principalUrl = `https://caldav.icloud.com/${prefix}/principal/`;
+  }
+  console.log('[calendar] principalUrl:', principalUrl);
+
+  // Step 2: PROPFIND to get calendar-home-set
+  const ph = await fetch(principalUrl, {
+    method: 'PROPFIND',
+    headers,
+    body: `<?xml version="1.0" encoding="UTF-8"?>
+<D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:prop><C:calendar-home-set/></D:prop>
+</D:propfind>`,
+  });
+  const phText = await ph.text();
+  console.log('[calendar] home propfind status:', ph.status, phText.slice(0, 300));
+
+  // Must find href INSIDE <calendar-home-set>, not just any first href
+  const homeMatch = phText.match(/calendar-home-set[\s\S]*?<[^>]*href[^>]*>([^<]+)<\/[^>]*href>/i)
+    || phText.match(/<C:calendar-home-set[^>]*>[\s\S]*?<D:href>([^<]+)<\/D:href>/i)
+    || phText.match(/<calendar-home-set[^>]*>[\s\S]*?<href>([^<]+)<\/href>/i);
+
+  if (!homeMatch) {
+    // Fallback: derive calendars URL from principal
+    const fallback = principalUrl.replace('/principal/', '/calendars/').replace('/principal', '/calendars/');
+    console.log('[calendar] using fallback homeUrl:', fallback);
+    return fallback;
+  }
+
+  const homePath = homeMatch[1];
+  const homeUrl = homePath.startsWith('http') ? homePath : `https://caldav.icloud.com${homePath}`;
+  console.log('[calendar] homeUrl:', homeUrl);
+  return homeUrl;
 }
 
-// Discover the actual calendar path via CalDAV PROPFIND
-async function discoverCalendarPath(auth: string): Promise<string> {
-  // Step 1: Find principal URL via well-known
-  const step1 = await fetch(`${CALDAV_BASE}/.well-known/caldav`, {
+// ── List all calendar collections ────────────────────────────────────────────
+async function listCalendars(homeUrl: string): Promise<string[]> {
+  const resp = await fetch(homeUrl, {
     method: 'PROPFIND',
-    headers: {
-      'Authorization': auth,
-      'Depth': '0',
-      'Content-Type': 'application/xml',
-      'Prefer': 'return-minimal',
-    },
-    body: `<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`,
-    redirect: 'follow',
+    headers: { ...authHeader(), Depth: '1' },
+    body: `<?xml version="1.0" encoding="UTF-8"?>
+<propfind xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <prop><resourcetype/><C:supported-calendar-component-set/></prop>
+</propfind>`,
+  });
+  const text = await resp.text();
+
+  // iCloud uses UUID paths for actual calendar collections — most reliable pattern
+  const uuidRe = /\/([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})\//gi;
+  const seen   = new Set<string>();
+  const urls: string[] = [];
+
+  // Build absolute base from homeUrl directly (avoid URL normalization stripping :443)
+  const proto = homeUrl.startsWith('https') ? 'https' : 'http';
+  const hostWithPort = homeUrl.split('/')[2]; // e.g. "p171-caldav.icloud.com:443"
+  const base = `${proto}://${hostWithPort}`;
+  const homePath = '/' + homeUrl.split('/').slice(3).join('/'); // e.g. "/17710551327/calendars/"
+
+  for (const m of text.matchAll(uuidRe)) {
+    const uuid = m[1].toUpperCase();
+    if (seen.has(uuid)) continue;
+    seen.add(uuid);
+    // Only include if this UUID calendar supports VEVENT
+    const idx = text.indexOf(uuid);
+    const block = text.slice(Math.max(0, idx - 100), idx + 800);
+    if (block.includes("name='VEVENT'") || block.includes('name="VEVENT"')) {
+      urls.push(`${base}${homePath}${uuid}/`);
+      console.log('[calendar] found VEVENT calendar:', uuid);
+    }
+  }
+
+  console.log('[calendar] VEVENT collections:', urls);
+  return urls.length ? urls : [`${base}${homePath}`];
+}
+
+// ── Fetch events from a calendar in a date range ──────────────────────────────
+async function fetchEvents(calUrl: string, startDate: string, endDate: string): Promise<any[]> {
+  // Format for CalDAV time-range: YYYYMMDDTHHMMSSZ
+  const toCalDAV = (d: string, isEnd = false) => {
+    const dt = new Date(d + (isEnd ? 'T23:59:59Z' : 'T00:00:00Z'));
+    return dt.toISOString().replace(/[-:]/g, '').replace('.000', '');
+  };
+
+  const body = `<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+    <d:prop>
+      <d:getetag/>
+      <c:calendar-data/>
+    </d:prop>
+    <c:filter>
+      <c:comp-filter name="VCALENDAR">
+        <c:comp-filter name="VEVENT">
+          <c:time-range start="${toCalDAV(startDate)}" end="${toCalDAV(endDate, true)}"/>
+        </c:comp-filter>
+      </c:comp-filter>
+    </c:filter>
+  </c:calendar-query>`;
+
+  const resp = await fetch(calUrl, {
+    method: 'REPORT',
+    headers: { ...authHeader(), Depth: '1' },
+    body,
   });
 
-  const xml1 = await step1.text();
+  if (!resp.ok) return [];
+  const text = await resp.text();
 
-  // Extract principal href
-  const principalMatch = xml1.match(/<d:href[^>]*>([^<]+)<\/d:href>/) ||
-                         xml1.match(/<href[^>]*>([^<]+)<\/href>/);
-
-  let principalPath = principalMatch?.[1] || '';
-
-  // Step 2: Get calendar-home-set from principal
-  if (principalPath) {
-    const principalUrl = principalPath.startsWith('http')
-      ? principalPath
-      : `${CALDAV_BASE}${principalPath}`;
-
-    const step2 = await fetch(principalUrl, {
-      method: 'PROPFIND',
-      headers: {
-        'Authorization': auth,
-        'Depth': '0',
-        'Content-Type': 'application/xml',
-      },
-      body: `<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>`,
-    });
-
-    const xml2 = await step2.text();
-    const homeMatch = xml2.match(/<cal:calendar-home-set[^>]*>[\s\S]*?<d:href[^>]*>([^<]+)<\/d:href>/) ||
-                      xml2.match(/calendar-home-set[\s\S]*?<[^>]*href[^>]*>([^<]+)<\/[^>]*href>/);
-    if (homeMatch?.[1]) return homeMatch[1];
-  }
-
-  // Fallback: common iCloud path patterns
-  return null;
-}
-
-function parseVEvents(vcal: string): any[] {
+  // Extract calendar-data blocks
+  const dataBlocks = text.match(/<[^:]*:calendar-data[^>]*>([\s\S]*?)<\/[^:]*:calendar-data>/gi) || [];
   const events: any[] = [];
-  const blocks = vcal.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || [];
-  for (const block of blocks) {
-    const get = (key: string) => {
-      const m = block.match(new RegExp(`(?:^|\\n)${key}[^:]*:(.+)`, 'm'));
-      return m ? m[1].trim().replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\r/g, '') : '';
-    };
-    const dtstart = get('DTSTART');
-    const dtend = get('DTEND');
-    const allDay = !dtstart.includes('T');
-    const parseDate = (dt: string) => {
-      if (!dt) return '';
-      if (!dt.includes('T')) return `${dt.slice(0,4)}-${dt.slice(4,6)}-${dt.slice(6,8)}`;
-      const clean = dt.replace('Z', '').replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
-      return clean;
-    };
-    const title = get('SUMMARY');
-    if (!title) continue;
-    events.push({
-      uid: get('UID'),
-      title,
-      start: parseDate(dtstart),
-      end: parseDate(dtend),
-      location: get('LOCATION'),
-      notes: get('DESCRIPTION'),
-      allDay,
-    });
+
+  for (const block of dataBlocks) {
+    const ical = block.replace(/<[^>]+>/g, '').trim();
+    const parsed = parseVEvent(ical);
+    if (parsed) events.push(parsed);
   }
+
   return events;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+// ── Parse a VCALENDAR/VEVENT string into a clean object ──────────────────────
+function parseVEvent(ical: string): any | null {
+  // Unfold lines (iCal wraps long lines with \r\n + space)
+  const unfolded = ical.replace(/\r\n[ \t]/g, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  const user = Deno.env.get('APPLE_CALDAV_USER') || '';
-  const pass = Deno.env.get('APPLE_CALDAV_PASSWORD') || '';
+  const lines = unfolded.split('\n');
+  const inEvent: Record<string, string> = {};
+  let insideEvent = false;
 
-  if (!user || !pass) return new Response(
-    JSON.stringify({ error: 'APPLE_CALDAV_USER and APPLE_CALDAV_PASSWORD not set in Vault' }),
-    { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
-  );
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (line === 'BEGIN:VEVENT') { insideEvent = true; continue; }
+    if (line === 'END:VEVENT') { insideEvent = false; break; }
+    if (!insideEvent) continue;
 
-  const auth = basicAuth(user, pass);
-  const url = new URL(req.url);
+    const colonIdx = line.indexOf(':');
+    if (colonIdx < 0) continue;
+    const key = line.slice(0, colonIdx).split(';')[0].toUpperCase();
+    const val = line.slice(colonIdx + 1).trim();
+    inEvent[key] = val;
+  }
 
-  // GET — fetch events
-  if (req.method === 'GET') {
-    const start = url.searchParams.get('start') || new Date().toISOString().slice(0, 10);
-    const end = url.searchParams.get('end') || start;
+  if (!inEvent['SUMMARY'] && !inEvent['UID']) return null;
 
-    try {
-      // Discover calendar home path
-      let calHome = await discoverCalendarPath(auth);
+  const parseDate = (s: string): string => {
+    if (!s) return '';
+    // All-day: YYYYMMDD
+    if (/^\d{8}$/.test(s)) return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+    // With time: YYYYMMDDTHHMMSSZ or local
+    const clean = s.replace('Z','').replace('T',' ');
+    const y=clean.slice(0,4), mo=clean.slice(4,6), d=clean.slice(6,8);
+    const h=clean.slice(9,11)||'00', mi=clean.slice(11,13)||'00';
+    return `${y}-${mo}-${d}T${h}:${mi}`;
+  };
 
-      if (!calHome) {
-        // Fallback: try common iCloud patterns
-        calHome = `/${user.split('@')[0]}/calendars/`;
-      }
+  const startRaw = inEvent['DTSTART'] || '';
+  const endRaw   = inEvent['DTEND']   || '';
+  const allDay   = /^\d{8}$/.test(startRaw);
 
-      const calUrl = calHome.startsWith('http') ? calHome : `${CALDAV_BASE}${calHome}`;
-      const startDT = `${start.replace(/-/g, '')}T000000Z`;
-      const endDT = `${end.replace(/-/g, '')}T235959Z`;
+  return {
+    id:       inEvent['UID'] || crypto.randomUUID(),
+    title:    inEvent['SUMMARY']     || 'Untitled Event',
+    start:    parseDate(startRaw),
+    end:      parseDate(endRaw),
+    location: inEvent['LOCATION']    || null,
+    notes:    inEvent['DESCRIPTION'] || null,
+    allDay,
+    uid:      inEvent['UID']         || '',
+  };
+}
 
-      const reportBody = `<?xml version="1.0" encoding="utf-8"?>
+// ── Create a VEVENT and PUT to calendar ──────────────────────────────────────
+async function createEvent(calUrl: string, event: any): Promise<string> {
+  const uid = crypto.randomUUID() + '@jarvis.local';
+  // DTSTAMP must be YYYYMMDDTHHMMSSZ — strip dashes, colons, milliseconds
+  const now = new Date().toISOString().replace(/[-:.]/g,'').slice(0,15) + 'Z';
+
+  const fmtDT = (s: string, allDay: boolean) => {
+    if (allDay) return s.replace(/-/g, '').slice(0, 8);
+    // Normalize to YYYYMMDDTHHMMSSZ — input may be "2026-05-31T09:00" or "2026-05-31T09:00:00"
+    const clean = s.replace(/[-:]/g, '').replace('T', 'T'); // "20260531T0900" or "20260531T090000"
+    const base  = clean.slice(0, 13).padEnd(13, '0'); // ensure at least YYYYMMDDTHHMM
+    return base + '00'; // floating local time — no Z so Apple Calendar shows it in the user's tz
+  };
+
+  const vevent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//JARVIS//EN',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${now}`,
+    event.allDay ? `DTSTART;VALUE=DATE:${fmtDT(event.start, true)}`
+                 : `DTSTART:${fmtDT(event.start, false)}`,
+    event.allDay ? `DTEND;VALUE=DATE:${fmtDT(event.end || event.start, true)}`
+                 : `DTEND:${fmtDT(event.end || event.start, false)}`,
+    `SUMMARY:${event.title}`,
+    event.location ? `LOCATION:${event.location}` : null,
+    event.notes    ? `DESCRIPTION:${event.notes}` : null,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n');
+
+  const putUrl = calUrl.endsWith('/') ? calUrl + uid + '.ics' : calUrl + '/' + uid + '.ics';
+  console.log('[calendar] PUT url:', putUrl);
+  console.log('[calendar] VEVENT:', vevent);
+  const resp = await fetch(putUrl, {
+    method: 'PUT',
+    headers: {
+      ...authHeader(),
+      'Content-Type': 'text/calendar; charset=utf-8',
+      'If-None-Match': '*',
+    },
+    body: vevent,
+  });
+
+  if (!resp.ok && resp.status !== 201 && resp.status !== 204) {
+    const body = await resp.text().catch(() => '');
+    console.error('[calendar] PUT failed:', resp.status, body.slice(0,300));
+    throw new Error(`PUT failed ${resp.status}: ${body.slice(0,200)}`);
+  }
+  return uid;
+}
+
+// ── Find and delete an event by UID ──────────────────────────────────────────
+async function deleteEvent(calendars: string[], uid: string): Promise<boolean> {
+  for (const calUrl of calendars) {
+    // Search for the event by UID using a calendar-query REPORT
+    const body = `<?xml version="1.0" encoding="UTF-8"?>
 <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-  <d:prop>
-    <d:getetag/>
-    <c:calendar-data/>
-  </d:prop>
+  <d:prop><d:getetag/><d:getcontenttype/></d:prop>
   <c:filter>
     <c:comp-filter name="VCALENDAR">
       <c:comp-filter name="VEVENT">
-        <c:time-range start="${startDT}" end="${endDT}"/>
+        <c:prop-filter name="UID">
+          <c:text-match collation="i;octet">${uid}</c:text-match>
+        </c:prop-filter>
       </c:comp-filter>
     </c:comp-filter>
   </c:filter>
 </c:calendar-query>`;
 
-      const report = await fetch(calUrl, {
-        method: 'REPORT',
-        headers: {
-          'Authorization': auth,
-          'Depth': '1',
-          'Content-Type': 'application/xml; charset=utf-8',
-        },
-        body: reportBody,
+    const report = await fetch(calUrl, {
+      method: 'REPORT',
+      headers: { ...authHeader(), Depth: '1' },
+      body,
+    });
+
+    if (!report.ok) continue;
+    const text = await report.text();
+
+    // Extract all hrefs from the response
+    const hrefMatches = text.match(/<[^:]*:?href[^>]*>([^<]+\.ics)<\/[^:]*:?href>/gi) || [];
+    for (const match of hrefMatches) {
+      const path = match.replace(/<[^>]+>/g, '').trim();
+      if (!path) continue;
+
+      // Build absolute URL for DELETE
+      const proto = calUrl.startsWith('https') ? 'https' : 'http';
+      const hostWithPort = calUrl.split('/')[2];
+      const deleteUrl = path.startsWith('http') ? path : `${proto}://${hostWithPort}${path}`;
+
+      const del = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: { 'Authorization': authHeader()['Authorization'] },
       });
 
-      if (!report.ok) {
-        const errText = await report.text();
-        return new Response(
-          JSON.stringify({ error: `CalDAV ${report.status}: ${errText.slice(0, 200)}`, events: [] }),
-          { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
-        );
+      if (del.status === 204 || del.status === 200) {
+        console.log('[calendar] deleted event:', deleteUrl);
+        return true;
       }
-
-      const xml = await report.text();
-      // Extract calendar-data content
-      const dataBlocks = xml.match(/(?:cal:calendar-data|calendar-data)[^>]*>([\s\S]*?)(?:<\/cal:calendar-data|<\/calendar-data)/g) || [];
-      const allVcal = dataBlocks.map(b => b.replace(/<[^>]*>/g, '')).join('\n');
-      const events = parseVEvents(allVcal);
-
-      return new Response(JSON.stringify({ ok: true, events }), {
-        headers: { ...cors, 'Content-Type': 'application/json' },
-      });
-    } catch (e) {
-      return new Response(JSON.stringify({ error: e.message, events: [] }), {
-        status: 500, headers: { ...cors, 'Content-Type': 'application/json' },
-      });
-    }
-  }
-
-  // POST — create event
-  if (req.method === 'POST') {
-    try {
-      const { title, start, end, location, notes, allDay } = await req.json();
-      if (!title || !start) return new Response(
-        JSON.stringify({ ok: false, error: 'title and start required' }),
-        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
-      );
-
-      let calHome = await discoverCalendarPath(auth);
-      if (!calHome) calHome = `/${user.split('@')[0]}/calendars/`;
-
-      const uid = crypto.randomUUID();
-      const now = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
-      const fmtDT = (dt: string) => new Date(dt).toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
-
-      const vcal = [
-        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//JARVIS//EN', 'CALSCALE:GREGORIAN',
-        'BEGIN:VEVENT',
-        `UID:${uid}@jarvis`,
-        `DTSTAMP:${now}`,
-        allDay
-          ? `DTSTART;VALUE=DATE:${new Date(start).toISOString().slice(0,10).replace(/-/g,'')}`
-          : `DTSTART:${fmtDT(start)}`,
-        allDay
-          ? `DTEND;VALUE=DATE:${new Date(end||start).toISOString().slice(0,10).replace(/-/g,'')}`
-          : `DTEND:${fmtDT(end||start)}`,
-        `SUMMARY:${title}`,
-        location ? `LOCATION:${location}` : null,
-        notes ? `DESCRIPTION:${notes}` : null,
-        'END:VEVENT', 'END:VCALENDAR',
-      ].filter(Boolean).join('\r\n');
-
-      const calUrl = (calHome.startsWith('http') ? calHome : `${CALDAV_BASE}${calHome}`) + `${uid}.ics`;
-      const put = await fetch(calUrl, {
-        method: 'PUT',
-        headers: {
-          'Authorization': auth,
-          'Content-Type': 'text/calendar; charset=utf-8',
-          'If-None-Match': '*',
-        },
-        body: vcal,
-      });
-
-      if (put.status === 201 || put.status === 204) {
-        return new Response(JSON.stringify({ ok: true, uid }), {
-          headers: { ...cors, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const errText = await put.text();
-      return new Response(
-        JSON.stringify({ ok: false, error: `CalDAV ${put.status}: ${errText.slice(0, 200)}` }),
-        { headers: { ...cors, 'Content-Type': 'application/json' } }
-      );
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: e.message }), {
-        status: 500, headers: { ...cors, 'Content-Type': 'application/json' },
-      });
-    }
-  }
-
-  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-    status: 405, headers: { ...cors, 'Content-Type': 'application/json' },
-  });
-});
+      console.warn('[calendar] DELETE failed:', del.
