@@ -730,8 +730,8 @@ body.viewing-past .tracker-log-only{display:block;}
   <!-- NETWORK MAP -->
   <div class="view active" id="view-map">
     <svg id="network-svg"></svg>
-    <div id="jarvis-roadmap" style="position:absolute;top:12px;right:12px;width:210px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:12px;max-height:calc(100% - 24px);overflow-y:auto;z-index:20;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div id="jarvis-roadmap" style="position:absolute;top:12px;right:12px;width:230px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:12px;max-height:80vh;overflow-y:auto;z-index:20;cursor:default;resize:both;">
+      <div id="roadmap-drag-handle" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:grab;user-select:none;" title="Drag to move">
         <div style="font-weight:700;color:var(--primary);font-size:13px;">🗺 JARVIS Roadmap</div>
         <button onclick="toggleRoadmap()" id="roadmap-toggle-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:0;">−</button>
       </div>
@@ -3511,15 +3511,66 @@ let waterGoalOz = 80;
 // align with the user's clock, not UTC midnight (which would be 7pm CDT).
 
 function toggleRoadmap(){
-  const body = document.getElementById('roadmap-body');
-  const btn  = document.getElementById('roadmap-toggle-btn');
+  const body  = document.getElementById('roadmap-body');
+  const btn   = document.getElementById('roadmap-toggle-btn');
   const panel = document.getElementById('jarvis-roadmap');
   if(!body||!btn) return;
   const collapsed = body.style.display === 'none';
   body.style.display = collapsed ? '' : 'none';
-  btn.textContent   = collapsed ? '−' : '+';
-  panel.style.width = collapsed ? '210px' : 'auto';
+  btn.textContent    = collapsed ? '−' : '+';
+  panel.style.width  = collapsed ? '230px' : 'auto';
+  panel.style.resize = collapsed ? 'both' : 'none';
+  panel.style.overflow = collapsed ? 'auto' : 'visible';
 }
+
+// Make roadmap panel draggable
+(function(){
+  const panel  = document.getElementById('jarvis-roadmap');
+  const handle = document.getElementById('roadmap-drag-handle');
+  if(!panel||!handle) return;
+  let dragging=false, ox=0, oy=0;
+  handle.addEventListener('mousedown', e=>{
+    if(e.target.tagName==='BUTTON') return;
+    dragging=true;
+    const r=panel.getBoundingClientRect();
+    ox=e.clientX-r.left; oy=e.clientY-r.top;
+    handle.style.cursor='grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const parent=panel.parentElement.getBoundingClientRect();
+    let x=e.clientX-parent.left-ox;
+    let y=e.clientY-parent.top-oy;
+    x=Math.max(0,Math.min(x, parent.width-panel.offsetWidth));
+    y=Math.max(0,Math.min(y, parent.height-panel.offsetHeight));
+    panel.style.left=x+'px'; panel.style.top=y+'px';
+    panel.style.right='auto';
+  });
+  document.addEventListener('mouseup', ()=>{
+    dragging=false; handle.style.cursor='grab';
+  });
+  // Touch support
+  handle.addEventListener('touchstart', e=>{
+    if(e.target.tagName==='BUTTON') return;
+    const t=e.touches[0];
+    dragging=true;
+    const r=panel.getBoundingClientRect();
+    ox=t.clientX-r.left; oy=t.clientY-r.top;
+  },{passive:true});
+  document.addEventListener('touchmove', e=>{
+    if(!dragging) return;
+    const t=e.touches[0];
+    const parent=panel.parentElement.getBoundingClientRect();
+    let x=t.clientX-parent.left-ox;
+    let y=t.clientY-parent.top-oy;
+    x=Math.max(0,Math.min(x, parent.width-panel.offsetWidth));
+    y=Math.max(0,Math.min(y, parent.height-panel.offsetHeight));
+    panel.style.left=x+'px'; panel.style.top=y+'px';
+    panel.style.right='auto';
+  },{passive:true});
+  document.addEventListener('touchend', ()=>{ dragging=false; });
+})();
 function utcToCT(ts){
   if(!ts) return '';
   return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'America/Chicago'});
