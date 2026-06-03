@@ -2201,7 +2201,7 @@ function switchTab(name,btn){
   if(name==='memory')loadMemoryTab();
   if(name==='library')loadLibraryTab();
   if(name==='todos'){ const d=document.getElementById('todo-due'); if(d&&!d.value)d.value=localDateStr(); loadTodos(); }
-  if(name==='calendar') initCalendarTab();
+  if(name==='calendar') initCalendarTab(); else stopCalendarAutoRefresh();
 }
 function showLibSection(name,btn){
   document.querySelectorAll('.lib-tab').forEach(t=>t.classList.remove('active'));
@@ -5696,10 +5696,19 @@ function getWeekDates(offset=0){
 }
 
 // ── Init calendar tab ─────────────────────────────────────────────────────
+let _calRefreshInterval = null;
+
 async function initCalendarTab(){
   calWeekOffset = 0;
   calSelectedDate = localDateStr();
   await refreshCalendar();
+  // Auto-refresh every 5 minutes while Calendar tab is open
+  if(_calRefreshInterval) clearInterval(_calRefreshInterval);
+  _calRefreshInterval = setInterval(()=>refreshCalendar(), 5*60*1000);
+}
+
+function stopCalendarAutoRefresh(){
+  if(_calRefreshInterval){ clearInterval(_calRefreshInterval); _calRefreshInterval=null; }
 }
 
 async function refreshCalendar(){
@@ -5787,14 +5796,34 @@ function renderWeekEvents(days){
 function eventCard(e,compact=false){
   const timeStr=e.allDay?'All day':(e.start?.slice(11,16)||'');
   const endStr=e.end&&!e.allDay?' - '+e.end.slice(11,16):'';
+  const delBtn=!compact&&e.id?`<button onclick="deleteCalEvent('${escHtml(e.id)}')" title="Delete event" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 0 0 8px;flex-shrink:0;line-height:1;" onmouseover="this.style.color='#e05252'" onmouseout="this.style.color='var(--text-muted)'">🗑</button>`:'';
   let html='<div style="background:var(--card);border:1px solid var(--teal-border);border-left:3px solid var(--teal);border-radius:9px;padding:10px 12px;margin-bottom:6px;">';
   html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(e.location||e.notes?'4':'0')+'px;">';
-  html+='<div style="font-size:13px;font-weight:600;color:var(--text);">'+escHtml(e.title||'')+'</div>';
-  html+='<div style="font-size:11px;color:var(--teal);flex-shrink:0;margin-left:8px;">'+timeStr+endStr+'</div></div>';
+  html+='<div style="font-size:13px;font-weight:600;color:var(--text);flex:1;">'+escHtml(e.title||'')+'</div>';
+  html+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;"><span style="font-size:11px;color:var(--teal);">'+timeStr+endStr+'</span>'+delBtn+'</div></div>';
   if(e.location&&!compact)html+='<div style="font-size:11px;color:var(--text-muted);">'+escHtml(e.location)+'</div>';
   if(e.notes&&!compact)html+='<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'+escHtml(e.notes.slice(0,100))+'</div>';
   html+='</div>';
   return html;
+}
+
+async function deleteCalEvent(uid){
+  if(!confirm('Delete this event from Apple Calendar?')) return;
+  try{
+    const res = await callEndpoint('apple-calendar', {uid}, 'DELETE');
+    const data = await res.json().catch(()=>({}));
+    if(data.ok!==false){
+      showToast('🗑 Event deleted');
+      calEvents = calEvents.filter(e=>e.id!==uid);
+      renderDayEvents(calSelectedDate);
+      renderWeekEvents(getWeekDates(calWeekOffset));
+      loadTodayCalEvents();
+    } else {
+      showToast('❌ '+(data.error||'Could not delete event').slice(0,80));
+    }
+  }catch(e){
+    showToast('❌ Could not reach calendar function');
+  }
 }
 
 async function calShiftWeek(dir){calWeekOffset+=dir;await refreshCalendar();}
