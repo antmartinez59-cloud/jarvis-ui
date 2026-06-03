@@ -44,7 +44,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
 .view.active{display:flex;flex-direction:column;}
 
 /* NETWORK MAP */
-#view-map{flex-direction:row;}
+#view-map{flex-direction:row;position:relative;}
 #network-svg{flex:1;background:var(--bg);}
 #map-legend{width:200px;background:var(--surface);border-left:1px solid var(--border);padding:20px 16px;overflow-y:auto;}
 .legend-title{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;}
@@ -730,7 +730,7 @@ body.viewing-past .tracker-log-only{display:block;}
   <!-- NETWORK MAP -->
   <div class="view active" id="view-map">
     <svg id="network-svg"></svg>
-    <div id="jarvis-roadmap" style="position:absolute;top:12px;right:12px;width:220px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:12px;max-height:calc(100% - 24px);overflow-y:auto;z-index:10;">
+    <div id="jarvis-roadmap" style="position:absolute;top:12px;right:12px;width:210px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:12px;max-height:calc(100% - 24px);overflow-y:auto;z-index:20;">
       <div style="font-weight:700;color:var(--primary);margin-bottom:10px;font-size:13px;">🗺 JARVIS Roadmap</div>
       <div style="color:var(--text-muted);font-size:10px;font-weight:600;letter-spacing:.5px;margin-bottom:6px;">PENDING</div>
       <div style="color:var(--text);margin-bottom:4px;">🍎 Apple Reminders — free iCloud storage (Thu)</div>
