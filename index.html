@@ -5689,10 +5689,10 @@ function openCalSettings(hint=''){
 
 // ── Week helpers ─────────────────────────────────────────────────────────
 function getWeekDates(offset=0){
+  // Rolling 7-day window: today + 6 days, shifted by week offsets
   const now = new Date(); now.setHours(0,0,0,0);
-  const day = now.getDay();
-  const sunday = new Date(now); sunday.setDate(now.getDate() - day + offset*7);
-  return Array.from({length:7}, (_,i)=>{ const d=new Date(sunday); d.setDate(sunday.getDate()+i); return localDateStr(d); });
+  const start = new Date(now); start.setDate(now.getDate() + offset*7);
+  return Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return localDateStr(d); });
 }
 
 // ── Init calendar tab ─────────────────────────────────────────────────────
@@ -5711,12 +5711,18 @@ async function refreshCalendar(){
   if(labelEl){
     const s = new Date(start+'T00:00:00');
     const e = new Date(end+'T00:00:00');
-    labelEl.textContent = calWeekOffset===0 ? 'This Week'
+    const today = localDateStr();
+    labelEl.textContent = calWeekOffset===0
+      ? `This Week (${s.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${e.toLocaleDateString('en-US',{month:'short',day:'numeric'})})`
       : `${s.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${e.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
   }
 
-  // Load events
-  calEvents = await loadCalEvents(start, end);
+  // Load events — merge with existing so optimistic inserts aren't lost
+  const fetched = await loadCalEvents(start, end);
+  // Keep any optimistic events not yet returned by iCloud (created in last 5 min)
+  const fiveMinAgo = Date.now() - 5*60*1000;
+  const optimistic = calEvents.filter(e => e._optimistic && new Date(e._ts||0).getTime() > fiveMinAgo && !fetched.find(f=>f.id===e.id));
+  calEvents = [...fetched, ...optimistic];
 
   renderWeekStrip(days);
   renderDayEvents(calSelectedDate);
@@ -5745,9 +5751,15 @@ function renderWeekStrip(days){
   }).join('');
 }
 
-function calSelectDay(date){
+async function calSelectDay(date){
   calSelectedDate=date;
   renderWeekStrip(getWeekDates(calWeekOffset));
+  // If no events loaded for this day yet, fetch from iCloud (handles past days)
+  const hasData = calEvents.some(e=>e.start?.slice(0,10)===date);
+  if(!hasData){
+    const fetched = await loadCalEvents(date,date);
+    calEvents = [...calEvents.filter(e=>e.start?.slice(0,10)!==date), ...fetched];
+  }
   renderDayEvents(date);
   const label=document.getElementById('cal-day-label');
   if(label){const dt=new Date(date+'T00:00:00');label.textContent=date===localDateStr()?"Today's Events":dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
@@ -5809,7 +5821,7 @@ async function createCalEvent(){
     showToast('Event added to Apple Calendar');
     ['cal-title','cal-start','cal-end','cal-location','cal-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     // Optimistically add to calEvents so it shows immediately
-    const newEvt={id:json.uid||'',title,start,end:end||start,location,notes,allDay};
+    const newEvt={id:json.uid||'',title,start,end:end||start,location,notes,allDay,_optimistic:true,_ts:new Date().toISOString()};
     calEvents=calEvents.filter(e=>e.id!==newEvt.id);
     calEvents.push(newEvt);
     renderDayEvents(calSelectedDate);
