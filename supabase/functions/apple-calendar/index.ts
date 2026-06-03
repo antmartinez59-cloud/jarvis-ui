@@ -129,7 +129,9 @@ async function listCalendars(homeUrl: string): Promise<string[]> {
     const block = text.slice(Math.max(0, idx - 100), idx + 800);
     if (block.includes("name='VEVENT'") || block.includes('name="VEVENT"')) {
       urls.push(`${base}${homePath}${uuid}/`);
-      console.log('[calendar] found VEVENT calendar:', uuid);
+      const nameMatch = block.match(/<displayname[^>]*>([^<]*)<\/displayname>/i);
+      const calName = nameMatch ? nameMatch[1].trim() : uuid;
+      console.log('[calendar] found VEVENT calendar:', uuid, '— name:', calName);
     }
   }
 
@@ -246,19 +248,27 @@ function parseVEvent(ical: string): any | null {
 
 // ── Create a VEVENT and PUT to calendar ──────────────────────────────────────
 async function createEvent(calUrl: string, event: any): Promise<string> {
-  const uid = crypto.randomUUID() + '@jarvis.local';
+  const uid = crypto.randomUUID();
   // DTSTAMP must be YYYYMMDDTHHMMSSZ — strip dashes, colons, milliseconds
   const now = new Date().toISOString().replace(/[-:.]/g,'').slice(0,15) + 'Z';
 
   const fmtDT = (s: string, allDay: boolean) => {
     if (allDay) return s.replace(/-/g, '').slice(0, 8);
-    // Input: "2026-05-31T09:00" or "2026-05-31T09:00:00" → "20260531T090000"
-    const clean = s.replace(/[-:]/g, ''); // "20260531T0900" or "20260531T090000"
-    const tIdx = clean.indexOf('T');
-    const datePart = clean.slice(0, tIdx);
-    const timePart = clean.slice(tIdx + 1).padEnd(6, '0').slice(0, 6);
-    return datePart + 'T' + timePart; // floating local time — no Z so Apple shows it in user's tz
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s.replace(/[-:]/g,'').replace('T','T').slice(0,15);
+    const pad = (n: number) => String(n).padStart(2,'0');
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
   };
+
+  // Ensure end >= start; default to start + 1 hour
+  let endDate = event.end ? new Date(event.end) : null;
+  const startDate = new Date(event.start);
+  if (!endDate || isNaN(endDate.getTime()) || endDate <= startDate) {
+    endDate = new Date(startDate.getTime() + 60*60*1000);
+  }
+  const endStr = event.allDay
+    ? endDate.toISOString().slice(0,10).replace(/-/g,'')
+    : fmtDT(endDate.toISOString(), false);
 
   const vevent = [
     'BEGIN:VCALENDAR',
@@ -269,8 +279,8 @@ async function createEvent(calUrl: string, event: any): Promise<string> {
     `DTSTAMP:${now}`,
     event.allDay ? `DTSTART;VALUE=DATE:${fmtDT(event.start, true)}`
                  : `DTSTART:${fmtDT(event.start, false)}`,
-    event.allDay ? `DTEND;VALUE=DATE:${fmtDT(event.end || event.start, true)}`
-                 : `DTEND:${fmtDT(event.end || event.start, false)}`,
+    event.allDay ? `DTEND;VALUE=DATE:${endStr}`
+                 : `DTEND:${endStr}`,
     `SUMMARY:${event.title}`,
     event.location ? `LOCATION:${event.location}` : null,
     event.notes    ? `DESCRIPTION:${event.notes}` : null,
@@ -278,7 +288,7 @@ async function createEvent(calUrl: string, event: any): Promise<string> {
     'END:VCALENDAR',
   ].filter(Boolean).join('\r\n');
 
-  const putUrl = calUrl.endsWith('/') ? calUrl + uid + '.ics' : calUrl + '/' + uid + '.ics';
+  const putUrl = (calUrl.endsWith('/') ? calUrl : calUrl + '/') + uid + '.ics';
   console.log('[calendar] PUT url:', putUrl);
   console.log('[calendar] VEVENT:', vevent);
   const resp = await fetch(putUrl, {
@@ -291,10 +301,11 @@ async function createEvent(calUrl: string, event: any): Promise<string> {
     body: vevent,
   });
 
+  const respBody = await resp.text().catch(() => '');
+  const wwwAuth = resp.headers.get('WWW-Authenticate') || '';
+  console.log('[calendar] PUT status:', resp.status, '| WWW-Auth:', wwwAuth, '| body:', respBody.slice(0,300));
   if (!resp.ok && resp.status !== 201 && resp.status !== 204) {
-    const body = await resp.text().catch(() => '');
-    console.error('[calendar] PUT failed:', resp.status, body.slice(0,300));
-    throw new Error(`PUT failed ${resp.status}: ${body.slice(0,200)}`);
+    throw new Error(`PUT failed ${resp.status}: ${respBody.slice(0,200)}`);
   }
   return uid;
 }
@@ -312,7 +323,23 @@ async function deleteEvent(calendars: string[], uid: string, href?: string): Pro
     if (del.status === 204 || del.status === 200) return true;
   }
 
-  // Strategy 2: REPORT search across all calendars
+  // Strategy 2: Direct DELETE by constructing URL from UID (works for JARVIS-created events)
+  const SKIP_UUIDS = ['3BD98F0E-5C87-4BBE-9791-E4778E866A2E']; // Reminders — fake-204s DELETE
+  for (const calUrl of calendars.filter(c => !SKIP_UUIDS.some(s => c.toUpperCase().includes(s)))) {
+    const directUrl = (calUrl.endsWith('/') ? calUrl : calUrl + '/') + uid + '.ics';
+    console.log('[calendar] direct DELETE attempt:', directUrl);
+    const del = await fetch(directUrl, {
+      method: 'DELETE',
+      headers: { 'Authorization': authHeader()['Authorization'] },
+    });
+    console.log('[calendar] direct DELETE status:', del.status, 'for', calUrl.split('/').slice(-2)[0]);
+    if (del.status === 204 || del.status === 200) {
+      console.log('[calendar] deleted via direct URL:', directUrl);
+      return true;
+    }
+  }
+
+  // Strategy 3: REPORT search across all calendars (works for iPhone-created events)
   for (const calUrl of calendars) {
     const body = `<?xml version="1.0" encoding="UTF-8"?>
 <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
@@ -346,14 +373,14 @@ async function deleteEvent(calendars: string[], uid: string, href?: string): Pro
         headers: { 'Authorization': authHeader()['Authorization'] },
       });
       if (del.status === 204 || del.status === 200) {
-        console.log('[calendar] deleted event via REPORT:', deleteUrl);
+        console.log('[calendar] deleted event via REPORT search:', deleteUrl);
         return true;
       }
     }
   }
 
-  console.warn('[calendar] could not find event to delete:', uid);
-  return false;
+  console.warn('[calendar] event not found to delete (already deleted or not created by JARVIS):', uid);
+  return true; // idempotent — treat not found as success
 }
 
 // ── Main request handler ──────────────────────────────────────────────────────
@@ -411,7 +438,7 @@ serve(async (req) => {
       for (const calTarget of calTargets) {
         console.log('[calendar] creating event in:', calTarget);
         try { uid = await createEvent(calTarget, { title, start, end, notes, location, allDay }); break; }
-        catch(e) { createErr = String(e); console.warn('[calendar] create failed for', calTarget, e); }
+        catch(e) { createErr = String(e); console.warn('[calendar] create failed for', calTarget, String(e).slice(0,100)); }
       }
       if (!uid) throw new Error(createErr || 'All calendars rejected the event');
       return new Response(JSON.stringify({ ok: true, uid }), {

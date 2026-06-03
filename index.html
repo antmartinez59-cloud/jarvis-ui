@@ -3435,7 +3435,7 @@ function renderBriefings(){
   }
   stripEl.innerHTML=briefings.map(b=>{
     const meta=BRIEF_META[b.briefing_type]||{emoji:'📋',label:b.briefing_type||'Brief',color:'var(--text-muted)'};
-    const time=(b.created_at||'').slice(11,16);
+    const time=utcToCT(b.created_at);
     const preview=(b.content||'').slice(0,200);
     return `<div class="briefing-card ${b.briefing_type||''}">
       <div class="bc-header">
@@ -3479,6 +3479,10 @@ let todayData = { water:[], sleep:[], workouts:[], meals:[] };
 let waterGoalOz = 80;
 // Returns today's date as YYYY-MM-DD in LOCAL time (not UTC) so day boundaries
 // align with the user's clock, not UTC midnight (which would be 7pm CDT).
+function utcToCT(ts){
+  if(!ts) return '';
+  return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'America/Chicago'});
+}
 function localDateStr(d){
   const dt=d||new Date();
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
@@ -3569,7 +3573,7 @@ async function loadTodayMessage(){
       const headline=b.headline||b.title||'Good morning, Tony.';
       const preview=b.preview||b.content?.slice(0,180)||'Check your email for today\'s full briefing.';
       msgEl.innerHTML=`<strong>${escHtml(headline)}</strong><br><span style="color:var(--text-muted)">${escHtml(preview)}</span>`;
-      timeEl.textContent=`Last briefing · ${(b.created_at||'').slice(11,16)} CT`;
+      timeEl.textContent=`Last briefing · ${utcToCT(b.created_at)} CT`;
     } else {
       msgEl.textContent='No briefing yet today — your 7am brief will appear here.';
     }

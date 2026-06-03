@@ -312,7 +312,7 @@ Focus your synthesis on:
 - Time-of-day patterns, consistency, and habits
 - Cross-reference JARVIS's built agent knowledge against Tony's real behavior — if JARVIS has an Investing agent, does Tony's spending align with what that agent knows? If there's a fitness agent, does Tony's workout data reflect those principles? Surface the gaps between what JARVIS knows and what Tony actually does
 
-Output JSON with these exact fields:
+Respond with ONLY a raw JSON object — no markdown, no code fences, no explanation. Start your response with { and end with }. Use these exact fields:
 {
   "traits": ["personality traits, thinking styles, behavioral tendencies"],
   "priorities": ["current top life and work priorities, ordered"],
@@ -360,14 +360,19 @@ Synthesize everything above into an updated profile. Look for cross-domain patte
     // Parse response — strip markdown fences, extract JSON robustly
     let synthesized: any;
     try {
-      // Strip ```json ... ``` wrappers
-      const stripped = rawResponse.replace(/```json?\s*/gi, '').replace(/```\s*/g, '').trim();
+      console.log('[synthesize] Raw Claude response (first 300):', rawResponse.slice(0, 300));
+      // Strip markdown code fences with any variation
+      let stripped = rawResponse
+        .replace(/^```+json?\s*/gim, '')
+        .replace(/^```+\s*/gim, '')
+        .trim();
       // Find outermost JSON object
       const start = stripped.indexOf('{');
-      const end = stripped.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('No JSON object found');
+      const end   = stripped.lastIndexOf('}');
+      if (start === -1 || end === -1) throw new Error('No JSON object found in: ' + stripped.slice(0,100));
       const jsonStr = stripped.slice(start, end + 1);
       synthesized = JSON.parse(jsonStr);
+      console.log('[synthesize] Parse succeeded — traits:', synthesized.traits?.length ?? 0);
     } catch (parseErr: any) {
       console.error('[synthesize] Parse failed:', parseErr.message, rawResponse.slice(0, 500));
       // Fallback: use whatever we can extract rather than failing completely
@@ -409,19 +414,19 @@ Synthesize everything above into an updated profile. Look for cross-domain patte
     if (significant_insight && significant_insight !== 'null') {
       smsText = `🧠 JARVIS Insight: ${significant_insight}`;
       await sendSMS(smsText);
-      await db.from('notifications').insert({
+      try { await db.from('notifications').insert({
         type: 'synthesis_insight', title: 'New Pattern Detected',
         body: significant_insight, channel: 'sms', sent: true,
-      }).catch(() => {});
+      }); } catch(_) {}
     } else {
       await sendSMS(`✅ JARVIS synthesis complete. ${learnings.length} learnings processed. Profile updated.`);
     }
 
     // Store briefing card for Memory tab
-    await db.from('briefings').insert({
+    try { await db.from('briefings').insert({
       briefing_type: 'synthesis',
       content:       synthesis_summary,
-    }).catch(() => {});
+    }); } catch(_) {}
 
     return new Response(JSON.stringify({
       ok: true,
