@@ -731,22 +731,34 @@ body.viewing-past .tracker-log-only{display:block;}
   <div class="view active" id="view-map">
     <svg id="network-svg"></svg>
     <div id="jarvis-roadmap" style="position:absolute;top:12px;right:12px;width:210px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:12px;max-height:calc(100% - 24px);overflow-y:auto;z-index:20;">
-      <div style="font-weight:700;color:var(--primary);margin-bottom:10px;font-size:13px;">🗺 JARVIS Roadmap</div>
-      <div style="color:var(--text-muted);font-size:10px;font-weight:600;letter-spacing:.5px;margin-bottom:6px;">PENDING</div>
-      <div style="color:var(--text);margin-bottom:4px;">🍎 Apple Reminders — free iCloud storage (Thu)</div>
-      <div style="color:var(--text);margin-bottom:4px;">🔑 Add ANTHROPIC_KEY to Supabase Vault</div>
-      <div style="color:var(--text);margin-bottom:4px;">🌤 Add OPENWEATHER_KEY to Vault</div>
-      <div style="color:var(--text);margin-bottom:4px;">📰 Add NEWS_API_KEY to Vault</div>
-      <div style="color:var(--text-muted);font-size:10px;font-weight:600;letter-spacing:.5px;margin:10px 0 6px;">PHASE 6 — Deploy to JARVIS</div>
-      <div style="color:var(--text);margin-bottom:4px;">🤖 Mastery generates real JARVIS capabilities</div>
-      <div style="color:var(--text);margin-bottom:4px;">🔧 Self-healing debug agent</div>
-      <div style="color:var(--text-muted);font-size:10px;font-weight:600;letter-spacing:.5px;margin:10px 0 6px;">PHASE 7 — Discovery Mode</div>
-      <div style="color:var(--text);margin-bottom:4px;">🔭 Emergent synthesis finds new connections</div>
-      <div style="color:var(--text);margin-bottom:4px;">🗺 Local discovery (activities near Prosper TX)</div>
-      <div style="color:var(--text-muted);font-size:10px;font-weight:600;letter-spacing:.5px;margin:10px 0 6px;">FUTURE</div>
-      <div style="color:var(--text);margin-bottom:4px;">🎤 Voice interface (Layer 1)</div>
-      <div style="color:var(--text);margin-bottom:4px;">🏦 Plaid bank sync</div>
-      <div style="color:var(--text);">🤝 Agent-to-agent delegation</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-weight:700;color:var(--primary);font-size:13px;">🗺 JARVIS Roadmap</div>
+        <button onclick="toggleRoadmap()" id="roadmap-toggle-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:0;">−</button>
+      </div>
+      <div id="roadmap-body">
+      <div style="color:var(--teal);font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;">✅ SHIPPED</div>
+      <div style="color:var(--text-muted);font-size:11px;margin-bottom:10px;line-height:1.5;">Council AI · Agent routing · Smart memory · Nightly synthesis · Mastery engine · Water · Sleep · Workouts · Meals + photo AI · Body stats · Finance · Apple Calendar · Apple Reminders · Todos · Briefings 5x daily · Nudges · Automation builder · GitHub sync · Brave search · Twilio · Resend</div>
+
+      <div style="color:var(--primary);font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;">🔧 IN PROGRESS</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;">☁️ Full cloud — ANTHROPIC_KEY in Vault</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;">📬 Briefings display — clear old HTML rows</div>
+      <div style="color:var(--text);margin-bottom:10px;font-size:11px;">🌤 Weather + news — OPENWEATHER + NEWS keys</div>
+
+      <div style="color:var(--primary);font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;">📐 LAYERS — BUILD ORDER</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;">⬅ <b>Layer 1</b> — Voice (Hey Jarvis, tap-to-talk, ElevenLabs)</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 2</b> — Spotify (mini-player, voice commands)</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 3</b> — Stocks (live ticker, portfolio AI, alerts)</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 4</b> — Journal (mood, reflection, voice-to-journal)</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 5</b> — Events near Prosper TX (radius, AI suggestions)</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 6</b> — Meal planning (weekly plans, macros, shopping list)</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 7</b> — Mastery rework (continuous, auto-detect, Phase 6+7)</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 8</b> — Autonomy engine (self-healing, agent delegation)</div>
+      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 9</b> — App/OS launcher ("Jarvis open YouTube…")</div>
+      <div style="color:var(--text);margin-bottom:10px;font-size:11px;"><b>Layer 10</b> — UI overhaul (full redesign, mobile-first)</div>
+
+      <div style="color:var(--text-muted);font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;">🔮 FUTURE</div>
+      <div style="color:var(--text-muted);font-size:11px;line-height:1.5;">Plaid bank sync · Trips tab · Raspberry Pi server · Wearable sync · Multi-device presence</div>
+      </div><!-- end roadmap-body -->
     </div>
     <div id="map-legend">
       <div class="legend-title">Node Types</div>
@@ -3497,6 +3509,17 @@ let todayData = { water:[], sleep:[], workouts:[], meals:[] };
 let waterGoalOz = 80;
 // Returns today's date as YYYY-MM-DD in LOCAL time (not UTC) so day boundaries
 // align with the user's clock, not UTC midnight (which would be 7pm CDT).
+
+function toggleRoadmap(){
+  const body = document.getElementById('roadmap-body');
+  const btn  = document.getElementById('roadmap-toggle-btn');
+  const panel = document.getElementById('jarvis-roadmap');
+  if(!body||!btn) return;
+  const collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? '' : 'none';
+  btn.textContent   = collapsed ? '−' : '+';
+  panel.style.width = collapsed ? '210px' : 'auto';
+}
 function utcToCT(ts){
   if(!ts) return '';
   return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'America/Chicago'});
