@@ -3374,6 +3374,8 @@ async function saveSession(question,response){
   // Also keep in local memory for current session context
   memory.sessions=memory.sessions||[];
   memory.sessions.push({...row,created_at:new Date().toISOString()});
+  // Refresh Memory tab sessions list if it's currently visible
+  refreshSessionsList();
 
   // Write session to Obsidian via GitHub vault
   const date=new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
@@ -3418,6 +3420,15 @@ async function triggerReflection(question,response){
 
     badge.textContent='✓ Learned';setTimeout(()=>badge.remove(),3000);
   }catch(e){badge.remove();}
+}
+
+function refreshSessionsList(){
+  const sessions=(memory.sessions||[]).slice().reverse();
+  const el=document.getElementById('mem-sessions-list');
+  if(!el)return;
+  el.innerHTML=sessions.length
+    ?sessions.map(s=>`<div class="session-entry"><div class="session-date">${(s.created_at||'').slice(0,16)}</div>${escHtml((s.question||'').slice(0,60))}${(s.question||'').length>60?'...':''}</div>`).join('')
+    :'<div class="mem-empty">No sessions yet.</div>';
 }
 
 function loadMemoryTab(){
@@ -6257,6 +6268,7 @@ async function _sendToJarvisVoice(text){
     if(sb)sb.style.display='inline-block';
     if(cb)cb.style.display='none';
     appendCouncilResponse('JARVIS\n'+reply);
+    saveSession(text, reply);
     await _speakText(reply);
   }catch(err){
     sfxThinkStop();
