@@ -822,7 +822,7 @@ body.viewing-past .tracker-log-only{display:block;}
         </div>
       </div>
       <div id="input-bar">
-        <button id="chat-mode-btn" onclick="toggleChatMode()" title="Switch mode" style="background:var(--teal-dim);border:1px solid var(--teal-border);color:var(--teal);border-radius:8px;padding:0 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;height:40px;white-space:nowrap;">Normal</button>
+        <button id="chat-mode-btn" onclick="toggleChatMode()" title="Switch mode" style="background:var(--teal-dim);border:1px solid var(--teal-border);color:var(--teal);border-radius:8px;padding:0 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;height:40px;white-space:nowrap;" data-mode="normal">Normal</button>
         <textarea id="user-input" placeholder="Chat with JARVIS..." rows="1" onkeydown="handleKey(event)"></textarea>
         <button id="send-btn" onclick="sendToCouncil()">↑</button>
       </div>
@@ -2516,7 +2516,7 @@ function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTo
 
 async function sendToCouncil(){
   var modeBtn=document.getElementById('chat-mode-btn');
-  var isNormal=modeBtn&&modeBtn.textContent.trim()==='Normal';
+  var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
   if(isNormal){
     const text=document.getElementById('user-input')?.value.trim();
     if(!text)return;
@@ -5991,10 +5991,12 @@ async function loadTodayCalEvents(){
 }
 
 function toggleChatMode(){
-  window._chatMode = window._chatMode==='council' ? 'normal' : 'council';
   const btn=document.getElementById('chat-mode-btn');
   const inp=document.getElementById('user-input');
-  if(window._chatMode==='council'){
+  const cur=btn?btn.getAttribute('data-mode'):'normal';
+  const next=cur==='normal'?'council':'normal';
+  if(btn) btn.setAttribute('data-mode',next);
+  if(next==='council'){
     if(btn){btn.textContent='Council';btn.style.background='var(--primary-dim)';btn.style.borderColor='var(--primary-border)';btn.style.color='var(--primary)';}
     if(inp)inp.placeholder='Ask the Council...';
   } else {
@@ -6002,7 +6004,6 @@ function toggleChatMode(){
     if(inp)inp.placeholder='Chat with JARVIS...';
   }
 }
-window._chatMode = 'normal';
 
 // ═══════════════════════════════════════════════════════════
 // LAYER 1 — VOICE ENGINE
