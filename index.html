@@ -1997,7 +1997,10 @@ body.viewing-past .tracker-log-only{display:block;}
     </div>
     <div id="voice-status-text">Listening…</div>
     <div id="voice-transcript-text"></div>
-    <button onclick="cancelVoice()" id="voice-cancel-btn">Cancel</button>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="cancelVoice()" id="voice-cancel-btn">Cancel</button>
+      <button onclick="cancelVoice()" id="voice-stop-btn" style="display:none;background:var(--primary);border:none;border-radius:10px;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">⏹ Stop</button>
+    </div>
   </div>
 </div>
 
@@ -6170,12 +6173,11 @@ async function toggleVoice(){
 
 async function _startConversation(){
   try{
-    if(!_dgToken){
-      var tr=await callEndpoint('voice-token',{},'POST');
-      var td=await tr.json();
-      if(!td.ok)throw new Error(td.error||'no token');
-      _dgToken=td.token;
-    }
+    // Always get fresh token for conversation
+    var tr=await callEndpoint('voice-token',{},'POST');
+    var td=await tr.json();
+    if(!td.ok)throw new Error(td.error||'no token');
+    _dgToken=td.token;
     _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
     var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true&endpointing=500';
     _dgWS=new WebSocket(wsUrl,['token',_dgToken]);
@@ -6234,8 +6236,12 @@ async function _sendToJarvisVoice(text){
     var d=await res.json();
     var reply=d&&d.content&&d.content[0]&&d.content[0].text||'Sorry, I had trouble with that.';
     _vSetTranscript('JARVIS: '+reply);
-    _vSetStatus('Speaking...','processing');
+    _vSetStatus('Speaking... (tap Stop to interrupt)','processing');
     sfxReady();
+    var sb=document.getElementById('voice-stop-btn');
+    var cb=document.getElementById('voice-cancel-btn');
+    if(sb)sb.style.display='inline-block';
+    if(cb)cb.style.display='none';
     appendCouncilResponse('JARVIS\n'+reply);
     await _speakText(reply);
   }catch(err){
@@ -6243,7 +6249,8 @@ async function _sendToJarvisVoice(text){
     showToast('Voice error: '+(err.message||'unknown'));
   }finally{
     cancelVoice();
-    setTimeout(startWakeWord,1500);
+    // Longer delay to prevent self-trigger from JARVIS's own spoken voice
+    setTimeout(startWakeWord,5000);
   }
 }
 
@@ -6277,7 +6284,15 @@ function _stopStopListener(){
 }
 
 async function _speakText(text){
-  _startStopListener();
+  // Register as media so keyboard media-stop key works system-wide (even while gaming)
+  if('mediaSession' in navigator){
+    navigator.mediaSession.metadata = new MediaMetadata({ title: 'JARVIS', artist: 'Your AI Assistant' });
+    navigator.mediaSession.setActionHandler('pause', function(){ cancelVoice(); });
+    navigator.mediaSession.setActionHandler('stop', function(){ cancelVoice(); });
+  }
+  // Escape key stops voice from any tab
+  var _escStop = function(e){ if(e.key==='Escape'){ cancelVoice(); document.removeEventListener('keydown',_escStop); } };
+  document.addEventListener('keydown', _escStop);
   try{
     var res=await fetch(supabaseUrl+'/functions/v1/voice-speak',{
       method:'POST',
@@ -6302,7 +6317,12 @@ async function _speakText(text){
       await new Promise(function(r){u.onend=r;});
     }
   }finally{
-    _stopStopListener();
+    try{_stopStopListener();}catch(e){}
+    document.removeEventListener('keydown', _escStop);
+    if('mediaSession' in navigator){
+      navigator.mediaSession.setActionHandler('pause', null);
+      navigator.mediaSession.setActionHandler('stop', null);
+    }
   }
 }
 
@@ -6316,6 +6336,10 @@ function cancelVoice(){
   try{if(_vAudio)_vAudio.pause();}catch(e){}
   try{_stopStopListener();}catch(e){}
   _dgWS=null;_micStream=null;_recorder=null;_vAudio=null;
+  var sb=document.getElementById('voice-stop-btn');
+  var cb=document.getElementById('voice-cancel-btn');
+  if(sb)sb.style.display='none';
+  if(cb)cb.style.display='inline-block';
   document.getElementById('voice-overlay').classList.remove('open');
   var btn=document.getElementById('voice-btn');if(btn)btn.className='';
 }
