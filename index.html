@@ -6240,7 +6240,49 @@ async function _sendToJarvisVoice(text){
   }
 }
 
+var _stopWS=null, _stopMic=null, _stopRec=null;
+
+function _startStopListener(){
+  try{
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      _stopMic=stream;
+      var tok=_dgToken;
+      callEndpoint('voice-token',{},'POST').then(function(tr){
+        tr.json().then(function(td){
+          if(!td.ok)return;
+          var ws=new WebSocket('wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false',['token',td.token]);
+          _stopWS=ws;
+          ws.onopen=function(){
+            _stopRec=new MediaRecorder(stream,{mimeType:'audio/webm'});
+            _stopRec.ondataavailable=function(e){if(ws.readyState===1&&e.data.size>0)ws.send(e.data);};
+            _stopRec.start(500);
+          };
+          ws.onmessage=function(e){
+            try{
+              var msg=JSON.parse(e.data);
+              var tx=(msg&&msg.channel&&msg.channel.alternatives&&msg.channel.alternatives[0]&&msg.channel.alternatives[0].transcript||'').toLowerCase().trim();
+              if(tx&&(tx.indexOf('stop')>=0||tx.indexOf('cancel')>=0||tx.indexOf('quiet')>=0||tx.indexOf('enough')>=0)){
+                console.log('[JARVIS] Stop command detected');
+                _stopStopListener();
+                cancelVoice();
+              }
+            }catch(e){}
+          };
+        });
+      });
+    });
+  }catch(e){}
+}
+
+function _stopStopListener(){
+  try{if(_stopRec)_stopRec.stop();}catch(e){}
+  try{if(_stopWS)_stopWS.close();}catch(e){}
+  try{if(_stopMic)_stopMic.getTracks().forEach(function(t){t.stop();});}catch(e){}
+  _stopWS=null;_stopMic=null;_stopRec=null;
+}
+
 async function _speakText(text){
+  _startStopListener();
   try{
     var res=await fetch(supabaseUrl+'/functions/v1/voice-speak',{
       method:'POST',
@@ -6264,6 +6306,8 @@ async function _speakText(text){
       window.speechSynthesis.speak(u);
       await new Promise(function(r){u.onend=r;});
     }
+  }finally{
+    _stopStopListener();
   }
 }
 
@@ -6275,6 +6319,7 @@ function cancelVoice(){
   try{if(_dgWS)_dgWS.close();}catch(e){}
   try{if(_micStream)_micStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
   try{if(_vAudio)_vAudio.pause();}catch(e){}
+  _stopStopListener();
   _dgWS=null;_micStream=null;_recorder=null;_vAudio=null;
   document.getElementById('voice-overlay').classList.remove('open');
   var btn=document.getElementById('voice-btn');if(btn)btn.className='';
