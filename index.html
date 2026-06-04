@@ -2515,7 +2515,9 @@ The idea is sound — the risk is overthinking it. Pick the Executor's first act
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendToCouncil();}}
 
 async function sendToCouncil(){
-  if(window._chatMode==='normal'){
+  var modeBtn=document.getElementById('chat-mode-btn');
+  var isNormal=modeBtn&&modeBtn.textContent.trim()==='Normal';
+  if(isNormal){
     const text=document.getElementById('user-input')?.value.trim();
     if(!text)return;
     document.getElementById('user-input').value='';
@@ -6240,45 +6242,33 @@ async function _sendToJarvisVoice(text){
   }
 }
 
-var _stopWS=null, _stopMic=null, _stopRec=null;
+var _stopSR=null;
 
 function _startStopListener(){
   try{
-    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-      _stopMic=stream;
-      var tok=_dgToken;
-      callEndpoint('voice-token',{},'POST').then(function(tr){
-        tr.json().then(function(td){
-          if(!td.ok)return;
-          var ws=new WebSocket('wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false',['token',td.token]);
-          _stopWS=ws;
-          ws.onopen=function(){
-            _stopRec=new MediaRecorder(stream,{mimeType:'audio/webm'});
-            _stopRec.ondataavailable=function(e){if(ws.readyState===1&&e.data.size>0)ws.send(e.data);};
-            _stopRec.start(500);
-          };
-          ws.onmessage=function(e){
-            try{
-              var msg=JSON.parse(e.data);
-              var tx=(msg&&msg.channel&&msg.channel.alternatives&&msg.channel.alternatives[0]&&msg.channel.alternatives[0].transcript||'').toLowerCase().trim();
-              if(tx&&(tx.indexOf('stop')>=0||tx.indexOf('cancel')>=0||tx.indexOf('quiet')>=0||tx.indexOf('enough')>=0)){
-                console.log('[JARVIS] Stop command detected');
-                _stopStopListener();
-                cancelVoice();
-              }
-            }catch(e){}
-          };
-        });
-      });
-    });
-  }catch(e){}
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return;
+    _stopSR=new SR();
+    _stopSR.continuous=true;
+    _stopSR.interimResults=true;
+    _stopSR.lang='en-US';
+    _stopSR.onresult=function(e){
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        var tx=e.results[i][0].transcript.toLowerCase().trim();
+        if(tx.indexOf('stop')>=0||tx.indexOf('cancel')>=0||tx.indexOf('quiet')>=0||tx.indexOf('enough')>=0){
+          console.log('[JARVIS] Stop command:',tx);
+          _stopStopListener();
+          cancelVoice();
+          break;
+        }
+      }
+    };
+    _stopSR.start();
+  }catch(e){console.warn('[voice] stop listener failed:',e.message);}
 }
 
 function _stopStopListener(){
-  try{if(_stopRec)_stopRec.stop();}catch(e){}
-  try{if(_stopWS)_stopWS.close();}catch(e){}
-  try{if(_stopMic)_stopMic.getTracks().forEach(function(t){t.stop();});}catch(e){}
-  _stopWS=null;_stopMic=null;_stopRec=null;
+  try{if(_stopSR){_stopSR.stop();_stopSR=null;}}catch(e){}
 }
 
 async function _speakText(text){
@@ -6319,7 +6309,7 @@ function cancelVoice(){
   try{if(_dgWS)_dgWS.close();}catch(e){}
   try{if(_micStream)_micStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
   try{if(_vAudio)_vAudio.pause();}catch(e){}
-  _stopStopListener();
+  try{_stopStopListener();}catch(e){}
   _dgWS=null;_micStream=null;_recorder=null;_vAudio=null;
   document.getElementById('voice-overlay').classList.remove('open');
   var btn=document.getElementById('voice-btn');if(btn)btn.className='';
