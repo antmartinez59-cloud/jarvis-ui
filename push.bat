@@ -10,7 +10,7 @@ cd /d "%~dp0"
 
 echo.
 echo [1/3] Staging all changes...
-git add index.html supabase\ deploy-edge-functions.bat
+git add -A
 
 echo.
 echo [2/3] Committing...
