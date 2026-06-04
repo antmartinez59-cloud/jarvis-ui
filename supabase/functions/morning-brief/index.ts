@@ -232,8 +232,10 @@ async function loadContext() {
     db.from('todos').select('title, priority, is_starred, due_date').eq('status', 'active').order('is_starred', { ascending: false }).limit(10),
     // Today's water total
     db.from('water_logs').select('amount_oz').gte('logged_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
-    // Last night's sleep
-    db.from('sleep_logs').select('*').order('date', { ascending: false }).limit(1).maybeSingle(),
+    // Last night's sleep — only if logged within last 36 hours (avoids stale entries)
+    db.from('sleep_logs').select('*')
+      .gte('date', new Date(Date.now() - 36*60*60*1000).toISOString().slice(0,10))
+      .order('date', { ascending: false }).limit(1).maybeSingle(),
     // Today's reminders
     db.from('reminders').select('title, datetime').gte('datetime', new Date().toISOString()).order('datetime').limit(5),
     // Most recent synthesis summary
@@ -269,7 +271,7 @@ async function buildMorning(ctx: any, weather: any, news: any): Promise<{ subjec
   const weatherSummary = weather?.summary || 'Weather unavailable.';
   const newsHeadlines  = (news?.headlines || []).slice(0, 3).map((n: any) => `• ${n.title}`).join('\n');
   const financeNews    = (news?.finance || []).slice(0, 2).map((n: any) => `• ${n.title}`).join('\n');
-  const sleepNote      = sleep ? `Last night: ${sleep.duration_hours?.toFixed(1)} hrs (quality: ${sleep.quality_rating}/5)` : 'No sleep logged.';
+  const sleepNote      = sleep ? `Last night: ${sleep.duration_hours?.toFixed(1)} hrs (quality: ${sleep.quality_rating}/5)` : 'Not logged yet — log when you wake up.';
 
   const prompt = `You are JARVIS — Tony's personal AI. Write a personalized morning briefing for ${today}.
 
@@ -384,7 +386,7 @@ async function buildEvening(ctx: any): Promise<{ subject: string; html: string; 
   const completedTodosCount = 0; // Would query completed_at = today in a full impl
   const movedTodosCount     = 0;
 
-  const healthSummary = `Water: ${waterTotal}oz / 80oz goal (${Math.round(waterTotal/80*100)}%). Last sleep: ${sleep ? sleep.duration_hours?.toFixed(1) + ' hrs' : 'not logged yet'}.`;
+  const healthSummary = `Water: ${waterTotal}oz / 80oz goal (${Math.round(waterTotal/80*100)}%). Last sleep: ${sleep ? sleep.duration_hours?.toFixed(1) + ' hrs last night' : 'not logged yet (log when you wake up)'}.`;
 
   const content = await callClaude(
     'You are JARVIS. Write Tony\'s evening wind-down briefing. Be reflective and encouraging — help him close the day well and prep for tomorrow.',
