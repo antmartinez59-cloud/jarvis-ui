@@ -6227,10 +6227,15 @@ async function _sendToJarvisVoice(text){
   try{
     try{if(_recorder)_recorder.stop();}catch(e){}
     try{if(_dgWS)_dgWS.close();}catch(e){}
+    var modeBtn=document.getElementById('chat-mode-btn');
+    var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
+    var sysPrompt=isNormal
+      ? 'You are JARVIS, Tony Martinez personal AI. Be casual, direct, natural — like a real conversation. 1-3 sentences max. No markdown, no lists.'
+      : buildCouncilPrompt()+'\n\nVOICE MODE: Be casual and natural. 1-3 sentences max. No markdown, no lists.';
     var res=await callEndpoint('proxy',{
       model:'claude-haiku-4-5-20251001',
       max_tokens:250,
-      system:buildCouncilPrompt()+'\n\nVOICE MODE: You are talking to Tony like a close personal assistant who knows him well. Be casual, direct, and natural — like a real conversation. Keep it to 1-3 sentences. No markdown, no lists, no bullet points. Sound human, not robotic.',
+      system:sysPrompt,
       messages:[{role:'user',content:text}]
     });
     var d=await res.json();
