@@ -6215,7 +6215,7 @@ async function _sendToJarvisVoice(text){
     var res=await callEndpoint('proxy',{
       model:'claude-haiku-4-5-20251001',
       max_tokens:250,
-      system:buildCouncilPrompt()+'\n\nVOICE MODE: Reply in 1-3 short sentences only. No markdown, no lists.',
+      system:buildCouncilPrompt()+'\n\nVOICE MODE: You are talking to Tony like a close personal assistant who knows him well. Be casual, direct, and natural — like a real conversation. Keep it to 1-3 sentences. No markdown, no lists, no bullet points. Sound human, not robotic.',
       messages:[{role:'user',content:text}]
     });
     var d=await res.json();
@@ -6223,7 +6223,7 @@ async function _sendToJarvisVoice(text){
     _vSetTranscript('JARVIS: '+reply);
     _vSetStatus('Speaking...','processing');
     sfxReady();
-    appendCouncilResponse('[JARVIS Voice]\n'+reply);
+    appendCouncilResponse('JARVIS\n'+reply);
     await _speakText(reply);
   }catch(err){
     sfxThinkStop();
