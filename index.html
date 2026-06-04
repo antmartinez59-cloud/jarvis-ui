@@ -5996,8 +5996,286 @@ function toggleChatMode(){
 }
 window._chatMode = 'council';
 
-function toggleVoice(){showToast('Voice controls coming in Layer 1!');}
-function cancelVoice(){document.getElementById('voice-overlay').classList.remove('open');}
+// ═══════════════════════════════════════════════════════════
+// LAYER 1 — VOICE ENGINE
+// ═══════════════════════════════════════════════════════════
+
+// Sci-fi sound effects via Web Audio API
+var _vActx = null;
+function _vCtx(){ if(!_vActx) _vActx = new (window.AudioContext||window.webkitAudioContext)(); return _vActx; }
+
+function sfxActivate(){
+  try{
+    var c=_vCtx(),t=c.currentTime;
+    [0,0.08,0.16].forEach(function(d,i){
+      var o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);
+      o.frequency.setValueAtTime(400+i*200,t+d);
+      o.frequency.exponentialRampToValueAtTime(900+i*150,t+d+0.12);
+      g.gain.setValueAtTime(0.15,t+d);
+      g.gain.exponentialRampToValueAtTime(0.001,t+d+0.18);
+      o.start(t+d);o.stop(t+d+0.2);
+    });
+  }catch(e){}
+}
+
+function sfxDeactivate(){
+  try{
+    var c=_vCtx(),t=c.currentTime;
+    [0,0.08].forEach(function(d,i){
+      var o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);
+      o.frequency.setValueAtTime(600-i*150,t+d);
+      o.frequency.exponentialRampToValueAtTime(200,t+d+0.15);
+      g.gain.setValueAtTime(0.12,t+d);
+      g.gain.exponentialRampToValueAtTime(0.001,t+d+0.18);
+      o.start(t+d);o.stop(t+d+0.2);
+    });
+  }catch(e){}
+}
+
+var _thinkNodes=[];
+function sfxThinkStart(){
+  try{
+    sfxThinkStop();
+    var c=_vCtx();
+    [220,330,440,550].forEach(function(freq,i){
+      var o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);
+      o.frequency.value=freq; g.gain.value=0; o.start();
+      var iv=setInterval(function(){
+        try{var n=c.currentTime;g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(0.04,n+0.05);g.gain.linearRampToValueAtTime(0,n+0.15);}catch(e){clearInterval(iv);}
+      },400+i*120);
+      _thinkNodes.push({o:o,g:g,iv:iv});
+    });
+  }catch(e){}
+}
+function sfxThinkStop(){
+  try{
+    _thinkNodes.forEach(function(n){clearInterval(n.iv);try{n.g.gain.setValueAtTime(0,_vCtx().currentTime);n.o.stop();}catch(e){}});
+    _thinkNodes=[];
+  }catch(e){}
+}
+function sfxReady(){
+  try{
+    sfxThinkStop();
+    var c=_vCtx(),t=c.currentTime;
+    [[523,0],[659,0.1],[784,0.2]].forEach(function(pair){
+      var o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);
+      o.frequency.value=pair[0];
+      g.gain.setValueAtTime(0.1,t+pair[1]);
+      g.gain.exponentialRampToValueAtTime(0.001,t+pair[1]+0.25);
+      o.start(t+pair[1]);o.stop(t+pair[1]+0.3);
+    });
+  }catch(e){}
+}
+
+// Voice state
+var _vActive=false, _wakeActive=false;
+var _dgWS=null, _wakeWS=null;
+var _micStream=null, _wakeMic=null;
+var _recorder=null, _wakeRec=null;
+var _vAudio=null, _dgToken=null;
+var WAKE_WORDS=['jarvis','hey jarvis','ok jarvis'];
+
+function _vSetStatus(txt,cls){
+  var s=document.getElementById('voice-status-text');
+  var btn=document.getElementById('voice-btn');
+  if(s)s.textContent=txt;
+  if(btn){btn.className='';if(cls)btn.classList.add(cls);}
+}
+function _vSetTranscript(txt){
+  var t=document.getElementById('voice-transcript-text');
+  if(t)t.textContent=txt;
+}
+
+// Always-on wake word via Deepgram
+async function startWakeWord(){
+  if(_wakeActive||_vActive)return;
+  _wakeActive=true;
+  try{
+    var tr=await callEndpoint('voice-token',{},'POST');
+    var td=await tr.json();
+    if(!td.ok)throw new Error('no token');
+    _dgToken=td.token;
+    _wakeMic=await navigator.mediaDevices.getUserMedia({audio:true});
+    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false&keywords=jarvis:2';
+    _wakeWS=new WebSocket(wsUrl,['token',_dgToken]);
+    _wakeWS.onopen=function(){
+      _wakeRec=new MediaRecorder(_wakeMic,{mimeType:'audio/webm'});
+      _wakeRec.ondataavailable=function(e){
+        if(_wakeWS&&_wakeWS.readyState===1&&e.data.size>0&&!_vActive)_wakeWS.send(e.data);
+      };
+      _wakeRec.start(500);
+      var btn=document.getElementById('voice-btn');
+      if(btn)btn.style.opacity='0.6';
+      console.log('[JARVIS] Wake word active — say Jarvis');
+    };
+    _wakeWS.onmessage=function(e){
+      if(_vActive)return;
+      try{
+        var msg=JSON.parse(e.data);
+        var tx=(msg&&msg.channel&&msg.channel.alternatives&&msg.channel.alternatives[0]&&msg.channel.alternatives[0].transcript||'').toLowerCase().trim();
+        if(!tx)return;
+        var hit=WAKE_WORDS.some(function(w){return tx.indexOf(w)>=0;});
+        if(hit){console.log('[JARVIS] Wake word detected:',tx);_activateVoice();}
+      }catch(e){}
+    };
+    _wakeWS.onerror=function(){_wakeActive=false;};
+    _wakeWS.onclose=function(){_wakeActive=false;var btn=document.getElementById('voice-btn');if(btn)btn.style.opacity='1';};
+  }catch(err){_wakeActive=false;console.warn('[JARVIS] Wake word failed:',err.message);}
+}
+
+function stopWakeWord(){
+  _wakeActive=false;
+  try{if(_wakeRec)_wakeRec.stop();}catch(e){}
+  try{if(_wakeWS)_wakeWS.close();}catch(e){}
+  try{if(_wakeMic)_wakeMic.getTracks().forEach(function(t){t.stop();});}catch(e){}
+  _wakeWS=null;_wakeRec=null;_wakeMic=null;
+}
+
+async function _activateVoice(){
+  sfxActivate();
+  document.getElementById('voice-overlay').classList.add('open');
+  _vSetStatus('Listening...','listening');
+  _vSetTranscript('');
+  _vActive=true;
+  try{if(_wakeRec)_wakeRec.stop();}catch(e){}
+  await _startConversation();
+}
+
+async function toggleVoice(){
+  if(_vActive){cancelVoice();return;}
+  _vActive=true;
+  sfxActivate();
+  document.getElementById('voice-overlay').classList.add('open');
+  _vSetStatus('Listening...','listening');
+  _vSetTranscript('');
+  await _startConversation();
+}
+
+async function _startConversation(){
+  try{
+    if(!_dgToken){
+      var tr=await callEndpoint('voice-token',{},'POST');
+      var td=await tr.json();
+      if(!td.ok)throw new Error(td.error||'no token');
+      _dgToken=td.token;
+    }
+    _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true&endpointing=500';
+    _dgWS=new WebSocket(wsUrl,['token',_dgToken]);
+    _dgToken=null;
+    var finalTx='',silTimer=null;
+    _dgWS.onopen=function(){
+      _recorder=new MediaRecorder(_micStream,{mimeType:'audio/webm'});
+      _recorder.ondataavailable=function(e){
+        if(_dgWS&&_dgWS.readyState===1&&e.data.size>0)_dgWS.send(e.data);
+      };
+      _recorder.start(250);
+    };
+    _dgWS.onmessage=function(e){
+      try{
+        var msg=JSON.parse(e.data);
+        var alt=msg&&msg.channel&&msg.channel.alternatives&&msg.channel.alternatives[0];
+        if(!alt)return;
+        var tx=(alt.transcript||'').trim();
+        if(!tx)return;
+        if(msg.is_final){
+          var clean=tx;
+          WAKE_WORDS.forEach(function(w){
+            var r=new RegExp('^'+w+'[,.]?\\s*','i');
+            clean=clean.replace(r,'');
+          });
+          finalTx+=(finalTx?' ':'')+clean;
+          _vSetTranscript(finalTx);
+          clearTimeout(silTimer);
+          silTimer=setTimeout(function(){_sendToJarvisVoice(finalTx);},1200);
+        } else {
+          _vSetTranscript(finalTx+' '+tx);
+        }
+      }catch(e){}
+    };
+    _dgWS.onerror=function(){showToast('Voice connection failed');cancelVoice();};
+    _dgWS.onclose=function(){if(_vActive)cancelVoice();};
+  }catch(err){
+    showToast('Voice error: '+err.message);
+    cancelVoice();
+  }
+}
+
+async function _sendToJarvisVoice(text){
+  if(!text||!text.trim()){cancelVoice();return;}
+  _vSetStatus('JARVIS is thinking...','processing');
+  sfxThinkStart();
+  try{
+    try{if(_recorder)_recorder.stop();}catch(e){}
+    try{if(_dgWS)_dgWS.close();}catch(e){}
+    var res=await callEndpoint('proxy',{
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:250,
+      system:buildCouncilPrompt()+'\n\nVOICE MODE: Reply in 1-3 short sentences only. No markdown, no lists.',
+      messages:[{role:'user',content:text}]
+    });
+    var d=await res.json();
+    var reply=d&&d.content&&d.content[0]&&d.content[0].text||'Sorry, I had trouble with that.';
+    _vSetTranscript('JARVIS: '+reply);
+    _vSetStatus('Speaking...','processing');
+    sfxReady();
+    appendCouncilResponse('[JARVIS Voice]\n'+reply);
+    await _speakText(reply);
+  }catch(err){
+    sfxThinkStop();
+    showToast('Voice error: '+(err.message||'unknown'));
+  }finally{
+    cancelVoice();
+    setTimeout(startWakeWord,1500);
+  }
+}
+
+async function _speakText(text){
+  try{
+    var res=await fetch(supabaseUrl+'/functions/v1/voice-speak',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+      body:JSON.stringify({text:text})
+    });
+    if(!res.ok)throw new Error('TTS '+res.status);
+    var blob=await res.blob();
+    var url=URL.createObjectURL(blob);
+    _vAudio=new Audio(url);
+    await new Promise(function(resolve,reject){
+      _vAudio.onended=resolve;
+      _vAudio.onerror=reject;
+      _vAudio.play().catch(reject);
+    });
+    URL.revokeObjectURL(url);
+  }catch(err){
+    console.warn('[voice] TTS failed, using browser fallback:',err.message);
+    if(window.speechSynthesis){
+      var u=new SpeechSynthesisUtterance(text);u.rate=1.05;
+      window.speechSynthesis.speak(u);
+      await new Promise(function(r){u.onend=r;});
+    }
+  }
+}
+
+function cancelVoice(){
+  _vActive=false;
+  sfxDeactivate();
+  sfxThinkStop();
+  try{if(_recorder)_recorder.stop();}catch(e){}
+  try{if(_dgWS)_dgWS.close();}catch(e){}
+  try{if(_micStream)_micStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
+  try{if(_vAudio)_vAudio.pause();}catch(e){}
+  _dgWS=null;_micStream=null;_recorder=null;_vAudio=null;
+  document.getElementById('voice-overlay').classList.remove('open');
+  var btn=document.getElementById('voice-btn');if(btn)btn.className='';
+}
+
+// Auto-start wake word 3s after page load
+window.addEventListener('load',function(){setTimeout(startWakeWord,3000);});
 function saveVoiceSettings(){
   localStorage.setItem('jarvis_vs_tts',document.getElementById('vs-tts-engine')?.value||'browser');
   localStorage.setItem('jarvis_vs_el_key',document.getElementById('vs-el-key')?.value||'');
