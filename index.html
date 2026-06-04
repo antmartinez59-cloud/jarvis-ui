@@ -2601,8 +2601,17 @@ function appendLoading(label){
 }
 function removeLoading(id){const e=document.getElementById(id);if(e)e.remove();}
 function appendCouncilResponse(text){
+  var modeBtn=document.getElementById('chat-mode-btn');
+  var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
   const msgs=document.getElementById('messages');
   const d=document.createElement('div');d.className='msg';
+  if(isNormal){
+    d.innerHTML=`<div class="msg-header"><div class="msg-avatar" style="background:linear-gradient(135deg,#7c6fff,#00d9b4)">J</div>
+      <span class="msg-name" style="color:var(--primary)">JARVIS</span></div>
+      <div class="msg-body">${escHtml(text)}</div>`;
+    msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
+    return;
+  }
   const sections=parseCouncilSections(text);
   let sh='';
   sections.forEach(s=>{
