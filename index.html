@@ -818,7 +818,7 @@ body.viewing-past .tracker-log-only{display:block;}
             <span class="msg-name" style="color:var(--primary)">JARVIS</span>
             <span class="msg-time">System</span>
           </div>
-          <div class="msg-body">The Council is ready. Ask anything — strategic decisions, life choices, technical problems. Six perspectives weigh in, then the Chairman delivers the verdict. The Council is ready. Ask anything — strategic decisions, life choices, technical problems. Six perspectives weigh in, then the Chairman delivers the verdict.</div>
+          <div class="msg-body">The Council is ready. Ask anything — strategic decisions, life choices, technical problems. Six perspectives weigh in, then the Chairman delivers the verdict.</div>
         </div>
       </div>
       <div id="input-bar">
@@ -2517,6 +2517,7 @@ function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTo
 async function sendToCouncil(){
   var modeBtn=document.getElementById('chat-mode-btn');
   var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
+  console.log('[JARVIS] chat mode:', modeBtn&&modeBtn.getAttribute('data-mode'), 'isNormal:', isNormal);
   if(isNormal){
     const text=document.getElementById('user-input')?.value.trim();
     if(!text)return;
@@ -2524,8 +2525,8 @@ async function sendToCouncil(){
     appendUserMsg(text);
     const lid=appendLoading();
     try{
-      const res=await callEndpoint('proxy',{model:'claude-sonnet-4-6',max_tokens:800,
-        system:'You are JARVIS, Tony Martinez personal AI. Be direct, concise, conversational. Tony lives in Prosper TX, bulking to 150lbs, works out 4x/week.',
+      const res=await callEndpoint('proxy',{model:'claude-sonnet-4-6',max_tokens:2000,
+        system:'You are JARVIS, Tony Martinez personal AI. Be direct, helpful, conversational. Tony lives in Prosper TX, bulking to 150lbs, works out 4x/week, tracks health and finances.',
         messages:[{role:'user',content:text}]});
       const d=await res.json();
       removeLoading(lid);
