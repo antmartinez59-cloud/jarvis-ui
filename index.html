@@ -816,7 +816,7 @@ body.viewing-past .tracker-log-only{display:block;}
         </div>
       </div>
       <div id="input-bar">
-        <button id="chat-mode-btn" onclick="toggleChatMode()" title="Switch between Normal and Council mode" style="background:var(--primary-dim);border:1px solid var(--primary-border);color:var(--primary);border-radius:8px;padding:0 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;height:40px;white-space:nowrap;">Council</button>
+        <button id="chat-mode-btn" onclick="toggleChatMode()" title="Switch mode" style="background:var(--primary-dim);border:1px solid var(--primary-border);color:var(--primary);border-radius:8px;padding:0 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;height:40px;white-space:nowrap;">Council</button>
         <textarea id="user-input" placeholder="Ask the Council..." rows="1" onkeydown="handleKey(event)"></textarea>
         <button id="send-btn" onclick="sendToCouncil()">↑</button>
       </div>
@@ -2509,9 +2509,20 @@ The idea is sound — the risk is overthinking it. Pick the Executor's first act
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendToCouncil();}}
 
 async function sendToCouncil(){
-  if(_chatMode === 'normal'){
-    const text = document.getElementById('user-input')?.value.trim();
-    if(text) await _sendNormalChat(text);
+  if(window._chatMode==='normal'){
+    const text=document.getElementById('user-input')?.value.trim();
+    if(!text)return;
+    document.getElementById('user-input').value='';
+    appendUserMsg(text);
+    const lid=appendLoading();
+    try{
+      const res=await callEndpoint('proxy',{model:'claude-sonnet-4-6',max_tokens:800,
+        system:'You are JARVIS, Tony Martinez personal AI. Be direct, concise, conversational. Tony lives in Prosper TX, bulking to 150lbs, works out 4x/week.',
+        messages:[{role:'user',content:text}]});
+      const d=await res.json();
+      removeLoading(lid);
+      appendCouncilResponse(d.content?.[0]?.text||'No response.');
+    }catch(e){removeLoading(lid);appendCouncilResponse('Error: '+e.message);}
     return;
   }
   if(councilBusy)return;
@@ -5971,411 +5982,22 @@ async function loadTodayCalEvents(){
   list.innerHTML=events.map(e=>eventCard(e,true)).join('');
 }
 
-// ── Chat Mode Toggle (Normal vs Council) ─────────────────────────────────
-let _chatMode = 'council'; // 'council' or 'normal'
-
 function toggleChatMode(){
-  _chatMode = _chatMode === 'council' ? 'normal' : 'council';
-  const btn = document.getElementById('chat-mode-btn');
-  const input = document.getElementById('user-input');
-  if(_chatMode === 'council'){
-    btn.textContent = 'Council';
-    btn.style.background = 'var(--primary-dim)';
-    btn.style.borderColor = 'var(--primary-border)';
-    btn.style.color = 'var(--primary)';
-    if(input) input.placeholder = 'Ask the Council...';
+  window._chatMode = window._chatMode==='council' ? 'normal' : 'council';
+  const btn=document.getElementById('chat-mode-btn');
+  const inp=document.getElementById('user-input');
+  if(window._chatMode==='council'){
+    if(btn){btn.textContent='Council';btn.style.background='var(--primary-dim)';btn.style.borderColor='var(--primary-border)';btn.style.color='var(--primary)';}
+    if(inp)inp.placeholder='Ask the Council...';
   } else {
-    btn.textContent = 'Normal';
-    btn.style.background = 'var(--teal-dim)';
-    btn.style.borderColor = 'var(--teal-border)';
-    btn.style.color = 'var(--teal)';
-    if(input) input.placeholder = 'Chat with JARVIS...';
+    if(btn){btn.textContent='Normal';btn.style.background='var(--teal-dim)';btn.style.borderColor='var(--teal-border)';btn.style.color='var(--teal)';}
+    if(inp)inp.placeholder='Chat with JARVIS...';
   }
 }
+window._chatMode = 'council';
 
-const JARVIS_NORMAL_PROMPT = `You are JARVIS, Tony Martinez's personal AI assistant. Tony lives in Prosper TX. Be direct, helpful, and conversational. Keep responses concise unless asked for detail. You know Tony well — he's building you, bulking to 150lbs, works out 4x/week, tracks his health, and is focused on financial discipline and personal growth.`;
-
-async function _sendNormalChat(text){
-  if(!text.trim()) return;
-  const input = document.getElementById('user-input');
-  if(input) input.value = '';
-  appendUserMsg(text);
-  const lid = appendLoading();
-  try{
-    const res = await callEndpoint('proxy',{
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      system: JARVIS_NORMAL_PROMPT,
-      messages: [{ role: 'user', content: text }]
-    });
-    const d = await res.json();
-    const reply = d.content?.[0]?.text || 'No response.';
-    removeLoading(lid);
-    appendCouncilResponse(reply);
-    saveSession(text, reply);
-  } catch(err){
-    removeLoading(lid);
-    appendCouncilResponse('❌ Error: ' + err.message);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// LAYER 1 — VOICE ENGINE
-// Auto-start wake word when page loads
-window.addEventListener('load', ()=>{ setTimeout(startWakeWord, 3000); });
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ── Sci-Fi Sound Effects (Web Audio API — no files needed) ────────────────
-const _AudioCtx = window.AudioContext || window.webkitAudioContext;
-let _actx = null;
-function getAudioCtx(){ if(!_actx) _actx = new _AudioCtx(); return _actx; }
-
-function sfxActivate(){
-  try{
-    const ctx = getAudioCtx();
-    const t = ctx.currentTime;
-    [0,0.08,0.16].forEach((delay,i)=>{
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(400 + i*200, t+delay);
-      osc.frequency.exponentialRampToValueAtTime(900 + i*150, t+delay+0.12);
-      gain.gain.setValueAtTime(0.18, t+delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.18);
-      osc.start(t+delay); osc.stop(t+delay+0.2);
-    });
-  }catch(e){}
-}
-
-function sfxDeactivate(){
-  try{
-    const ctx = getAudioCtx();
-    const t = ctx.currentTime;
-    [0,0.08].forEach((delay,i)=>{
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(600 - i*150, t+delay);
-      osc.frequency.exponentialRampToValueAtTime(200, t+delay+0.15);
-      gain.gain.setValueAtTime(0.15, t+delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.18);
-      osc.start(t+delay); osc.stop(t+delay+0.2);
-    });
-  }catch(e){}
-}
-
-let _thinkingOscs = [];
-function sfxThinkingStart(){
-  try{
-    sfxThinkingStop();
-    const ctx = getAudioCtx();
-    const freqs = [220, 330, 440, 550];
-    freqs.forEach((freq,i)=>{
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.value = 0;
-      const interval = setInterval(()=>{
-        try{
-          const now = ctx.currentTime;
-          gain.gain.setValueAtTime(0, now);
-          gain.gain.linearRampToValueAtTime(0.04, now+0.05);
-          gain.gain.linearRampToValueAtTime(0, now+0.15);
-        }catch(e){ clearInterval(interval); }
-      }, 400 + i*120);
-      osc.start();
-      _thinkingOscs.push({osc, gain, interval});
-    });
-  }catch(e){}
-}
-
-function sfxThinkingStop(){
-  try{
-    _thinkingOscs.forEach(({osc,gain,interval})=>{
-      clearInterval(interval);
-      try{ gain.gain.setValueAtTime(0, getAudioCtx().currentTime); osc.stop(); }catch(e){}
-    });
-    _thinkingOscs = [];
-  }catch(e){}
-}
-
-function sfxReady(){
-  try{
-    sfxThinkingStop();
-    const ctx = getAudioCtx();
-    const t = ctx.currentTime;
-    [[523,0],[659,0.1],[784,0.2]].forEach(([freq,delay])=>{
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.12, t+delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, t+delay+0.25);
-      osc.start(t+delay); osc.stop(t+delay+0.3);
-    });
-  }catch(e){}
-}
-
-// ── Voice State ───────────────────────────────────────────────
-let _voiceActive    = false;
-let _wakeActive     = false;  // always-on wake word mode
-let _deepgramWS     = null;
-let _wakeWS         = null;   // separate low-power wake word stream
-let _mediaStream    = null;
-let _wakeMicStream  = null;
-let _mediaRecorder  = null;
-let _wakeRecorder   = null;
-let _voiceAudio     = null;
-let _dgToken        = null;   // cached token for wake word reuse
-
-const WAKE_WORDS = ['jarvis', 'hey jarvis', 'ok jarvis', 'yo jarvis'];
-
-// ── UI helpers ────────────────────────────────────────────────
-function _voiceSetStatus(text, state='listening'){
-  const s = document.getElementById('voice-status-text');
-  const btn = document.getElementById('voice-btn');
-  if(s) s.textContent = text;
-  if(btn){ btn.className=''; if(state) btn.classList.add(state); }
-}
-function _voiceSetTranscript(text){
-  const t = document.getElementById('voice-transcript-text');
-  if(t) t.textContent = text;
-}
-
-// ── Wake word — always-on low-power Deepgram stream ──────────
-async function startWakeWord(){
-  if(_wakeActive) return;
-  _wakeActive = true;
-  const btn = document.getElementById('voice-btn');
-  if(btn) btn.style.opacity = '0.5';
-
-  try{
-    const tokenRes = await callEndpoint('voice-token',{},'POST');
-    const tokenData = await tokenRes.json();
-    if(!tokenData.ok) throw new Error('no token');
-    _dgToken = tokenData.token;
-
-    _wakeMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    // Low-cost model for always-on — just needs to catch keywords
-    const wsUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false&keywords=jarvis:2`;
-    _wakeWS = new WebSocket(wsUrl, ['token', _dgToken]);
-
-    _wakeWS.onopen = () => {
-      _wakeRecorder = new MediaRecorder(_wakeMicStream, { mimeType: 'audio/webm' });
-      _wakeRecorder.ondataavailable = e => {
-        if(_wakeWS?.readyState === WebSocket.OPEN && e.data.size > 0 && !_voiceActive){
-          _wakeWS.send(e.data);
-        }
-      };
-      _wakeRecorder.start(500);
-      if(btn) btn.style.opacity = '1';
-      console.log('[voice] Wake word active — say "Jarvis" or "Hey Jarvis"');
-    };
-
-    _wakeWS.onmessage = e => {
-      if(_voiceActive) return; // already in conversation
-      try{
-        const msg = JSON.parse(e.data);
-        const transcript = msg?.channel?.alternatives?.[0]?.transcript?.toLowerCase().trim() || '';
-        if(!transcript) return;
-        const triggered = WAKE_WORDS.some(w => transcript.includes(w));
-        if(triggered){
-          console.log('[voice] Wake word detected:', transcript);
-          _activateFromWakeWord();
-        }
-      }catch(e){}
-    };
-
-    _wakeWS.onerror = () => { _wakeActive=false; if(btn) btn.style.opacity='1'; };
-    _wakeWS.onclose = () => { _wakeActive=false; if(btn) btn.style.opacity='1'; };
-
-  }catch(err){
-    _wakeActive = false;
-    if(btn) btn.style.opacity = '1';
-    console.warn('[voice] Wake word init failed:', err.message);
-  }
-}
-
-function stopWakeWord(){
-  _wakeActive = false;
-  try{ _wakeRecorder?.stop(); }catch(e){}
-  try{ _wakeWS?.close(); }catch(e){}
-  try{ _wakeMicStream?.getTracks().forEach(t=>t.stop()); }catch(e){}
-  _wakeWS=null; _wakeRecorder=null; _wakeMicStream=null;
-}
-
-async function _activateFromWakeWord(){
-  sfxActivate();
-  document.getElementById('voice-overlay')?.classList.add('open');
-  _voiceSetStatus('Listening…','listening');
-  _voiceSetTranscript('');
-  _voiceActive = true;
-  // Pause wake stream while in conversation
-  try{ _wakeRecorder?.stop(); }catch(e){}
-  await _startConversation();
-}
-
-// ── Main toggle (tap-to-talk) ─────────────────────────────────
-async function toggleVoice(){
-  if(_voiceActive){ cancelVoice(); return; }
-  _voiceActive = true;
-  sfxActivate();
-  document.getElementById('voice-overlay')?.classList.add('open');
-  _voiceSetStatus('Listening…','listening');
-  _voiceSetTranscript('');
-  await _startConversation();
-}
-
-// ── Start full conversation stream ────────────────────────────
-async function _startConversation(){
-  try{
-    // Get fresh token if needed
-    if(!_dgToken){
-      const tokenRes = await callEndpoint('voice-token',{},'POST');
-      const tokenData = await tokenRes.json();
-      if(!tokenData.ok) throw new Error(tokenData.error||'Could not get voice token');
-      _dgToken = tokenData.token;
-    }
-
-    _mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true&endpointing=500`;
-    _deepgramWS = new WebSocket(dgUrl, ['token', _dgToken]);
-    _dgToken = null; // use once
-
-    let finalTranscript = '';
-    let silenceTimer = null;
-
-    _deepgramWS.onopen = () => {
-      _mediaRecorder = new MediaRecorder(_mediaStream, { mimeType: 'audio/webm' });
-      _mediaRecorder.ondataavailable = e => {
-        if(_deepgramWS?.readyState === WebSocket.OPEN && e.data.size > 0){
-          _deepgramWS.send(e.data);
-        }
-      };
-      _mediaRecorder.start(250);
-    };
-
-    _deepgramWS.onmessage = e => {
-      try{
-        const msg = JSON.parse(e.data);
-        const alt = msg?.channel?.alternatives?.[0];
-        if(!alt) return;
-        const transcript = alt.transcript?.trim();
-        if(!transcript) return;
-        if(msg.is_final){
-          // Strip wake word from beginning of transcript
-          let clean = transcript;
-          WAKE_WORDS.forEach(w => {
-            const re = new RegExp('^' + w + '[,.]?\\s*', 'i');
-            clean = clean.replace(re, '');
-          });
-          finalTranscript += (finalTranscript ? ' ' : '') + clean;
-          _voiceSetTranscript(finalTranscript);
-          clearTimeout(silenceTimer);
-          silenceTimer = setTimeout(()=> _sendToJarvis(finalTranscript), 1200);
-        } else {
-          _voiceSetTranscript(finalTranscript + ' ' + transcript);
-        }
-      }catch(e){}
-    };
-
-    _deepgramWS.onerror = () => { showToast('❌ Voice connection failed'); cancelVoice(); };
-    _deepgramWS.onclose = () => { if(_voiceActive) cancelVoice(); };
-
-  }catch(err){
-    showToast('❌ ' + (err.message||'Voice error'));
-    cancelVoice();
-  }
-}
-
-// ── Send transcript to JARVIS → speak response ────────────────
-async function _sendToJarvis(text){
-  if(!text?.trim()){ cancelVoice(); return; }
-  _voiceSetStatus('JARVIS is thinking…','processing');
-  sfxThinkingStart();
-
-  try{
-    // Stop listening while JARVIS thinks
-    _mediaRecorder?.stop();
-    _deepgramWS?.close();
-
-    // Call JARVIS Council (same as chat)
-    const res = await callEndpoint('proxy',{
-      model: 'claude-haiku-4-5-20251001', // Haiku for speed
-      max_tokens: 300,
-      system: buildCouncilPrompt() + '\n\nIMPORTANT: You are responding via VOICE. Keep your answer to 1-3 short sentences. Be direct, natural, conversational. No lists, no markdown.',
-      messages: [{ role: 'user', content: text }]
-    });
-    const data = await res.json();
-    const reply = data?.content?.[0]?.text || data?.error || 'Sorry, I could not process that.';
-
-    // Show reply text in voice modal
-    _voiceSetTranscript('🤖 ' + reply);
-    _voiceSetStatus('Speaking…','processing');
-    sfxReady();
-    // Also append to chat so there's a record
-    appendCouncilResponse('[JARVIS — Voice]
-' + reply);
-    await _speakText(reply);
-
-  }catch(err){
-    sfxThinkingStop();
-    showToast('❌ ' + (err.message||'Voice error'));
-  }finally{
-    cancelVoice();
-    // Restart wake word listening after conversation
-    setTimeout(()=>startWakeWord(), 1500);
-  }
-}
-
-// ── ElevenLabs TTS ────────────────────────────────────────────
-async function _speakText(text){
-  try{
-    const res = await fetch(`${supabaseUrl}/functions/v1/voice-speak`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${supabaseKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    if(!res.ok) throw new Error('TTS failed');
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    _voiceAudio = new Audio(url);
-    await new Promise((resolve, reject) => {
-      _voiceAudio.onended = resolve;
-      _voiceAudio.onerror = reject;
-      _voiceAudio.play().catch(reject);
-    });
-    URL.revokeObjectURL(url);
-  }catch(err){
-    console.warn('[voice] TTS error:', err);
-    // Fallback: browser TTS
-    if(window.speechSynthesis){
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.rate = 1.1;
-      window.speechSynthesis.speak(utt);
-      await new Promise(r => utt.onend = r);
-    }
-  }
-}
-
-// ── Cancel voice ──────────────────────────────────────────────
-function cancelVoice(){
-  _voiceActive = false;
-  sfxDeactivate();
-  sfxThinkingStop();
-  try{ _mediaRecorder?.stop(); }catch(e){}
-  try{ _deepgramWS?.close(); }catch(e){}
-  try{ _mediaStream?.getTracks().forEach(t=>t.stop()); }catch(e){}
-  try{ _voiceAudio?.pause(); }catch(e){}
-  _deepgramWS = null; _mediaStream = null; _mediaRecorder = null; _voiceAudio = null;
-  document.getElementById('voice-overlay')?.classList.remove('open');
-  const btn = document.getElementById('voice-btn');
-  if(btn) btn.className = '';
-}
+function toggleVoice(){showToast('Voice controls coming in Layer 1!');}
+function cancelVoice(){document.getElementById('voice-overlay').classList.remove('open');}
 function saveVoiceSettings(){
   localStorage.setItem('jarvis_vs_tts',document.getElementById('vs-tts-engine')?.value||'browser');
   localStorage.setItem('jarvis_vs_el_key',document.getElementById('vs-el-key')?.value||'');
