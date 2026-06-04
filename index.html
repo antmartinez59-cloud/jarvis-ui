@@ -816,6 +816,7 @@ body.viewing-past .tracker-log-only{display:block;}
         </div>
       </div>
       <div id="input-bar">
+        <button id="chat-mode-btn" onclick="toggleChatMode()" title="Switch between Normal and Council mode" style="background:var(--primary-dim);border:1px solid var(--primary-border);color:var(--primary);border-radius:8px;padding:0 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;height:40px;white-space:nowrap;">Council</button>
         <textarea id="user-input" placeholder="Ask the Council..." rows="1" onkeydown="handleKey(event)"></textarea>
         <button id="send-btn" onclick="sendToCouncil()">↑</button>
       </div>
@@ -2508,6 +2509,11 @@ The idea is sound — the risk is overthinking it. Pick the Executor's first act
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendToCouncil();}}
 
 async function sendToCouncil(){
+  if(_chatMode === 'normal'){
+    const text = document.getElementById('user-input')?.value.trim();
+    if(text) await _sendNormalChat(text);
+    return;
+  }
   if(councilBusy)return;
   const inp=document.getElementById('user-input');
   const text=inp.value.trim();if(!text)return;
@@ -5965,6 +5971,54 @@ async function loadTodayCalEvents(){
   list.innerHTML=events.map(e=>eventCard(e,true)).join('');
 }
 
+// ── Chat Mode Toggle (Normal vs Council) ─────────────────────────────────
+let _chatMode = 'council'; // 'council' or 'normal'
+
+function toggleChatMode(){
+  _chatMode = _chatMode === 'council' ? 'normal' : 'council';
+  const btn = document.getElementById('chat-mode-btn');
+  const input = document.getElementById('user-input');
+  if(_chatMode === 'council'){
+    btn.textContent = 'Council';
+    btn.style.background = 'var(--primary-dim)';
+    btn.style.borderColor = 'var(--primary-border)';
+    btn.style.color = 'var(--primary)';
+    if(input) input.placeholder = 'Ask the Council...';
+  } else {
+    btn.textContent = 'Normal';
+    btn.style.background = 'var(--teal-dim)';
+    btn.style.borderColor = 'var(--teal-border)';
+    btn.style.color = 'var(--teal)';
+    if(input) input.placeholder = 'Chat with JARVIS...';
+  }
+}
+
+const JARVIS_NORMAL_PROMPT = `You are JARVIS, Tony Martinez's personal AI assistant. Tony lives in Prosper TX. Be direct, helpful, and conversational. Keep responses concise unless asked for detail. You know Tony well — he's building you, bulking to 150lbs, works out 4x/week, tracks his health, and is focused on financial discipline and personal growth.`;
+
+async function _sendNormalChat(text){
+  if(!text.trim()) return;
+  const input = document.getElementById('user-input');
+  if(input) input.value = '';
+  appendUserMsg(text);
+  const lid = appendLoading();
+  try{
+    const res = await callEndpoint('proxy',{
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      system: JARVIS_NORMAL_PROMPT,
+      messages: [{ role: 'user', content: text }]
+    });
+    const d = await res.json();
+    const reply = d.content?.[0]?.text || 'No response.';
+    removeLoading(lid);
+    appendCouncilResponse(reply);
+    saveSession(text, reply);
+  } catch(err){
+    removeLoading(lid);
+    appendCouncilResponse('❌ Error: ' + err.message);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LAYER 1 — VOICE ENGINE
 // Auto-start wake word when page loads
@@ -6259,9 +6313,13 @@ async function _sendToJarvis(text){
     const data = await res.json();
     const reply = data?.content?.[0]?.text || data?.error || 'Sorry, I could not process that.';
 
-    // Speak the response
+    // Show reply text in voice modal
+    _voiceSetTranscript('🤖 ' + reply);
     _voiceSetStatus('Speaking…','processing');
     sfxReady();
+    // Also append to chat so there's a record
+    appendCouncilResponse('[JARVIS — Voice]
+' + reply);
     await _speakText(reply);
 
   }catch(err){
