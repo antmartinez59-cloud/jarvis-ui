@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#7c6fff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JARVIS">
+  <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JARVIS — Personal AI System</title>
 <style>
@@ -6322,6 +6328,15 @@ if(!supabaseUrl||!supabaseKey){
   b.style.cssText='position:fixed;top:56px;left:0;right:0;z-index:50;background:rgba(124,111,255,.08);border-bottom:1px solid rgba(124,111,255,.25);padding:8px 20px;font-size:12px;color:var(--primary);display:flex;align-items:center;justify-content:space-between;';
   b.innerHTML='<span>JARVIS needs Supabase keys - find JARVIS_CONFIG in index.html and paste your Supabase URL and anon key.</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px">X</button>';
   document.body.appendChild(b);
+}
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/sw.js').then(function(){
+      console.log('[JARVIS] PWA ready');
+    }).catch(function(e){ console.warn('[JARVIS] SW failed:', e); });
+  });
 }
 </script>
 </body>
