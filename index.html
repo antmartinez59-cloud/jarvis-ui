@@ -822,8 +822,8 @@ body.viewing-past .tracker-log-only{display:block;}
         </div>
       </div>
       <div id="input-bar">
-        <button id="chat-mode-btn" onclick="toggleChatMode()" title="Switch mode" style="background:var(--primary-dim);border:1px solid var(--primary-border);color:var(--primary);border-radius:8px;padding:0 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;height:40px;white-space:nowrap;">Council</button>
-        <textarea id="user-input" placeholder="Ask the Council..." rows="1" onkeydown="handleKey(event)"></textarea>
+        <button id="chat-mode-btn" onclick="toggleChatMode()" title="Switch mode" style="background:var(--teal-dim);border:1px solid var(--teal-border);color:var(--teal);border-radius:8px;padding:0 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;height:40px;white-space:nowrap;">Normal</button>
+        <textarea id="user-input" placeholder="Chat with JARVIS..." rows="1" onkeydown="handleKey(event)"></textarea>
         <button id="send-btn" onclick="sendToCouncil()">↑</button>
       </div>
     </div>
@@ -6000,7 +6000,7 @@ function toggleChatMode(){
     if(inp)inp.placeholder='Chat with JARVIS...';
   }
 }
-window._chatMode = 'council';
+window._chatMode = 'normal';
 
 // ═══════════════════════════════════════════════════════════
 // LAYER 1 — VOICE ENGINE
