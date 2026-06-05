@@ -2061,9 +2061,49 @@ body.viewing-past .tracker-log-only{display:block;}
         Jarvis speaks responses out loud
       </label>
     </div>
-    <div class="modal-actions">
+    <div class="modal-actions" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-ghost" style="flex:1;min-width:120px;" onclick="openVoiceTrainer()">🎤 Train My Voice</button>
       <button class="btn btn-ghost" onclick="document.getElementById('voice-settings-overlay').classList.remove('open')">Cancel</button>
       <button class="btn btn-primary" onclick="saveVoiceSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Voice Fingerprint Trainer Modal ─────────────────────────────────── -->
+<div class="modal-overlay" id="voice-trainer-overlay">
+  <div class="modal" style="width:460px;text-align:center;">
+    <div id="vt-intro">
+      <div style="font-size:36px;margin-bottom:12px;">🎙️</div>
+      <h3 style="margin-bottom:8px;">Train Your Voice</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px;">JARVIS will learn to recognize only your voice. Say each phrase when prompted — takes about 30 seconds.</p>
+      <button class="btn btn-primary" style="width:100%;" onclick="vtStart()">Start Training</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="document.getElementById('voice-trainer-overlay').classList.remove('open')">Cancel</button>
+    </div>
+    <div id="vt-record" style="display:none;">
+      <div id="vt-num" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Phrase 1 of 5</div>
+      <div style="height:4px;background:var(--border);border-radius:2px;margin-bottom:20px;">
+        <div id="vt-prog" style="height:4px;background:var(--primary);border-radius:2px;width:0%;transition:width .4s;"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">Say this phrase out loud:</p>
+      <div id="vt-phrase" style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:24px;padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border);"></div>
+      <div id="vt-ring" style="width:80px;height:80px;border-radius:50%;background:var(--primary-dim);border:3px solid var(--primary);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;transition:all .2s;">🎤</div>
+      <div id="vt-status" style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Get ready...</div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <button class="btn btn-ghost" onclick="vtRetry()">↺ Retry</button>
+        <button id="vt-next" class="btn btn-primary" onclick="vtNext()" style="display:none;">Next →</button>
+      </div>
+    </div>
+    <div id="vt-done" style="display:none;">
+      <div style="font-size:48px;margin-bottom:12px;">✅</div>
+      <h3 style="margin-bottom:8px;">Voice Profile Saved</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">Only your voice activates JARVIS now.</p>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;text-align:left;">
+        <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:6px;">Sensitivity: <span id="vt-sens-val" style="color:var(--primary);">85%</span></label>
+        <input type="range" id="vt-sens" min="60" max="98" value="85" style="width:100%;accent-color:var(--primary);" oninput="document.getElementById('vt-sens-val').textContent=this.value+'%'">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Lower = easier to trigger · Higher = more secure</div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="vtFinish()">Done</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="vtStart()">↺ Retrain</button>
     </div>
   </div>
 </div>
@@ -6489,6 +6529,160 @@ if(!supabaseUrl||!supabaseKey){
   b.innerHTML='<span>JARVIS needs Supabase keys - find JARVIS_CONFIG in index.html and paste your Supabase URL and anon key.</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px">X</button>';
   document.body.appendChild(b);
 }
+</script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYER 1 PHASE 2 — VOICE FINGERPRINTING
+// Siri-style trainer · Web Audio spectral extraction · Cosine similarity
+// ═══════════════════════════════════════════════════════════════════════════
+var _VP=null,_VPEnabled=false,_VPSens=0.85;
+var _VT_PHRASES=['Hey Jarvis',"Jarvis what's my schedule today",'Ok Jarvis remind me','Jarvis play some music','Hey Jarvis what\'s up'];
+var _VT_IDX=0,_VT_FEATS=[],_VT_STREAM=null,_VT_TIMER=null;
+var VP_KEY='jarvis_vp',VP_ON='jarvis_vp_on',VP_SENS='jarvis_vp_sens';
+
+function _vpLoad(){
+  try{var r=localStorage.getItem(VP_KEY);if(r)_VP=JSON.parse(r);_VPEnabled=localStorage.getItem(VP_ON)==='true';_VPSens=parseFloat(localStorage.getItem(VP_SENS)||'0.85');}catch(e){}
+}
+function _vpSave(profile){
+  _VP=profile;_VPEnabled=true;
+  try{localStorage.setItem(VP_KEY,JSON.stringify(profile));localStorage.setItem(VP_ON,'true');localStorage.setItem(VP_SENS,String(_VPSens));}catch(e){}
+  // Also save to Supabase for cross-device
+  try{if(supa)supa.from('user_settings').upsert({key:'voice_profile',value:JSON.stringify({profile:profile,enabled:true,sensitivity:_VPSens})},{onConflict:'key'});}catch(e){}
+}
+
+// Extract 32-band spectral fingerprint from mic stream (1.8s recording)
+function _vpExtract(stream){
+  return new Promise(function(resolve,reject){
+    try{
+      var ctx=new(window.AudioContext||window.webkitAudioContext)();
+      var src=ctx.createMediaStreamSource(stream);
+      var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.3;
+      src.connect(an);
+      var buf=new Uint8Array(an.frequencyBinCount),acc=new Float64Array(32),frames=0;
+      var iv=setInterval(function(){
+        an.getByteFrequencyData(buf);
+        var ny=ctx.sampleRate/2,lo=Math.floor(80/ny*buf.length),hi=Math.floor(8000/ny*buf.length),rng=hi-lo;
+        for(var b=0;b<32;b++){var s=lo+Math.floor(b*rng/32),e2=lo+Math.floor((b+1)*rng/32),sum=0;for(var i=s;i<e2;i++)sum+=buf[i];acc[b]+=sum/Math.max(e2-s,1);}
+        frames++;
+      },16);
+      setTimeout(function(){
+        clearInterval(iv);
+        try{src.disconnect();ctx.close();}catch(e){}
+        if(!frames){reject(new Error('no audio'));return;}
+        var avg=new Float32Array(32);
+        for(var b=0;b<32;b++)avg[b]=acc[b]/frames;
+        var mag=Math.sqrt(avg.reduce(function(s,v){return s+v*v;},0))||1;
+        resolve(Array.from(avg).map(function(v){return v/mag;}));
+      },1800);
+    }catch(e){reject(e);}
+  });
+}
+
+function _vpCos(a,b){
+  if(!a||!b||a.length!==b.length)return 0;
+  var dot=0,ma=0,mb=0;
+  for(var i=0;i<a.length;i++){dot+=a[i]*b[i];ma+=a[i]*a[i];mb+=b[i]*b[i];}
+  return dot/(Math.sqrt(ma)*Math.sqrt(mb)||1);
+}
+
+function _vpAvg(list){
+  var len=list[0].length,avg=new Array(len).fill(0);
+  for(var i=0;i<list.length;i++)for(var j=0;j<len;j++)avg[j]+=list[i][j];
+  for(var j=0;j<len;j++)avg[j]/=list.length;
+  var mag=Math.sqrt(avg.reduce(function(s,v){return s+v*v;},0))||1;
+  return avg.map(function(v){return v/mag;});
+}
+
+async function _vpVerify(stream){
+  if(!_VPEnabled||!_VP)return true;
+  try{var f=await _vpExtract(stream);var sim=_vpCos(f,_VP);console.log('[JARVIS voice] similarity',Math.round(sim*100)+'%');return sim>=_VPSens;}
+  catch(e){return true;}
+}
+
+// Trainer UI
+function openVoiceTrainer(){
+  document.getElementById('voice-settings-overlay').classList.remove('open');
+  document.getElementById('voice-trainer-overlay').classList.add('open');
+  vtShow('intro');
+}
+function vtShow(step){['intro','record','done'].forEach(function(s){var el=document.getElementById('vt-'+s);if(el)el.style.display=s===step?'':'none';});}
+
+async function vtStart(){
+  _VT_IDX=0;_VT_FEATS=[];
+  vtShow('record');
+  try{_VT_STREAM=await navigator.mediaDevices.getUserMedia({audio:true,video:false});}
+  catch(e){showToast('Mic access denied');vtShow('intro');return;}
+  vtLoadPhrase(0);
+}
+
+function vtLoadPhrase(idx){
+  document.getElementById('vt-num').textContent='Phrase '+(idx+1)+' of '+_VT_PHRASES.length;
+  document.getElementById('vt-phrase').textContent='"'+_VT_PHRASES[idx]+'"';
+  document.getElementById('vt-prog').style.width=(idx/_VT_PHRASES.length*100)+'%';
+  document.getElementById('vt-next').style.display='none';
+  document.getElementById('vt-status').textContent='Get ready...';
+  vtRing('idle');
+  var n=3;clearInterval(_VT_TIMER);
+  _VT_TIMER=setInterval(function(){
+    if(n>0){document.getElementById('vt-status').textContent='Recording in '+n+'...';n--;}
+    else{clearInterval(_VT_TIMER);vtRecord();}
+  },1000);
+}
+
+async function vtRecord(){
+  document.getElementById('vt-status').textContent='Listening... say the phrase now';
+  vtRing('active');
+  try{
+    var f=await _vpExtract(_VT_STREAM);
+    _VT_FEATS.push(f);vtRing('done');
+    document.getElementById('vt-status').textContent='Got it ✓';
+    document.getElementById('vt-next').style.display='';
+    document.getElementById('vt-next').textContent=_VT_IDX<_VT_PHRASES.length-1?'Next →':'Finish ✓';
+  }catch(e){vtRing('idle');document.getElementById('vt-status').textContent="Didn't catch that — try again";}
+}
+
+function vtRetry(){clearInterval(_VT_TIMER);if(_VT_FEATS.length>_VT_IDX)_VT_FEATS.pop();vtLoadPhrase(_VT_IDX);}
+
+function vtNext(){
+  _VT_IDX++;
+  if(_VT_IDX>=_VT_PHRASES.length){
+    try{if(_VT_STREAM)_VT_STREAM.getTracks().forEach(function(t){t.stop();});}catch(e){}
+    if(_VT_FEATS.length<3){showToast('Not enough phrases — retrain');vtShow('intro');return;}
+    _vpSave(_vpAvg(_VT_FEATS));
+    document.getElementById('vt-prog').style.width='100%';
+    vtShow('done');showToast('Voice profile saved ✓');
+  } else {vtLoadPhrase(_VT_IDX);}
+}
+
+function vtFinish(){
+  var s=document.getElementById('vt-sens');
+  if(s){_VPSens=parseInt(s.value)/100;localStorage.setItem(VP_SENS,String(_VPSens));}
+  document.getElementById('voice-trainer-overlay').classList.remove('open');
+  showToast('Voice fingerprint active — only your voice works now ✓');
+}
+
+function vtRing(state){
+  var r=document.getElementById('vt-ring');if(!r)return;
+  if(state==='active'){r.style.background='var(--primary)';r.style.transform='scale(1.15)';r.style.boxShadow='0 0 0 8px rgba(124,111,255,0.2)';r.textContent='🎤';}
+  else if(state==='done'){r.style.background='var(--teal-dim,#0d2e2b)';r.style.borderColor='var(--teal,#00d9b4)';r.style.transform='scale(1)';r.style.boxShadow='none';r.textContent='✓';}
+  else{r.style.background='var(--primary-dim)';r.style.borderColor='var(--primary)';r.style.transform='scale(1)';r.style.boxShadow='none';r.textContent='🎤';}
+}
+
+// Hook fingerprint check into wake word activation
+var _origActivate=window._activateVoice;
+if(typeof _activateVoice!=='undefined'){
+  var _origActivateVoice=_activateVoice;
+  _activateVoice=async function(){
+    if(_VPEnabled&&_VP&&_wakeMic){
+      var ok=await _vpVerify(_wakeMic);
+      if(!ok){console.log('[JARVIS voice] rejected — voice not recognized');return;}
+    }
+    _origActivateVoice();
+  };
+}
+
+_vpLoad();
+// END LAYER 1 PHASE 2 — VOICE FINGERPRINTING
 </script>
 <script>
 if('serviceWorker' in navigator){
