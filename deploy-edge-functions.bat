@@ -73,6 +73,10 @@ supabase functions deploy debug-agent         --no-verify-jwt
 :: ── Layer 7 — Integrations ───────────────────────────────────
 supabase functions deploy apple-calendar      --no-verify-jwt
 
+:: ── Layer 1 — Voice Engine (backend) ─────────────────────────
+supabase functions deploy voice-token         --no-verify-jwt
+supabase functions deploy voice-speak         --no-verify-jwt
+
 echo.
 echo [3/3] Done! Your Edge Function URLs are:
 echo.

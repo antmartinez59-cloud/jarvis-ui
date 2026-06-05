@@ -2,12 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#7c6fff">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="JARVIS">
-  <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JARVIS — Personal AI System</title>
 <style>
@@ -50,7 +44,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Pro
 .view.active{display:flex;flex-direction:column;}
 
 /* NETWORK MAP */
-#view-map{flex-direction:row;position:relative;}
+#view-map{flex-direction:row;}
 #network-svg{flex:1;background:var(--bg);}
 #map-legend{width:200px;background:var(--surface);border-left:1px solid var(--border);padding:20px 16px;overflow-y:auto;}
 .legend-title{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;}
@@ -265,8 +259,6 @@ body.viewing-past .tracker-log-only{display:block;}
 .btn-primary{background:var(--primary);color:#fff;}
 .btn-ghost{background:var(--card);color:var(--text-muted);border:1px solid var(--border);}
 .btn:hover{opacity:.85;}
-.obsidian-help{background:rgba(124,111,255,.08);border:1px solid var(--primary-border);border-radius:8px;padding:12px;margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.6;}
-.obsidian-help strong{color:var(--primary);}
 
 /* AGENT MODAL */
 #agent-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
@@ -736,50 +728,6 @@ body.viewing-past .tracker-log-only{display:block;}
   <!-- NETWORK MAP -->
   <div class="view active" id="view-map">
     <svg id="network-svg"></svg>
-    <div id="jarvis-roadmap" style="position:absolute;top:12px;right:12px;width:230px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:12px;max-height:80vh;overflow-y:auto;z-index:20;cursor:default;resize:both;">
-      <div id="roadmap-drag-handle" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:grab;user-select:none;" title="Drag to move">
-        <div style="font-weight:700;color:var(--primary);font-size:13px;">🗺 JARVIS Roadmap</div>
-        <button onclick="toggleRoadmap()" id="roadmap-toggle-btn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:0;">−</button>
-      </div>
-      <div id="roadmap-body">
-      <div style="color:var(--teal);font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;">✅ SHIPPED</div>
-      <div style="color:var(--text-muted);font-size:11px;margin-bottom:10px;line-height:1.5;">Council AI · Agent routing · Smart memory · Nightly synthesis · Mastery engine · Water · Sleep · Workouts · Meals + photo AI · Body stats · Finance · Apple Calendar · Apple Reminders · Todos · Briefings 5x daily · Nudges · Automation builder · GitHub sync · Brave search · Twilio · Resend</div>
-
-      <div style="color:var(--primary);font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;">🔧 IN PROGRESS</div>
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;">☁️ Ensure everything runs backend — nothing local</div>
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;">🍎 Apple Reminders — free iCloud storage (Thu)</div>
-      <div style="color:var(--text);margin-bottom:10px;font-size:11px;">📱 True PWA offline cache — foundation for everything</div>
-
-      <div style="color:var(--primary);font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;">📐 LAYERS — BUILD ORDER</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;">⬅ <b>Layer 1</b> — Voice Engine rebuild (wake word, voice fingerprinting, smart pause, filler phrases, B+C streaming, stop command, GPT-4.1 nano via OpenRouter)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 2</b> — Spotify (full tab, mini-player, voice commands, official API — phone + PC)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 3</b> — People Tab (core circle cards, relationship intel, contact sync, birthday reminders, shared history) + Tia's Vault (3-layer encrypted access)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 4</b> — Messaging System (Apple Shortcuts from real number, Twilio backup, draft + approve flow, scheduled sends, group texts)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 5</b> — App Control (phone URL schemes for YouTube/Maps/TikTok/Apple Music, Chrome extension for PC web, Python background script for games + launchers)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 6</b> — Stocks (live ticker, portfolio AI, alerts)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 7</b> — Journal (mood, reflection, voice-to-journal, JARVIS reads patterns)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 8</b> — Events near Prosper TX (radius control, AI suggestions, surfaced in Today + briefings)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 9</b> — Meal planning (weekly plans, macro goals, shopping list)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 10</b> — Mastery rework + JARVIS Brain (continuous learning, emergent synthesis, fine-tuned Llama model, Phase 6+7, seamless Claude → JARVIS switch)</div>
-
-      <div style="color:var(--text);margin-bottom:3px;font-size:11px;"><b>Layer 11</b> — Autonomy engine (self-healing debug, agent delegation, cross-domain insights, automation UI)</div>
-
-      <div style="color:var(--text);margin-bottom:10px;font-size:11px;"><b>Layer 12</b> — UI overhaul (full redesign, mobile-first, animations, feels like real product)</div>
-
-      <div style="color:var(--text-muted);font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:6px;">🔮 FUTURE</div>
-      <div style="color:var(--text-muted);font-size:11px;line-height:1.5;">Plaid bank sync · Trips tab · Raspberry Pi home server · Wearable sync · Multi-device presence awareness · JARVIS personality (own project)</div>
-      </div><!-- end roadmap-body -->
-    </div>
     <div id="map-legend">
       <div class="legend-title">Node Types</div>
       <div class="legend-item"><div class="legend-dot" style="background:#7c6fff"></div>Plugin</div>
@@ -788,6 +736,138 @@ body.viewing-past .tracker-log-only{display:block;}
       <div class="legend-item"><div class="legend-dot" style="background:#ff5c87"></div>Tool / CLI</div>
       <div class="legend-item"><div class="legend-dot" style="background:#666699"></div>Reference</div>
       <div class="node-detail" id="node-detail"><p style="font-size:12px;color:var(--text-dim)">Click any node to see details.</p></div>
+
+      <!-- ROADMAP -->
+      <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">
+        <div class="legend-title">🗺️ Roadmap</div>
+
+        <!-- SHIPPED -->
+        <div style="font-size:10px;font-weight:600;color:var(--teal);letter-spacing:.5px;margin-bottom:6px;">✅ SHIPPED</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.9;margin-bottom:14px;">
+          <div style="margin-bottom:2px;">🧠 Council AI · auto agent routing · smart memory · nightly synthesis (all data)</div>
+          <div style="margin-bottom:2px;">🔭 Mastery engine — deep runs · unlimited gaps · plateau shift · depth levels · state save/resume</div>
+          <div style="margin-bottom:2px;">💧 Water · 😴 Sleep · 🏋️ Workouts · 🍽️ Meals + photo AI · ⚖️ Body stats</div>
+          <div style="margin-bottom:2px;">💰 Finance — transactions · subscriptions · saving goals · portfolio · paycheck splitter</div>
+          <div style="margin-bottom:2px;">📅 Apple Calendar · 🔔 Apple Reminders · 📋 Todos</div>
+          <div style="margin-bottom:2px;">📬 Briefings 5x daily (email + SMS) · ⚙️ Automated nudges · Plain-English automation builder</div>
+          <div>🔗 GitHub sync · Brave search · Twilio · Resend</div>
+        </div>
+
+        <!-- IN PROGRESS -->
+        <div style="font-size:10px;font-weight:600;color:var(--orange);letter-spacing:.5px;margin-bottom:6px;">🔧 IN PROGRESS</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.9;margin-bottom:14px;">
+          <div style="margin-bottom:2px;">☁️ Full cloud — add ANTHROPIC_KEY to Supabase Vault</div>
+          <div style="margin-bottom:2px;">📬 Briefings display fix — deployed, clear old HTML rows in Supabase</div>
+          <div>🌤️ Weather + news in briefings — add OPENWEATHER_KEY + NEWS_API_KEY to Vault</div>
+        </div>
+
+        <!-- LAYERS -->
+        <div style="font-size:10px;font-weight:600;color:var(--primary);letter-spacing:.5px;margin-bottom:8px;">📐 LAYERS — BUILD ORDER</div>
+
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+
+          <div style="background:var(--primary-dim);border:1px solid var(--primary-border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--primary);">LAYER 1 — NEXT</span>
+              <span style="font-size:10px;color:var(--primary);">⬅ Building</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">🎙️ Voice</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Wake word "Hey Jarvis" · tap-to-talk · real voice response (not robotic TTS — same quality as ChatGPT/Claude voice) · fast, no repeating · ElevenLabs or browser · UI 100% built, needs JS implementation</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 2</span>
+              <span style="font-size:10px;color:var(--text-dim);">Pending</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">🎵 Spotify</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Full tab + floating mini-player · voice commands: play/pause/skip/resume · "play [song]" · "play my [playlist]" · now playing display</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 3</span>
+              <span style="font-size:10px;color:var(--text-dim);">Pending</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">📈 Stocks</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Live ticker + price · portfolio performance · AI insights on holdings · alerts on big moves · DB + portfolio table already exist</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 4</span>
+              <span style="font-size:10px;color:var(--text-dim);">Pending</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">📓 Journal</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Quick entry in Today tab + full Journal tab · mood tracking · daily reflection prompts · voice-to-journal · JARVIS reads patterns and surfaces insights in synthesis</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 5</span>
+              <span style="font-size:10px;color:var(--text-dim);">Pending</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">📍 Events near you</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Things to do near Prosper TX · free + paid · radius you control · AI suggestions based on your mood/energy · surfaced in Today + briefings · schema ready (lat/lon stored)</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 6</span>
+              <span style="font-size:10px;color:var(--text-dim);">Pending</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">🥗 Meal planning AI</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Weekly meal plans · JARVIS builds plans around your macro goals · muscle gain focus · connects to existing meal logs · shopping list generation</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 7</span>
+              <span style="font-size:10px;color:var(--text-dim);">Pending</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">🔭 Mastery rework</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Continuous learning (never truly stops) · auto-detect topics from your conversations and life data · JARVIS decides what to master next based on your goals · Phase 6 Deploy + Phase 7 Discovery</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 8</span>
+              <span style="font-size:10px;color:var(--text-dim);">Pending</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">🤖 Autonomy engine</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Custom automation manager UI · self-healing debug agent · proactive SMS nudges · agent-to-agent delegation · cross-domain insight engine · builder already works, needs management UI + full autonomy layer</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 9</span>
+              <span style="font-size:10px;color:var(--text-dim);">Pending</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">🌐 App/website/file launcher</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">"Jarvis open YouTube and search for JoeBart" · open any app, website, or file by voice or text · full OS-level control via voice</div>
+          </div>
+
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-muted);">LAYER 10</span>
+              <span style="font-size:10px;color:var(--text-dim);">Last</span>
+            </div>
+            <div style="font-size:11px;color:var(--text);font-weight:600;">✨ UI overhaul</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Full visual redesign once all features are built · polish everything · smooth animations · mobile-first · feels like a real product</div>
+          </div>
+
+        </div>
+
+        <!-- FUTURE -->
+        <div style="font-size:10px;font-weight:600;color:var(--text-dim);letter-spacing:.5px;margin-bottom:6px;">🔮 FUTURE</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.9;">
+          <div style="margin-bottom:2px;">🏦 Plaid bank sync — auto-import + auto-categorize transactions</div>
+          <div style="margin-bottom:2px;">✈️ Trips tab — travel planning, itineraries, trip budget</div>
+          <div style="margin-bottom:2px;">🥧 Raspberry Pi — 24/7 home server, Tailscale remote access</div>
+          <div style="margin-bottom:2px;">⌚ Wearable sync — Apple Watch, fitness trackers</div>
+          <div>📱 Multi-device presence awareness</div>
+        </div>
+      </div></div>
     </div>
   </div>
 
@@ -837,8 +917,7 @@ body.viewing-past .tracker-log-only{display:block;}
         </div>
       </div>
       <div id="input-bar">
-        <button id="chat-mode-btn" onclick="toggleChatMode()" title="Switch mode" style="background:var(--teal-dim);border:1px solid var(--teal-border);color:var(--teal);border-radius:8px;padding:0 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;height:40px;white-space:nowrap;" data-mode="normal">Normal</button>
-        <textarea id="user-input" placeholder="Chat with JARVIS..." rows="1" onkeydown="handleKey(event)"></textarea>
+        <textarea id="user-input" placeholder="Ask the Council..." rows="1" onkeydown="handleKey(event)"></textarea>
         <button id="send-btn" onclick="sendToCouncil()">↑</button>
       </div>
     </div>
@@ -886,7 +965,7 @@ body.viewing-past .tracker-log-only{display:block;}
           <div style="color:var(--text-muted);font-size:14px;padding:40px;text-align:center;line-height:2.2">
             🔭 <strong style="color:var(--text);font-size:16px">Mastery Engine</strong><br>
             <span style="font-size:13px">JARVIS reads the web, builds a curriculum, fills gaps,<br>and doesn't stop until it reaches mastery.</span><br>
-            <span style="font-size:12px;color:var(--text-dim)">Agents are saved to your Library and Obsidian vault.</span>
+            <span style="font-size:12px;color:var(--text-dim)">Agents are saved to your Library.</span>
           </div>
         </div>
       </div>
@@ -2012,10 +2091,7 @@ body.viewing-past .tracker-log-only{display:block;}
     </div>
     <div id="voice-status-text">Listening…</div>
     <div id="voice-transcript-text"></div>
-    <div style="display:flex;gap:10px;justify-content:center;">
-      <button onclick="cancelVoice()" id="voice-cancel-btn">Cancel</button>
-      <button onclick="cancelVoice()" id="voice-stop-btn" style="display:none;background:var(--primary);border:none;border-radius:10px;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">⏹ Stop</button>
-    </div>
+    <button onclick="cancelVoice()" id="voice-cancel-btn">Cancel</button>
   </div>
 </div>
 
@@ -2025,32 +2101,24 @@ body.viewing-past .tracker-log-only{display:block;}
     <h3>🎙️ Voice Settings</h3>
     <p class="modal-sub">Configure how Jarvis listens and speaks.</p>
     <div class="form-group">
-      <label class="form-label">Wake Word (desktop only)</label>
+      <label class="form-label">Wake Word</label>
       <div style="display:flex;align-items:center;gap:10px;">
-        <input type="text" id="vs-wakeword" class="form-input" value="hey jarvis" style="flex:1;">
+        <input type="text" id="vs-wakeword" class="form-input" value="jarvis" style="flex:1;">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;">
           <input type="checkbox" id="vs-wake-enabled" checked style="accent-color:var(--primary);"> Enabled
         </label>
       </div>
-      <div class="form-hint">Say this phrase to activate voice on desktop without pressing anything.</div>
+      <div class="form-hint">Say "Jarvis", "Hey Jarvis", or "Ok Jarvis" to activate hands-free.</div>
     </div>
+    <!-- Deepgram key stored in Supabase Vault as DEEPGRAM_KEY -->
     <div class="form-group">
-      <label class="form-label">Voice Response</label>
-      <select id="vs-tts-engine" class="form-input">
-        <option value="browser">Browser built-in (free)</option>
-        <option value="elevenlabs">ElevenLabs (premium quality)</option>
+      <label class="form-label">Voice Response Engine</label>
+      <select id="vs-tts-engine" class="form-input" onchange="toggleElFields()">
+        <option value="elevenlabs">ElevenLabs (premium — recommended)</option>
+        <option value="browser">Browser built-in (fallback)</option>
       </select>
     </div>
-    <div id="vs-el-group" class="form-group" style="display:none;">
-      <label class="form-label">ElevenLabs API Key</label>
-      <input type="password" id="vs-el-key" class="form-input" placeholder="sk_...">
-      <div class="form-hint">Get your key at elevenlabs.io → Profile → API Key</div>
-    </div>
-    <div id="vs-el-voice-group" class="form-group" style="display:none;">
-      <label class="form-label">ElevenLabs Voice ID</label>
-      <input type="text" id="vs-el-voice" class="form-input" placeholder="Paste voice ID from ElevenLabs">
-      <div class="form-hint">ElevenLabs → Voice Library → click a voice → copy ID. Try "Adam" or "Rachel".</div>
-    </div>
+    <!-- ElevenLabs key + voice ID stored in Supabase Vault as ELEVENLABS_KEY / ELEVENLABS_VOICE_ID -->
     <div class="form-group">
       <label class="form-label">Response Volume</label>
       <input type="range" id="vs-volume" min="0" max="1" step="0.1" value="0.9" style="width:100%;accent-color:var(--primary);">
@@ -2058,12 +2126,52 @@ body.viewing-past .tracker-log-only{display:block;}
     <div class="form-group">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
         <input type="checkbox" id="vs-voice-reply" checked style="accent-color:var(--primary);">
-        Jarvis speaks responses out loud
+        JARVIS speaks responses out loud
       </label>
     </div>
-    <div class="modal-actions">
+    <div class="modal-actions" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="openVoiceTrainer()">🎤 Train My Voice</button>
       <button class="btn btn-ghost" onclick="document.getElementById('voice-settings-overlay').classList.remove('open')">Cancel</button>
       <button class="btn btn-primary" onclick="saveVoiceSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Voice Fingerprint Trainer Modal -->
+<div class="modal-overlay" id="voice-trainer-overlay">
+  <div class="modal" style="width:460px;text-align:center;">
+    <div id="vt-step-intro">
+      <div style="font-size:32px;margin-bottom:12px;">🎙️</div>
+      <h3 style="margin-bottom:8px;">Train Your Voice</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px;">JARVIS will learn to recognize only your voice. Say each phrase when prompted — takes about 30 seconds.</p>
+      <button class="btn btn-primary" style="width:100%;" onclick="startVoiceTraining()">Start Training</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="document.getElementById('voice-trainer-overlay').classList.remove('open')">Cancel</button>
+    </div>
+    <div id="vt-step-record" style="display:none;">
+      <div id="vt-phrase-num" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Phrase 1 of 5</div>
+      <div id="vt-progress-bar" style="height:4px;background:var(--border);border-radius:2px;margin-bottom:20px;">
+        <div id="vt-progress-fill" style="height:4px;background:var(--primary);border-radius:2px;width:0%;transition:width .4s;"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">Say this phrase out loud:</p>
+      <div id="vt-phrase-text" style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:24px;padding:16px;background:var(--surface-2,var(--surface));border-radius:12px;border:1px solid var(--border);"></div>
+      <div id="vt-mic-ring" style="width:80px;height:80px;border-radius:50%;background:var(--primary-dim);border:3px solid var(--primary);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;transition:all .2s;">🎤</div>
+      <div id="vt-status-text" style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Get ready...</div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <button class="btn btn-ghost" onclick="retryCurrentPhrase()">↺ Retry</button>
+        <button id="vt-next-btn" class="btn btn-primary" onclick="nextTrainingPhrase()" style="display:none;">Next →</button>
+      </div>
+    </div>
+    <div id="vt-step-done" style="display:none;">
+      <div style="font-size:48px;margin-bottom:12px;">✅</div>
+      <h3 style="margin-bottom:8px;">Voice Profile Saved</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:8px;">JARVIS now recognizes your voice. Anyone else saying "Jarvis" won't activate it.</p>
+      <div id="vt-sensitivity-row" style="background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;text-align:left;">
+        <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:6px;">Sensitivity <span id="vt-sens-val" style="color:var(--primary);">85%</span></label>
+        <input type="range" id="vt-sensitivity" min="60" max="98" value="85" style="width:100%;accent-color:var(--primary);" oninput="updateSensitivityLabel(this.value)">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Lower = easier to trigger (less strict) · Higher = more secure (stricter match)</div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="finishVoiceTraining()">Done</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="startVoiceTraining()">↺ Retrain</button>
     </div>
   </div>
 </div>
@@ -2100,7 +2208,6 @@ const JARVIS_CONFIG = {
   anthropicKey: '',  // not needed — Edge Functions use Supabase Vault
   braveKey:     '',  // set via Supabase Vault secret BRAVE_KEY
   userName:     'Tony',
-  obsidianVault: '',  // paste your Obsidian vault name here (e.g. 'MyVault')
 };
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -2111,7 +2218,6 @@ let states      = JSON.parse(localStorage.getItem('jarvis_states')||'{}');
 let apiKey      = localStorage.getItem('jarvis_api_key')      || JARVIS_CONFIG.anthropicKey || '';
 let braveKey    = localStorage.getItem('jarvis_brave_key')    || JARVIS_CONFIG.braveKey     || '';
 let userName    = localStorage.getItem('jarvis_user')         || JARVIS_CONFIG.userName     || 'Tony';
-let obsidianVault = localStorage.getItem('jarvis_obsidian')   || JARVIS_CONFIG.obsidianVault || '';
 let supabaseUrl = localStorage.getItem('jarvis_supa_url')     || JARVIS_CONFIG.supabaseUrl  || '';
 let supabaseKey = localStorage.getItem('jarvis_supa_key')     || JARVIS_CONFIG.supabaseKey  || '';
 let supa        = null;   // Supabase client
@@ -2145,7 +2251,7 @@ async function callEndpoint(name, body={}, method='POST'){
   } else {
     // ── Local server.py fallback ────────────────────────────────────────
     // Only works when computer is on and server.py is running.
-    const localMap={'github-sync':'github','obsidian-write':'obsidian'};
+    const localMap={'github-sync':'github'};
     const localName=localMap[name]||name;
     const headers={'content-type':'application/json'};
     const localBody={...body};
@@ -2154,7 +2260,6 @@ async function callEndpoint(name, body={}, method='POST'){
     // Anthropic key lives in Supabase Vault — Edge Functions handle auth server-side
     if(name==='search'&&braveKey) localBody.brave_key=braveKey;
     // reflect uses ANTHROPIC_KEY from Supabase Vault — no browser key needed
-    // obsidian-write uses GITHUB_TOKEN from Supabase Vault — no browser params needed
 
     const isGet=(localName==='github');
     return fetch(`/${localName}`,{
@@ -2255,7 +2360,7 @@ function switchTab(name,btn){
   if(name==='memory')loadMemoryTab();
   if(name==='library')loadLibraryTab();
   if(name==='todos'){ const d=document.getElementById('todo-due'); if(d&&!d.value)d.value=localDateStr(); loadTodos(); }
-  if(name==='calendar') initCalendarTab(); else stopCalendarAutoRefresh();
+  if(name==='calendar') initCalendarTab();
 }
 function showLibSection(name,btn){
   document.querySelectorAll('.lib-tab').forEach(t=>t.classList.remove('active'));
@@ -2505,10 +2610,24 @@ function buildCouncilPrompt(){
     if(p.priorities?.length)ctx+=`- Priorities: ${p.priorities.slice(-5).join(', ')}\n`;
     if(p.patterns?.length)ctx+=`- Decision style: ${p.patterns.slice(-3).join(', ')}\n`;
     if(p.preferences?.length)ctx+=`- Preferences: ${p.preferences.slice(-3).join(', ')}\n`;
+    if(p.health_snapshot)ctx+=`- Health: ${p.health_snapshot}\n`;
+    if(p.finance_snapshot)ctx+=`- Finance: ${p.finance_snapshot}\n`;
+    if(p.momentum)ctx+=`- Momentum: ${p.momentum}\n`;
     const recent=memory.sessions?.slice(-3).map(s=>`  • ${(s.created_at||s.date||'').slice(0,10)}: ${s.summary||s.question?.slice(0,60)||''}`).join('\n');
     if(recent)ctx+=`- Recent sessions:\n${recent}\n`;
   }
-  if(loadedAgentPrompt)ctx+=`\n\nSPECIALIST KNOWLEDGE LOADED:\n${loadedAgentPrompt.slice(0,2000)}\n`;
+  // Inject what JARVIS has learned via mastery agents (not manually loaded — always present)
+  if(agentLibrary?.length){
+    const mastered=agentLibrary.filter(a=>a.mastery_score>=80).sort((a,b)=>b.mastery_score-a.mastery_score);
+    if(mastered.length){
+      ctx+=`\n\nJARVIS KNOWLEDGE BASE (topics I've fully researched):\n`;
+      mastered.forEach(a=>{
+        ctx+=`- ${a.topic} (${a.mastery_score}% mastery)${a.knowledge_summary?': '+a.knowledge_summary.slice(0,150):''}.\n`;
+      });
+      ctx+=`Use this knowledge to make connections and give deeper answers. Don't explain basics on these topics — go deeper.\n`;
+    }
+  }
+  if(loadedAgentPrompt)ctx+=`\n\nACTIVE SPECIALIST:\n${loadedAgentPrompt.slice(0,2000)}\n`;
   return BASE_COUNCIL_PROMPT+ctx;
 }
 
@@ -2530,28 +2649,25 @@ From outside: this looks like someone who knows exactly what to do but is asking
 [CHAIRMAN]
 The idea is sound — the risk is overthinking it. Pick the Executor's first action, do it before analyzing further. Momentum is the only thing that matters at this stage.`;
 
+// Strip HTML from briefing content using the browser's own parser — handles any HTML reliably
+function briefingPlainText(html){
+  if(!html)return'';
+  // If it doesn't look like HTML, return as-is
+  if(!html.includes('<'))return html.trim();
+  try{
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    // Remove script/style nodes first
+    doc.querySelectorAll('script,style,head').forEach(el=>el.remove());
+    return(doc.body?.innerText||doc.body?.textContent||'').replace(/\s+/g,' ').trim();
+  }catch(e){
+    // Fallback regex if DOMParser fails
+    return html.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+  }
+}
+
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendToCouncil();}}
 
 async function sendToCouncil(){
-  var modeBtn=document.getElementById('chat-mode-btn');
-  var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
-  console.log('[JARVIS] chat mode:', modeBtn&&modeBtn.getAttribute('data-mode'), 'isNormal:', isNormal);
-  if(isNormal){
-    const text=document.getElementById('user-input')?.value.trim();
-    if(!text)return;
-    document.getElementById('user-input').value='';
-    appendUserMsg(text);
-    const lid=appendLoading('JARVIS');
-    try{
-      const res=await callEndpoint('proxy',{model:'claude-sonnet-4-6',max_tokens:2000,
-        system:'You are JARVIS, Tony Martinez personal AI. Be direct, helpful, conversational. Tony lives in Prosper TX, bulking to 150lbs, works out 4x/week, tracks health and finances.',
-        messages:[{role:'user',content:text}]});
-      const d=await res.json();
-      removeLoading(lid);
-      appendCouncilResponse(d.content?.[0]?.text||'No response.');
-    }catch(e){removeLoading(lid);appendCouncilResponse('Error: '+e.message);}
-    return;
-  }
   if(councilBusy)return;
   const inp=document.getElementById('user-input');
   const text=inp.value.trim();if(!text)return;
@@ -2590,6 +2706,7 @@ async function sendToCouncil(){
   removeLoading(lid);appendCouncilResponse(responseText);
   councilBusy=false;document.getElementById('send-btn').disabled=false;setActiveMembers([]);
   saveSession(text,responseText);if(supabaseUrl&&supabaseKey)triggerReflection(text,responseText);
+  detectAndCreateReminder(text,responseText);
 }
 
 function appendUserMsg(text){
@@ -2602,31 +2719,19 @@ function appendUserMsg(text){
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
 }
 let lc=0;
-function appendLoading(label){
-  label = label || 'Council';
+function appendLoading(){
   const id='loading-'+(++lc);const msgs=document.getElementById('messages');
   const d=document.createElement('div');d.className='msg';d.id=id;
-  const loadText = label==='JARVIS' ? 'Thinking' : 'Deliberating';
   d.innerHTML=`<div class="msg-header"><div class="msg-avatar" style="background:linear-gradient(135deg,#7c6fff,#00d9b4)">J</div>
-    <span class="msg-name" style="color:var(--primary)">${label}</span></div>
-    <div class="msg-loading dot-anim">${loadText}</div>`;
+    <span class="msg-name" style="color:var(--primary)">Council</span></div>
+    <div class="msg-loading dot-anim">Deliberating</div>`;
   msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
-  if(label!=='JARVIS') setActiveMembers(['contrarian','firstprinciples','expansionist','outsider','executor','chairman']);
-  return id;
+  setActiveMembers(['contrarian','firstprinciples','expansionist','outsider','executor','chairman']);return id;
 }
 function removeLoading(id){const e=document.getElementById(id);if(e)e.remove();}
 function appendCouncilResponse(text){
-  var modeBtn=document.getElementById('chat-mode-btn');
-  var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
   const msgs=document.getElementById('messages');
   const d=document.createElement('div');d.className='msg';
-  if(isNormal){
-    d.innerHTML=`<div class="msg-header"><div class="msg-avatar" style="background:linear-gradient(135deg,#7c6fff,#00d9b4)">J</div>
-      <span class="msg-name" style="color:var(--primary)">JARVIS</span></div>
-      <div class="msg-body">${escHtml(text)}</div>`;
-    msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;
-    return;
-  }
   const sections=parseCouncilSections(text);
   let sh='';
   sections.forEach(s=>{
@@ -2665,6 +2770,7 @@ async function startMastery(){
   if(!supabaseUrl||!supabaseKey){showToast('Supabase not connected — check JARVIS_CONFIG in index.html');return;}
   mAbort=false;mRunning=true;mNotes=[];mVisited=new Set();mConcepts=new Set();
   mCurriculumItems=[];mGapRounds=0;mCurrentMastery=0;mAgentData=null;mRunId=null;
+  window._lastMasteryCheck=0;window._plateauCount=0;window._hardPlateauCheck=0;
   document.getElementById('mastery-start-btn').disabled=true;
   document.getElementById('mastery-agent-btn').style.display='none';
   document.getElementById('mastery-statusline').style.display='inline';
@@ -2706,13 +2812,16 @@ async function startMastery(){
     const target=parseInt(document.getElementById('mastery-target').value);
     let iteration=0;
     while(!mAbort){
-      setPhase(`Phase 3: Assessing Mastery (Round ${iteration+1}/${target>=95?100:40})`);
+      setPhase(`Phase 3: Assessing Mastery (Round ${iteration+1} · ${mCurrentMastery}% → ${target}%)`);
       setStatus('Synthesizing knowledge and assessing mastery...');
       const assessment=await assessMastery(topic);
       mCurrentMastery=assessment.score;
       updateMasteryRing(assessment.score);
       document.getElementById('mastery-assessment').textContent=assessment.summary||'';
       addFeedEntry('synth',`Mastery at ${assessment.score}%`,assessment.summary,'');
+
+      // Save state after every assessment so Continue can resume here
+      if(supa&&mRunId) saveResearchState(assessment.gaps||[]);
 
       if(assessment.score>=target){
         addFeedEntry('synth','Target mastery reached!',`${assessment.score}% — building your agent now...`,'');
@@ -2732,9 +2841,38 @@ async function startMastery(){
         for(const g of gaps){if(mAbort)break;await researchGap(topic,g);}
       }
       iteration++;
-      // Max gap rounds scales with target (99% = keep going longer)
-      const maxIter = target >= 95 ? 100 : target >= 80 ? 40 : 25;
-      if(iteration > maxIter) break;
+      const maxIter = target >= 95 ? 999 : target >= 80 ? 200 : 50;
+      if(iteration > maxIter){ addFeedEntry('synth','Max rounds reached',`${iteration} rounds — building agent at ${mCurrentMastery}%`,''); break; }
+
+      // Plateau detection — every 10 rounds check if mastery moved
+      if(iteration % 10 === 0){
+        const prev = window._lastMasteryCheck || 0;
+        if(Math.abs(mCurrentMastery - prev) < 1){
+          // Plateau hit — shift research strategy instead of stopping
+          window._plateauCount = (window._plateauCount || 0) + 1;
+          const strategies = [
+            `expert debates and controversies in ${topic}`,
+            `advanced techniques and edge cases in ${topic}`,
+            `real-world case studies and failures in ${topic}`,
+            `common misconceptions experts have about ${topic}`,
+            `cutting-edge research and future directions in ${topic}`,
+          ];
+          const strategy = strategies[(window._plateauCount - 1) % strategies.length];
+          addFeedEntry('synth',`Plateau detected — shifting strategy`,`Switching to: "${strategy}" to break through ${mCurrentMastery}%`,'');
+          // Research the new angle to break the plateau
+          if(!mAbort) await researchGap(topic, strategy);
+        } else {
+          window._plateauCount = 0; // Reset if making progress
+        }
+        window._lastMasteryCheck = mCurrentMastery;
+      }
+
+      // Only truly stop if it has plateaued through ALL 5 strategy shifts with zero movement
+      if((window._plateauCount||0) >= 5 && Math.abs(mCurrentMastery-(window._hardPlateauCheck||0)) < 1){
+        addFeedEntry('synth','Knowledge ceiling reached',`Exhausted all research angles at ${mCurrentMastery}% — this is the current ceiling for this topic. Building agent.`,'');
+        break;
+      }
+      if((window._plateauCount||0) === 5) window._hardPlateauCheck = mCurrentMastery;
     }
 
     if(!mAbort){
@@ -2763,8 +2901,201 @@ function stopMastery(finished=false){
       mastery_score:mCurrentMastery,
       sources_count:mNotes.length,
       gap_rounds:mGapRounds,
-      concepts:[...mConcepts].slice(0,30)
+      concepts:[...mConcepts]
     });
+  }
+}
+
+// ── Save research state to Supabase so runs can be resumed ──────────────────
+async function saveResearchState(pendingGaps=[]){
+  if(!supa||!mRunId)return;
+  try{
+    // Save all notes (summaries only, not raw text) to keep payload lean
+    // Save full raw text — deep research needs real content, not compressed summaries
+    const notesToSave=mNotes.map(n=>({
+      label:n.label,source:n.source,
+      summary:n.summary||'',
+      text:(n.text||'').slice(0,1500), // full raw text, truncated only for size
+    }));
+    await dbUpdate('mastery_runs',mRunId,{
+      mastery_score:mCurrentMastery,
+      gap_rounds:mGapRounds,
+      sources_count:mNotes.length,
+      concepts:[...mConcepts],
+      research_state:{
+        visited:[...mVisited],
+        concepts:[...mConcepts],
+        notes:notesToSave,
+        pending_gaps:pendingGaps.slice(0,10),
+        plateau_count:window._plateauCount||0,
+        last_mastery_check:window._lastMasteryCheck||0,
+      }
+    });
+  }catch(e){console.warn('[mastery] saveResearchState failed:',e);}
+}
+
+// ── Continue a previous mastery run from saved state ─────────────────────────
+async function continueAgentMastery(idx){
+  const agent=agentLibrary[idx];
+  if(!agent){showToast('Agent not found');return;}
+  if(mRunning){showToast('Stop current run first');return;}
+
+  // Load ALL previous runs for this topic and merge everything together
+  showToast(`Loading all ${agent.topic} research history...`);
+  mNotes=[];mVisited=new Set();mConcepts=new Set();
+  mCurrentMastery=agent.mastery_score||0;
+  mGapRounds=0;
+
+  if(supa){
+    // Fetch every completed/stopped run for this topic, ordered oldest→newest
+    const{data:allRuns}=await supa
+      .from('mastery_runs')
+      .select('*')
+      .ilike('topic', agent.topic)
+      .in('status',['complete','stopped','running'])
+      .order('started_at',{ascending:true});
+
+    if(allRuns?.length){
+      // Merge all runs: accumulate notes, visited URLs, concepts from every run
+      for(const run of allRuns){
+        const state=run.research_state||{};
+        // Merge visited URLs — never revisit a source across any run
+        (state.visited||[]).forEach((u:string)=>mVisited.add(u));
+        // Merge concepts from all runs
+        (state.concepts||[]).forEach((c:string)=>mConcepts.add(c));
+        // Merge notes — dedupe by source URL
+        const existingSources=new Set(mNotes.map((n:any)=>n.source));
+        (state.notes||[]).forEach((n:any)=>{
+          if(!existingSources.has(n.source)){
+            mNotes.push({label:n.label,source:n.source,text:n.text||n.summary||'',summary:n.summary});
+            existingSources.add(n.source);
+          }
+        });
+        // Take the highest mastery score and total gap rounds across all runs
+        if((run.mastery_score||0)>mCurrentMastery) mCurrentMastery=run.mastery_score;
+        mGapRounds+=run.gap_rounds||0;
+      }
+      // Create a new run record for this continuation session
+      const newRun=await dbInsert('mastery_runs',{topic:agent.topic,status:'running',started_at:new Date().toISOString()});
+      mRunId=newRun?.id||null;
+      addFeedEntry('synth','All history loaded',`Merged ${allRuns.length} previous runs — ${mNotes.length} total sources, ${mVisited.size} visited URLs, ${mConcepts.size} concepts. Continuing from ${mCurrentMastery}%.`,'');
+    }else{
+      const newRun=await dbInsert('mastery_runs',{topic:agent.topic,status:'running',started_at:new Date().toISOString()});
+      mRunId=newRun?.id||null;
+      addFeedEntry('gap','No previous runs found',`Starting fresh for ${agent.topic}.`,'');
+    }
+  }
+
+  window._plateauCount=0;window._lastMasteryCheck=mCurrentMastery;window._hardPlateauCheck=0;
+
+  // Set topic input and target, switch to mastery tab
+  const topicEl=document.getElementById('mastery-topic');
+  const targetEl=document.getElementById('mastery-target');
+  if(topicEl)topicEl.value=agent.topic;
+  if(targetEl)targetEl.value='99';
+  switchTab('mastery',document.getElementById('mastery-tab')||document.querySelector('[data-tab="mastery"]'));
+
+  // Update UI to reflect restored state
+  updateMasteryRing(mCurrentMastery);
+  document.getElementById('stat-sources').textContent=mNotes.length;
+  document.getElementById('stat-gaps').textContent=mGapRounds;
+  document.getElementById('mastery-assessment').textContent=`Resuming from ${mCurrentMastery}% — continuing gap research...`;
+
+  showToast(`▶ Continuing ${agent.topic} from ${mCurrentMastery}%`);
+
+  // Now resume the run — skip phases 1-3, go straight to gap-filling
+  mAbort=false;mRunning=true;
+  mStartTime=Date.now();
+  mTimerInterval=setInterval(updateTimer,1000);
+  document.getElementById('mastery-start-btn').style.display='none';
+  const stopBtn=document.getElementById('mastery-stop-btn');
+  if(stopBtn)stopBtn.style.display='inline-flex';
+
+  const topic=agent.topic;
+  const target=99;
+  const speed=document.getElementById('mastery-speed')?.value||'balanced';
+
+  try{
+    // Update run status back to running
+    if(supa&&mRunId) await dbUpdate('mastery_runs',mRunId,{status:'running'});
+
+    let iteration=mGapRounds;
+    while(!mAbort){
+      setPhase(`Phase 3: Assessing Mastery (Round ${iteration+1} · ${mCurrentMastery}% → ${target}%)`);
+      setStatus('Re-assessing mastery with restored knowledge...');
+      const assessment=await assessMastery(topic);
+      mCurrentMastery=assessment.score;
+      updateMasteryRing(assessment.score);
+      document.getElementById('mastery-assessment').textContent=assessment.summary||'';
+      addFeedEntry('synth',`Mastery at ${assessment.score}%`,assessment.summary,'');
+
+      if(supa&&mRunId) saveResearchState(assessment.gaps||[]);
+
+      if(assessment.score>=target){
+        addFeedEntry('synth','Target mastery reached!',`${assessment.score}% — building your agent now...`,'');
+        break;
+      }
+
+      mGapRounds++;
+      document.getElementById('stat-gaps').textContent=mGapRounds;
+      if(!assessment.gaps?.length)break;
+
+      setPhase(`Phase 4: Filling Gaps (Round ${mGapRounds})`);
+      const gaps=assessment.gaps.slice(0,5);
+      addFeedEntry('gap',`${gaps.length} gaps identified`,gaps.join(' · '),'');
+      if(speed==='turbo'){
+        await Promise.all(gaps.map(g=>researchGap(topic,g)));
+      }else{
+        for(const g of gaps){if(mAbort)break;await researchGap(topic,g);}
+      }
+      iteration++;
+
+      if(iteration%10===0){
+        const prev=window._lastMasteryCheck||0;
+        if(Math.abs(mCurrentMastery-prev)<1){
+          window._plateauCount=(window._plateauCount||0)+1;
+          const strategies=[
+            `expert debates and controversies in ${topic}`,
+            `advanced techniques and edge cases in ${topic}`,
+            `real-world case studies and failures in ${topic}`,
+            `common misconceptions experts have about ${topic}`,
+            `cutting-edge research and future directions in ${topic}`,
+          ];
+          const strategy=strategies[(window._plateauCount-1)%strategies.length];
+          addFeedEntry('synth','Plateau — shifting strategy',`Trying: "${strategy}"`,'');
+          if(!mAbort)await researchGap(topic,strategy);
+        }else{window._plateauCount=0;}
+        window._lastMasteryCheck=mCurrentMastery;
+      }
+      if((window._plateauCount||0)>=5&&Math.abs(mCurrentMastery-(window._hardPlateauCheck||0))<1){
+        addFeedEntry('synth','Knowledge ceiling reached',`${mCurrentMastery}% — building agent.`,'');
+        break;
+      }
+      if((window._plateauCount||0)===5)window._hardPlateauCheck=mCurrentMastery;
+    }
+
+    if(!mAbort){
+      setPhase('Phase 5: Building Agent');
+      setStatus('Compiling mastery into expert agent...');
+      await buildAgent(topic);
+    }
+  }catch(e){
+    addFeedEntry('gap','Error during resume',e.message,'');
+  }finally{
+    mRunning=false;
+    document.getElementById('mastery-start-btn').style.display='inline-flex';
+    if(stopBtn)stopBtn.style.display='none';
+    if(supa&&mRunId){
+      dbUpdate('mastery_runs',mRunId,{
+        status:mAbort?'stopped':'complete',
+        completed_at:new Date().toISOString(),
+        mastery_score:mCurrentMastery,
+        sources_count:mNotes.length,
+        gap_rounds:mGapRounds,
+        concepts:[...mConcepts],
+      });
+    }
+    setPhase(mAbort?'Stopped':'Complete ✓');
   }
 }
 
@@ -2953,29 +3284,37 @@ Be comprehensive — 400-600 words.`;
       created:new Date().toISOString().slice(0,16).replace('T',' '),
       mastery:mCurrentMastery,
       sources:mNotes.length,
-      concepts:[...mConcepts].slice(0,30),
+      concepts:[...mConcepts],
       systemPrompt,
       knowledgeSummary
     };
 
     // Save to Supabase agents table
+    // Check if an agent for this topic already exists — if so, increment depth level
     if(supa){
+      const{data:existing}=await supa.from('agents').select('id,depth_level,sources_count,concepts').ilike('topic',topic).order('created_at',{ascending:false}).limit(1).maybeSingle();
+      const depthLevel=(existing?.depth_level||0)+1;
+      // Merge concepts from all previous runs
+      const allConcepts=[...new Set([...(existing?.concepts||[]),...mConcepts])];
+      const totalSources=(existing?.sources_count||0)+mNotes.length;
+
       await dbInsert('agents',{
         topic,
         mastery_score:mCurrentMastery,
-        sources_count:mNotes.length,
-        concepts:[...mConcepts].slice(0,30),
+        sources_count:totalSources,
+        concepts:allConcepts,
         system_prompt:systemPrompt,
         knowledge_summary:knowledgeSummary,
-        run_id:mRunId||undefined
+        run_id:mRunId||undefined,
+        depth_level:depthLevel,
       });
+
+      mAgentData.depthLevel=depthLevel;
+      mAgentData.totalSources=totalSources;
     }
 
-    // Write agent to Obsidian via GitHub vault
-    const agentMd=`# ${topic} — Expert Agent\n\nCreated: ${mAgentData.created}\nMastery: ${mCurrentMastery}%\nSources: ${mNotes.length}\n\n## System Prompt\n\n${systemPrompt}\n\n## Knowledge Summary\n\n${knowledgeSummary}`;
-    writeObsidian(`Agents/${topic.replace(/[^a-z0-9]/gi,'-')}.md`,agentMd);
-
-    addFeedEntry('agent','🧠 Agent Built',`${topic} expert agent ready — ${mNotes.length} sources, ${mCurrentMastery}% mastery.`,'');
+    const depthLabel=mAgentData.depthLevel>1?` · Depth ${mAgentData.depthLevel}`:'';
+    addFeedEntry('agent','🧠 Agent Built',`${topic} agent ready — ${mNotes.length} sources, ${mCurrentMastery}% mastery${depthLabel}.`,'');
     document.getElementById('mastery-agent-btn').style.display='inline-flex';
     // Update library badge
     document.getElementById('library-tab').textContent=`📚 Library ✨`;
@@ -3114,7 +3453,7 @@ async function loadAgentLibrary(){
   grid.innerHTML=agentLibrary.map((a,i)=>`
     <div class="lib-agent-card">
       <div class="lib-agent-topic">${escHtml(a.topic)}</div>
-      <div class="lib-agent-meta">${a.mastery_score||0}% mastery · ${a.sources_count||0} sources · ${(a.created_at||'').slice(0,10)}</div>
+      <div class="lib-agent-meta">${a.mastery_score||0}% mastery${a.depth_level>1?` · <span style="color:var(--primary)">Depth ${a.depth_level}</span>`:''}  · ${a.sources_count||0} sources · ${(a.created_at||'').slice(0,10)}</div>
       <div class="lib-agent-concepts">${(a.concepts||[]).slice(0,6).map(c=>`<span class="concept-tag">${escHtml(c)}</span>`).join('')}</div>
       <div class="lib-agent-actions">
         <button class="mbtn mbtn-agent" style="font-size:11px;padding:5px 12px" onclick="viewLibAgent(${i})">View Agent</button>
@@ -3353,13 +3692,13 @@ async function manualSynthesize(){
 async function runDebugAgent(){
   showToast('🐛 Running debug agent...');
   try{
-    const res=await callEndpoint('debug-agent',{mode:'monitor',error_threshold:5,notify:['briefing','obsidian'],force:true});
+    const res=await callEndpoint('debug-agent',{mode:'monitor',error_threshold:5,notify:['briefing'],force:true});
     const data=await res.json().catch(()=>({}));
     const statusEl=document.getElementById('debug-agent-status');
     if(data.errors_found>=0){
       const msg=data.errors_found===0
         ?'✅ No new errors found.'
-        :`⚠️ ${data.errors_found} error${data.errors_found!==1?'s':''} found. ${data.briefing_created?'Briefing logged.':''} ${data.obsidian_written?'Report saved to Obsidian.':''}`;
+        :`⚠️ ${data.errors_found} error${data.errors_found!==1?'s':''} found. ${data.briefing_created?'Briefing logged.':''}`;
       if(statusEl)statusEl.textContent=msg;
       showToast(data.errors_found===0?'✅ System healthy':'⚠️ Errors found — check briefings');
     }else{showToast('🐛 Debug agent ran — check briefings for results');}
@@ -3389,13 +3728,62 @@ async function saveSession(question,response){
   // Also keep in local memory for current session context
   memory.sessions=memory.sessions||[];
   memory.sessions.push({...row,created_at:new Date().toISOString()});
-  // Refresh Memory tab sessions list if it's currently visible
-  refreshSessionsList();
 
-  // Write session to Obsidian via GitHub vault
-  const date=new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-  const md=`# Council Session — ${date}\n\n**Question:** ${question}\n\n**Response:**\n\n${response}`;
-  writeObsidian(`Sessions/${date}.md`,md);
+
+}
+
+// ── Detect reminder intent from Council conversation and auto-create ──────────
+async function detectAndCreateReminder(userMsg, councilResponse){
+  if(!supabaseUrl||!supabaseKey) return;
+  // Quick keyword check before calling API
+  const combined=(userMsg+' '+councilResponse).toLowerCase();
+  const hasReminderIntent=/remind|reminder|don.t forget|remember to|set.*alarm|alert me|notify me/i.test(combined);
+  if(!hasReminderIntent) return;
+
+  try{
+    // Ask Claude to extract reminder details if present
+    const res=await callEndpoint('proxy',{
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:200,
+      messages:[{role:'user',content:`Extract reminder details from this conversation. If no specific reminder was requested, return null.
+
+User said: "${userMsg}"
+Council response: "${councilResponse.slice(0,500)}"
+
+Today is ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}.
+
+If a reminder was requested, return JSON only:
+{"title":"reminder title","dueDate":"YYYY-MM-DD or YYYY-MM-DDTHH:MM if time specified","priority":"none|low|medium|high"}
+
+dueDate should be date-only (YYYY-MM-DD) if no specific time was mentioned.
+If no reminder was requested at all, return exactly: null`}]
+    });
+    if(!res.ok) return;
+    const data=await res.json();
+    const raw=(data.content?.[0]?.text||'').trim();
+    if(!raw||raw==='null'||raw.toLowerCase().includes('null')) return;
+
+    // Parse the JSON
+    const match=raw.match(/\{[\s\S]*\}/);
+    if(!match) return;
+    const reminder=JSON.parse(match[0]);
+    if(!reminder.title) return;
+
+    // Create the reminder
+    const remRes=await callEndpoint('apple-remind',{
+      title:reminder.title,
+      dueDate:reminder.dueDate||null,
+      priority:reminder.priority||'none'
+    });
+    const remData=await remRes.json().catch(()=>({ok:false}));
+    if(remData.ok){
+      showToast(`🔔 Reminder set: "${reminder.title}"`);
+    }else{
+      console.warn('[remind] Council reminder failed:',remData.error);
+    }
+  }catch(e){
+    console.warn('[remind] detectAndCreateReminder error:',e.message);
+  }
 }
 
 async function triggerReflection(question,response){
@@ -3429,21 +3817,10 @@ async function triggerReflection(question,response){
     memory.learnings.unshift({summary:ins.summary||question.slice(0,80),question:question.slice(0,100),created_at:ins.date,projects:ins.projects||[],priorities:ins.priorities||[]});
     document.getElementById('memory-tab').textContent=`💾 Memory (${memory.learnings.length})`;
 
-    // Write profile to Obsidian via GitHub vault
     const profileMd=`# JARVIS Profile — ${profile.name||userName}\n\nLast updated: ${ins.date}\n\n## Projects\n${(profile.projects||[]).map(p=>`- ${p}`).join('\n')}\n\n## Priorities\n${(profile.priorities||[]).map(p=>`- ${p}`).join('\n')}\n\n## Traits\n${(profile.traits||[]).map(t=>`- ${t}`).join('\n')}\n\n## Patterns\n${(profile.patterns||[]).map(p=>`- ${p}`).join('\n')}`;
-    writeObsidian('Profile.md',profileMd);
 
     badge.textContent='✓ Learned';setTimeout(()=>badge.remove(),3000);
   }catch(e){badge.remove();}
-}
-
-function refreshSessionsList(){
-  const sessions=(memory.sessions||[]).slice().reverse();
-  const el=document.getElementById('mem-sessions-list');
-  if(!el)return;
-  el.innerHTML=sessions.length
-    ?sessions.map(s=>`<div class="session-entry"><div class="session-date">${(s.created_at||'').slice(0,16)}</div>${escHtml((s.question||'').slice(0,60))}${(s.question||'').length>60?'...':''}</div>`).join('')
-    :'<div class="mem-empty">No sessions yet.</div>';
 }
 
 function loadMemoryTab(){
@@ -3521,6 +3898,9 @@ function renderBriefings(){
     afternoon:   {emoji:'🌅', label:'Afternoon', color:'var(--primary)'},
     evening:     {emoji:'🌙', label:'Evening',   color:'var(--pink)'},
     presynthesis:{emoji:'🌑', label:'Night',     color:'var(--text-muted)'},
+    automation:  {emoji:'⚡', label:'Auto',      color:'var(--green)'},
+    synthesis:   {emoji:'🧠', label:'Synthesis', color:'var(--primary)'},
+    debug:       {emoji:'🐛', label:'Debug',     color:'var(--orange)'},
   };
   const stripEl=document.getElementById('briefings-strip');
   if(!stripEl)return;
@@ -3531,8 +3911,8 @@ function renderBriefings(){
   }
   stripEl.innerHTML=briefings.map(b=>{
     const meta=BRIEF_META[b.briefing_type]||{emoji:'📋',label:b.briefing_type||'Brief',color:'var(--text-muted)'};
-    const time=utcToCT(b.created_at);
-    const preview=(b.content||'').slice(0,200);
+    const time=(b.created_at||'').slice(11,16);
+    const preview=briefingPlainText(b.content||b.preview||'').slice(0,200);
     return `<div class="briefing-card ${b.briefing_type||''}">
       <div class="bc-header">
         <div class="bc-type" style="color:${meta.color}">${meta.emoji} ${meta.label}</div>
@@ -3543,15 +3923,7 @@ function renderBriefings(){
   }).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// OBSIDIAN WRITER
-// ═══════════════════════════════════════════════════════════════════════════
-async function writeObsidian(fileName,content){
-  if(!supabaseUrl||!supabaseKey)return;
-  try{
-    await callEndpoint('obsidian-write',{file_name:fileName,content});
-  }catch(e){console.warn('Obsidian write failed:',e);}
-}
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTO-RESIZE + INIT
@@ -3575,72 +3947,6 @@ let todayData = { water:[], sleep:[], workouts:[], meals:[] };
 let waterGoalOz = 80;
 // Returns today's date as YYYY-MM-DD in LOCAL time (not UTC) so day boundaries
 // align with the user's clock, not UTC midnight (which would be 7pm CDT).
-
-function toggleRoadmap(){
-  const body  = document.getElementById('roadmap-body');
-  const btn   = document.getElementById('roadmap-toggle-btn');
-  const panel = document.getElementById('jarvis-roadmap');
-  if(!body||!btn) return;
-  const collapsed = body.style.display === 'none';
-  body.style.display = collapsed ? '' : 'none';
-  btn.textContent    = collapsed ? '−' : '+';
-  panel.style.width  = collapsed ? '230px' : 'auto';
-  panel.style.resize = collapsed ? 'both' : 'none';
-  panel.style.overflow = collapsed ? 'auto' : 'visible';
-}
-
-// Make roadmap panel draggable
-(function(){
-  const panel  = document.getElementById('jarvis-roadmap');
-  const handle = document.getElementById('roadmap-drag-handle');
-  if(!panel||!handle) return;
-  let dragging=false, ox=0, oy=0;
-  handle.addEventListener('mousedown', e=>{
-    if(e.target.tagName==='BUTTON') return;
-    dragging=true;
-    const r=panel.getBoundingClientRect();
-    ox=e.clientX-r.left; oy=e.clientY-r.top;
-    handle.style.cursor='grabbing';
-    e.preventDefault();
-  });
-  document.addEventListener('mousemove', e=>{
-    if(!dragging) return;
-    const parent=panel.parentElement.getBoundingClientRect();
-    let x=e.clientX-parent.left-ox;
-    let y=e.clientY-parent.top-oy;
-    x=Math.max(0,Math.min(x, parent.width-panel.offsetWidth));
-    y=Math.max(0,Math.min(y, parent.height-panel.offsetHeight));
-    panel.style.left=x+'px'; panel.style.top=y+'px';
-    panel.style.right='auto';
-  });
-  document.addEventListener('mouseup', ()=>{
-    dragging=false; handle.style.cursor='grab';
-  });
-  // Touch support
-  handle.addEventListener('touchstart', e=>{
-    if(e.target.tagName==='BUTTON') return;
-    const t=e.touches[0];
-    dragging=true;
-    const r=panel.getBoundingClientRect();
-    ox=t.clientX-r.left; oy=t.clientY-r.top;
-  },{passive:true});
-  document.addEventListener('touchmove', e=>{
-    if(!dragging) return;
-    const t=e.touches[0];
-    const parent=panel.parentElement.getBoundingClientRect();
-    let x=t.clientX-parent.left-ox;
-    let y=t.clientY-parent.top-oy;
-    x=Math.max(0,Math.min(x, parent.width-panel.offsetWidth));
-    y=Math.max(0,Math.min(y, parent.height-panel.offsetHeight));
-    panel.style.left=x+'px'; panel.style.top=y+'px';
-    panel.style.right='auto';
-  },{passive:true});
-  document.addEventListener('touchend', ()=>{ dragging=false; });
-})();
-function utcToCT(ts){
-  if(!ts) return '';
-  return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'America/Chicago'});
-}
 function localDateStr(d){
   const dt=d||new Date();
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
@@ -3693,14 +3999,12 @@ function shiftDay(delta){
   viewingDate=newDate;
   updateDateNav();
   loadTodayData();
-  loadTodayCalEvents();
 }
 
 function goToToday(){
   viewingDate=localDateStr();
   updateDateNav();
   loadTodayData();
-  loadTodayCalEvents();
 }
 
 // ── Called when Today tab opens ───────────────────────────────────────────
@@ -3728,10 +4032,10 @@ async function loadTodayMessage(){
       .order('created_at',{ascending:false}).limit(1);
     if(data&&data[0]){
       const b=data[0];
-      const headline=b.headline||b.title||'Good morning, Tony.';
-      const preview=b.preview||b.content?.slice(0,180)||'Check your email for today\'s full briefing.';
-      msgEl.innerHTML=`<strong>${escHtml(headline)}</strong><br><span style="color:var(--text-muted)">${escHtml(preview)}</span>`;
-      timeEl.textContent=`Last briefing · ${utcToCT(b.created_at)} CT`;
+      const headline=briefingPlainText(b.headline||b.title||'Good morning, Tony.').slice(0,80);
+      const cleanPreview=briefingPlainText(b.content||b.preview||'Check your briefings tab for details.').slice(0,180);
+      msgEl.innerHTML=`<strong>${escHtml(headline)}</strong><br><span style="color:var(--text-muted)">${escHtml(cleanPreview)}</span>`;
+      timeEl.textContent=`Last briefing · ${(b.created_at||'').slice(11,16)} CT`;
     } else {
       msgEl.textContent='No briefing yet today — your 7am brief will appear here.';
     }
@@ -4667,14 +4971,15 @@ async function createAppleReminder(todoId, title, due_date, remindTime, notes){
     if(error){ console.warn('Reminder DB insert failed:', error.message); return; }
     // Call apple-remind Edge Function
     const res = await callEndpoint('apple-remind',{
-      title, notes:notes||'', remind_at, todo_id:todoId, reminder_id:rem?.id
+      title, notes:notes||'', dueDate:remind_at, priority:'none'
     });
-    if(res.ok){
-      showToast('Reminder set in Apple Reminders');
+    const remResult = await res.json().catch(()=>({ok:false,error:'No response'}));
+    if(res.ok && remResult.ok){
+      showToast('✅ Reminder set in Apple Reminders');
     }else{
-      const err = await res.text().catch(()=>'');
-      console.warn('apple-remind failed:', res.status, err.slice(0,100));
-      // Still saved to DB - will show in app even if Apple sync failed
+      const errMsg = remResult.error || `HTTP ${res.status}`;
+      console.warn('apple-remind failed:', errMsg);
+      showToast(`⚠️ Reminder saved locally but Apple sync failed: ${errMsg.slice(0,60)}`);
     }
   }catch(e){
     console.warn('createAppleReminder error:', e.message);
@@ -5700,749 +6005,1162 @@ async function logPaycheck(){
     const { data, error } = await supa.from('paychecks').insert({
       amount, date, source, notes, split_snapshot, auto_detected:false
     }).select().single();
-    if(error){ logError('frontend:finance','supabase_query',error.message||error.code,{action:'logPaycheck',amount}); throw error; }
-    financeData.paychecks = financeData.paychecks || [];
+    if(error){ logError('frontend:finance','supabase_query',error.message||error.code,{action:'logPaycheck'}); showToast('Paycheck error: '+(error.message||error.code||'unknown').slice(0,80)); return; }
     financeData.paychecks.unshift(data);
-    document.getElementById('pc-amount').value = '';
-    document.getElementById('pc-notes').value  = '';
-    document.getElementById('pc-split-section').style.display = 'none';
+    document.getElementById('pc-amount').value='';
+    document.getElementById('pc-notes').value='';
     renderPaychecks();
-    showToast(`💵 ${fmtMoney(amount)} paycheck logged ✓`);
-  } catch(e){ logError('frontend:finance','js_runtime',e?.message||String(e),{action:'logPaycheck'}); showToast('❌ '+(e.message||'Could not log paycheck').slice(0,80)); }
+    updateSplitPreview();
+    showToast('Paycheck logged');
+  } catch(e){ logError('frontend:finance','js_runtime',e?.message||String(e),{action:'logPaycheck'}); showToast('Error: '+(e.message||String(e)).slice(0,80)); }
 }
 
-function renderPaychecks(){
-  const list = document.getElementById('paychecks-list');
-  const totalLabel = document.getElementById('pc-total-label');
-  if(!list) return;
-  const pcs = financeData.paychecks || [];
-  if(!pcs.length){ list.innerHTML='<div class="mem-empty">No paychecks logged yet.</div>'; if(totalLabel)totalLabel.textContent=''; return; }
-  const thisMonth = localDateStr().slice(0,7);
-  const monthTotal = pcs.filter(p=>p.date?.slice(0,7)===thisMonth).reduce((s,p)=>s+parseFloat(p.amount||0),0);
-  if(totalLabel) totalLabel.textContent = monthTotal ? `${fmtMoney(monthTotal)} this month` : '';
-  list.innerHTML = pcs.slice(0,20).map(p=>{
-    const ss = p.split_snapshot || {};
-    const src = {work:'💼',freelance:'💻',other:'📦'}[p.source]||'💵';
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${ss.bills_amt!==undefined?'8':'0'}px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:18px">${src}</span>
-          <div>
-            <div style="font-size:14px;font-weight:600;color:var(--teal)">${fmtMoney(p.amount)}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${fmtDate(p.date)} · ${p.source||'work'}${p.notes?' · '+p.notes:''}</div>
-          </div>
-        </div>
-        <button class="txn-del" onclick="deletePaycheck('${p.id}')">✕</button>
-      </div>
-      ${ss.bills_amt!==undefined?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
-        <div style="text-align:center;background:rgba(255,170,68,.1);border-radius:6px;padding:5px;">
-          <div style="font-size:10px;color:var(--orange)">🏠 Bills</div>
-          <div style="font-size:12px;font-weight:600">${fmtMoney(ss.bills_amt)}</div>
-        </div>
-        <div style="text-align:center;background:rgba(255,92,135,.1);border-radius:6px;padding:5px;">
-          <div style="font-size:10px;color:var(--pink)">💳 Spend</div>
-          <div style="font-size:12px;font-weight:600">${fmtMoney(ss.spending_amt)}</div>
-        </div>
-        <div style="text-align:center;background:rgba(0,217,180,.1);border-radius:6px;padding:5px;">
-          <div style="font-size:10px;color:var(--teal)">🐷 Save</div>
-          <div style="font-size:12px;font-weight:600">${fmtMoney(ss.savings_amt)}</div>
-        </div>
-        <div style="text-align:center;background:rgba(68,232,122,.1);border-radius:6px;padding:5px;">
-          <div style="font-size:10px;color:var(--green)">📈 Invest</div>
-          <div style="font-size:12px;font-weight:600">${fmtMoney(ss.investing_amt)}</div>
-        </div>
-      </div>`:''}
-    </div>`;
-  }).join('');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYER 1 — VOICE ENGINE v3  (complete blueprint implementation)
+// ✅ Wake word · Deepgram browser auth · Activation cue · Two-behavior flow
+// ✅ Semantic pause detection · Command vs Question vs Conversation intent
+// ✅ Filler phrases (commands get none) · B+C sentence streaming · ElevenLabs
+// ✅ Stop→chat + 5s cooldown · Wake word while speaking · Escape key
+// ✅ Conversation memory + topic tracking + follow-up context
+// ✅ Mishear detection (reminders/calendar/names/numbers)
+// ✅ Volume control by voice · Synthesis summary in context
+// ✅ Supa null guard · Claude Haiku via proxy
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Voice Settings ────────────────────────────────────────────────────────
+let voiceSettings = {
+  wakeWord: 'jarvis', wakeEnabled: true,
+  volume: 0.9, voiceReply: true
+  // Keys live in Supabase Vault — never stored client-side
+};
+
+function loadVoiceSettings() {
+  try {
+    const saved = localStorage.getItem('jarvis_voice_settings');
+    if (saved) voiceSettings = { ...voiceSettings, ...JSON.parse(saved) };
+  } catch(e) {}
+  applyVoiceSettingsToUI();
 }
 
-async function deletePaycheck(id){
-  if(!id||!supa) return;
-  await supa.from('paychecks').delete().eq('id',id);
-  financeData.paychecks = (financeData.paychecks||[]).filter(p=>p.id!==id);
-  renderPaychecks(); showToast('Deleted');
+function applyVoiceSettingsToUI() {
+  const vs = voiceSettings;
+  const set = (id, val, prop='value') => { const el=document.getElementById(id); if(el) el[prop]=val; };
+  set('vs-wakeword', vs.wakeWord||'jarvis');
+  set('vs-wake-enabled', vs.wakeEnabled!==false, 'checked');
+  set('vs-volume', vs.volume??0.9);
+  set('vs-voice-reply', vs.voiceReply!==false, 'checked');
+  // ElevenLabs key + voice ID now in Supabase Vault — no fields to toggle
 }
 
-function checkPaycheckAutoDetect(amount, txnId, description){
-  if(amount >= 100){
-    detectedPaycheck = { amount, txn_id:txnId };
-    const banner = document.getElementById('pc-pending-banner');
-    const desc   = document.getElementById('pc-pending-desc');
-    if(banner && desc){
-      desc.textContent = `A ${fmtMoney(amount)} income was logged${description?' ("'+description+'")':''}. Is this a paycheck?`;
-      banner.style.display = 'block';
-      if(!(document.getElementById('fpanel-paychecks')?.classList.contains('active'))){
-        showToast('💡 Possible paycheck detected — check Paychecks tab');
-      }
+function saveVoiceSettings() {
+  voiceSettings = {
+    wakeWord: (document.getElementById('vs-wakeword')?.value||'jarvis').toLowerCase().trim(),
+    wakeEnabled: document.getElementById('vs-wake-enabled')?.checked??true,
+    volume: parseFloat(document.getElementById('vs-volume')?.value??0.9),
+    voiceReply: document.getElementById('vs-voice-reply')?.checked??true
+  };
+  localStorage.setItem('jarvis_voice_settings', JSON.stringify(voiceSettings));
+  document.getElementById('voice-settings-overlay')?.classList.remove('open');
+  showToast('Voice settings saved ✓');
+  if (voiceSettings.wakeEnabled) {
+    stopWakeWord(); setTimeout(startWakeWord, 500);
+  }
+}
+
+// ── Audio Cue ─────────────────────────────────────────────────────────────
+function playActivationCue() {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [[880,0],[1100,0.12]].forEach(([freq,delay]) => {
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime+delay);
+      gain.gain.setValueAtTime(0.25*voiceSettings.volume, ctx.currentTime+delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+delay+0.1);
+      osc.start(ctx.currentTime+delay); osc.stop(ctx.currentTime+delay+0.15);
+    });
+  } catch(e) {}
+}
+
+// ── TTS Engine ────────────────────────────────────────────────────────────
+let ttsQueue=[], ttsPlaying=false, currentAudio=null;
+let currentResponseText=''; // tracks full response for stop→chat
+
+async function speak(text) {
+  if (!voiceSettings.voiceReply || !text?.trim()) return;
+  currentResponseText += ' ' + text;
+  ttsQueue.push(text.trim());
+  if (!ttsPlaying) processTTSQueue();
+}
+
+async function processTTSQueue() {
+  if (!ttsQueue.length) {
+    ttsPlaying=false;
+    unmuteWakeListener(800); // JARVIS done speaking — unmute after 800ms
+    return;
+  }
+  ttsPlaying=true;
+  muteWakeListener(); // mute while JARVIS is speaking
+  const text=ttsQueue.shift();
+  try {
+    if (voiceSettings.ttsEngine) {
+      // ElevenLabs via tts edge function — key in Vault, never in browser
+      await speakElevenLabs(text);
+    } else { await speakBrowser(text); }
+  } catch(e) { try { await speakBrowser(text); } catch(_){} }
+  processTTSQueue();
+}
+
+async function speakElevenLabs(text) {
+  return new Promise(async (resolve) => {
+    try {
+      // Call tts edge function — key lives in Supabase Vault, never in browser
+      const res=await callEndpoint('voice-speak',{text});
+      if (!res.ok) throw new Error('TTS edge '+res.status);
+      const blob=await res.blob();
+      const url=URL.createObjectURL(blob);
+      currentAudio=new Audio(url);
+      currentAudio.volume=voiceSettings.volume;
+      currentAudio.onended=()=>{ URL.revokeObjectURL(url); currentAudio=null; resolve(); };
+      currentAudio.onerror=()=>{ URL.revokeObjectURL(url); currentAudio=null; resolve(); };
+      currentAudio.play();
+    } catch(e) { try { await speakBrowser(text); } catch(_){} resolve(); }
+  });
+}
+
+function speakBrowser(text) {
+  return new Promise(resolve => {
+    if (!window.speechSynthesis) { resolve(); return; }
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.volume=voiceSettings.volume; u.rate=1.05;
+    u.onend=resolve; u.onerror=resolve;
+    speechSynthesis.speak(u);
+  });
+}
+
+function stopSpeaking() {
+  if (currentAudio) { try { currentAudio.pause(); } catch(e){} currentAudio=null; }
+  ttsQueue=[]; ttsPlaying=false;
+  try { speechSynthesis.cancel(); } catch(e){}
+  // Finish response in chat so Tony can read what was cut off
+  if (currentResponseText.trim()) {
+    appendVoiceToChat('JARVIS', currentResponseText.trim() + ' [stopped]');
+    currentResponseText='';
+  }
+  unmuteWakeListener(200); // short delay then unmute — lets last audio tail off
+}
+
+// Mute wake listener while JARVIS speaks — prevents self-trigger
+function muteWakeListener() {
+  wakeWordMuted=true;
+}
+// Unmute after a short delay so JARVIS's last word doesn't retrigger
+function unmuteWakeListener(delayMs=800) {
+  clearTimeout(window._wakeUnmuteTimer);
+  window._wakeUnmuteTimer=setTimeout(()=>{ wakeWordMuted=false; }, delayMs);
+}
+
+// ── Volume Control by Voice ───────────────────────────────────────────────
+function handleVolumeCommand(text) {
+  const t=text.toLowerCase();
+  let changed=false;
+  if (t.match(/turn.*(up|louder|higher)|volume.*(up|louder|higher)|louder/)) {
+    voiceSettings.volume=Math.min(1.0, voiceSettings.volume+0.15);
+    changed=true;
+  } else if (t.match(/turn.*(down|quieter|lower)|volume.*(down|quieter|lower)|quieter|softer/)) {
+    voiceSettings.volume=Math.max(0.1, voiceSettings.volume-0.15);
+    changed=true;
+  }
+  if (changed) {
+    localStorage.setItem('jarvis_voice_settings', JSON.stringify(voiceSettings));
+    const pct=Math.round(voiceSettings.volume*100);
+    speak('Volume set to '+pct+' percent sir.');
+    return true;
+  }
+  return false;
+}
+
+// ── Intent Classification ─────────────────────────────────────────────────
+// Returns { type: 'command'|'question'|'conversation', filler: string|null }
+const COMMAND_PATTERNS = [
+  /\b(play|pause|skip|resume|stop|next|previous|shuffle|repeat)\b.*\b(music|song|spotify|playlist|track|artist|album)\b/i,
+  /\b(play|pause|skip|next|previous)\b/i,
+  /\b(open|launch|start|close)\b/i,
+  /\b(turn it up|turn it down|volume up|volume down|louder|quieter)\b/i,
+  /\b(set a timer|set an? alarm)\b/i,
+];
+const FILLER_MAP = [
+  { keys:['calendar','schedule','event','meeting','appointment','today','tomorrow','this week'], filler:'One second sir, let me check your calendar.' },
+  { keys:['finance','money','budget','paycheck','spending','expense','bill','subscription','invest'], filler:'Let me pull up your finances sir.' },
+  { keys:['health','weight','body','bmi','calorie','macro','nutrition'], filler:'Checking your health data real quick.' },
+  { keys:['water','hydration','drink'], filler:'Pulling your water intake sir.' },
+  { keys:['sleep','rest','tired'], filler:'Checking your sleep data.' },
+  { keys:['workout','exercise','gym','training','lift','run','cardio'], filler:'Pulling your workout history sir.' },
+  { keys:['meal','food','eat','recipe','diet'], filler:'Looking at your meals sir.' },
+  { keys:['weather','rain','temperature','forecast','outside'], filler:'Let me check the weather in Prosper.' },
+  { keys:['todo','task','remind','reminder','list'], filler:'Looking at your todos sir.' },
+  { keys:['news','headline','what\'s happening'], filler:'Pulling the latest news for you.' },
+  { keys:['research','learn','mastery','study'], filler:'One second, reading the files sir.' },
+  { keys:['how are you','how do you feel','what do you think','do you'], filler:null }, // conversation — no filler
+];
+
+function classifyIntent(text) {
+  const t=text.toLowerCase();
+  // Check command patterns — no filler, act immediately
+  if (COMMAND_PATTERNS.some(p=>p.test(t))) return { type:'command', filler:null };
+  // Check for conversation / personal questions
+  if (t.match(/\bhow (are you|do you feel|do you think)\b|\bdo you\b|\bwhat do you\b/)) return { type:'conversation', filler:null };
+  // Check data/question patterns
+  for (const entry of FILLER_MAP) {
+    if (entry.keys.some(k=>t.includes(k))) return { type:'question', filler:entry.filler };
+  }
+  return { type:'question', filler:'Let me look into that for you.' };
+}
+
+// ── Semantic Pause Detection ──────────────────────────────────────────────
+// Words that signal an INCOMPLETE thought — keep listening if transcript ends with these
+const INCOMPLETE_ENDINGS = [
+  'to','and','but','or','so','because','if','when','while','after','before',
+  'i','the','a','an','my','your','his','her','their','our',
+  'need','want','would','could','should','going','going to',
+  'like','just','also','then','that','which','who','what','how','why','where',
+  'at','on','in','of','for','with','about','from','into','through'
+];
+
+function looksIncomplete(transcript) {
+  if (!transcript) return false;
+  const words=transcript.trim().toLowerCase().split(/\s+/);
+  const lastWord=words[words.length-1]?.replace(/[.,!?]$/,'');
+  const lastTwo=words.slice(-2).join(' ');
+  // Too short — probably not a complete command
+  if (words.length < 3) return true;
+  // Ends with an incomplete-signaling word
+  if (INCOMPLETE_ENDINGS.includes(lastWord)) return true;
+  if (INCOMPLETE_ENDINGS.includes(lastTwo)) return true;
+  return false;
+}
+
+// ── Conversation Memory + Topic Tracking ─────────────────────────────────
+const TOPIC_DOMAINS = {
+  water:    ['water','hydration','drink','oz','ounce'],
+  sleep:    ['sleep','rest','tired','hours','bed'],
+  workout:  ['workout','exercise','gym','lift','training','run','cardio'],
+  finance:  ['money','finance','budget','paycheck','spending','bill','expense'],
+  calendar: ['calendar','schedule','event','meeting','appointment'],
+  health:   ['health','weight','body','bmi','calorie','macro'],
+  meal:     ['meal','food','eat','recipe','diet'],
+  todo:     ['todo','task','remind','reminder'],
+};
+
+let sessionMemory = {
+  history: [],       // [{role, content, domain, ts}]
+  currentDomain: null,
+  lastResponseFull: ''
+};
+
+function detectDomain(text) {
+  const t=text.toLowerCase();
+  for (const [domain, keys] of Object.entries(TOPIC_DOMAINS)) {
+    if (keys.some(k=>t.includes(k))) return domain;
+  }
+  return null;
+}
+
+// Follow-up pronouns/references — if present without a new domain, continue current topic
+const FOLLOWUP_SIGNALS = ['it','that','same','yesterday','last week','last month','the day before','how about','and what','what about'];
+
+function isFollowUp(text) {
+  const t=text.toLowerCase();
+  const hasDomain=detectDomain(t);
+  const hasFollowup=FOLLOWUP_SIGNALS.some(s=>t.includes(s));
+  // It's a follow-up if: it has follow-up signals but no new domain keyword
+  return hasFollowup && !hasDomain && sessionMemory.currentDomain;
+}
+
+function buildFollowUpContext() {
+  if (!sessionMemory.currentDomain || !sessionMemory.history.length) return '';
+  const recent=sessionMemory.history.slice(-4);
+  return ' Conversation context: ' + recent.map(h=>h.role+': '+h.content).join(' | ');
+}
+
+// ── Mishear Detection ─────────────────────────────────────────────────────
+// Returns confirmation prompt if transcript contains high-stakes data that needs verification
+function getMishearCheck(text) {
+  const t=text.toLowerCase();
+  // High-stakes: reminders, calendar events, messages, names+numbers
+  const hasReminder=/\b(remind|reminder|remember|set a reminder)\b/.test(t);
+  const hasCalendar=/\b(add|create|schedule|set up|book)\b.*\b(event|meeting|appointment)\b/.test(t);
+  const hasMessage=/\b(text|message|send|tell)\b.*\b(mom|dad|bryce|jacob|logan|gavin|cash|christian|spencer|tia)\b/.test(t);
+  const hasTime=/\b(\d{1,2}(:\d{2})?\s*(am|pm)|tomorrow|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(t);
+
+  if ((hasReminder || hasCalendar || hasMessage) && hasTime) {
+    // Extract the key details to confirm
+    const timeMatch=text.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)|tomorrow|tonight|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b)/i);
+    const time=timeMatch?timeMatch[0]:'';
+    if (hasReminder) return `You said set a reminder${time?' at '+time:''}. Is that right sir?`;
+    if (hasCalendar) return `You want me to add that to your calendar${time?' at '+time:''}. Correct sir?`;
+    if (hasMessage) return `You want me to send that message${time?' at '+time:''}. Should I?`;
+  }
+  return null; // no check needed
+}
+
+// ── Smart Context (data + synthesis summary) ──────────────────────────────
+async function buildVoiceContext(text) {
+  const t=text.toLowerCase();
+  const now=new Date();
+  const today=now.toISOString().split('T')[0];
+  let ctx='You are JARVIS, Tony Martinez\'s personal AI assistant. Today is '
+    +now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})
+    +'. Location: Prosper TX. Keep responses to 1-3 sentences — short and direct.'
+    +' Address Tony as "sir" naturally. Do not repeat the question back.';
+
+  if (!supa) return ctx;
+
+  // Always-on: recent synthesis summary
+  try {
+    const { data: synth } = await supa.from('briefings').select('content').order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if (synth?.content) {
+      const summary=(synth.content||'').slice(0,300);
+      ctx+=' Recent daily synthesis: '+summary;
     }
+  } catch(e) {}
+
+  // Always-on: active todos
+  try {
+    const { data: todos } = await supa.from('todos').select('title').eq('completed',false).limit(5);
+    if (todos?.length) ctx+=' Open todos: '+todos.map(x=>x.title).join(', ')+'.';
+  } catch(e) {}
+
+  // Follow-up context
+  if (isFollowUp(text)) ctx+=buildFollowUpContext();
+
+  // Selective domain data
+  const domain=detectDomain(text)||sessionMemory.currentDomain;
+  if (domain==='calendar' || t.match(/today|tomorrow|this week|schedule|event|meeting/)) {
+    try {
+      const { data: evts } = await supa.from('calendar_events').select('title,start_time')
+        .gte('start_time',today+'T00:00:00').lte('start_time',today+'T23:59:59').order('start_time').limit(8);
+      ctx+=evts?.length
+        ? ' Today: '+evts.map(e=>e.title+' @ '+new Date(e.start_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})).join(', ')+'.'
+        : ' No events today.';
+    } catch(e) {}
   }
-}
-
-async function confirmDetectedPaycheck(){
-  if(!detectedPaycheck) return;
-  document.getElementById('pc-amount').value = detectedPaycheck.amount;
-  document.getElementById('pc-date').value   = localDateStr();
-  document.getElementById('pc-pending-banner').style.display = 'none';
-  updateSplitPreview();
-  switchFinanceTab('paychecks', document.getElementById('ftab-paychecks'));
-  detectedPaycheck = null;
-  showToast('Fill in details and tap Log Paycheck');
-}
-function dismissDetectedPaycheck(){
-  detectedPaycheck = null;
-  document.getElementById('pc-pending-banner').style.display = 'none';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// END LAYER 4
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CALENDAR
-// ═══════════════════════════════════════════════════════════════════════════
-let calEvents = [];           // all events loaded for the current range
-let calSelectedDate = localDateStr(); // YYYY-MM-DD
-let calWeekOffset = 0;        // 0 = this week, -1 = last week, +1 = next week
-
-// ── Load events from apple-calendar Edge Function ─────────────────────────
-async function loadCalEvents(start, end){
-  const statusEl = document.getElementById('cal-connect-status');
-  if(!supabaseUrl || !supabaseKey){
-    if(statusEl) statusEl.textContent = '⚠️ Supabase not connected';
-    return [];
+  if (domain==='water' || t.match(/water|hydration/)) {
+    try {
+      const { data: w } = await supa.from('water_logs').select('amount_oz').gte('logged_at',today+'T00:00:00');
+      const oz=w?.reduce((s,r)=>s+(parseFloat(r.amount_oz)||0),0)||0;
+      ctx+=' Water today: '+oz+'oz / 80oz goal.';
+    } catch(e) {}
   }
-  try{
-    const res = await callEndpoint(`apple-calendar?start=${start}&end=${end}`, {}, 'GET');
-    if(!res.ok){
-      // Read full body as text first so we never lose the error message
-      const rawText = await res.text().catch(()=>'');
-      let msg = `HTTP ${res.status}`;
-      try{
-        const parsed = JSON.parse(rawText);
-        msg = parsed?.error || parsed?.message || parsed?.msg || rawText.slice(0,120) || msg;
-      }catch{ msg = rawText.slice(0,120) || msg; }
-
-      // Specific 400 guidance
-      let hint = 'check credentials';
-      if(res.status===400) hint = 'missing CalDAV credentials in Supabase Vault';
-      if(res.status===401) hint = 'invalid CalDAV password — regenerate app-specific password';
-      if(res.status===404) hint = 'function not deployed — run deploy-edge-functions.bat';
-
-      if(statusEl) statusEl.innerHTML = `❌ ${res.status}: ${msg} — <a href="#" onclick="openCalSettings('${hint}')" style="color:var(--primary)">fix: ${hint}</a>`;
-      logError('frontend:calendar','http_error', `${res.status}: ${msg}`, {action:'loadCalEvents'});
-      return [];
-    }
-    const json = await res.json();
-    if(statusEl) statusEl.textContent = '';
-    return json.events || [];
-  }catch(e){
-    if(statusEl) statusEl.innerHTML = `❌ Could not reach calendar — <a href="#" onclick="openCalSettings()" style="color:var(--primary)">check setup</a>`;
-    logError('frontend:calendar','network',e?.message||String(e),{action:'loadCalEvents'});
-    return [];
+  if (domain==='sleep' || t.match(/sleep/)) {
+    try {
+      const { data: sl } = await supa.from('sleep_logs').select('hours,quality').order('date',{ascending:false}).limit(1).maybeSingle();
+      if (sl) ctx+=' Last sleep: '+sl.hours+'hrs, quality '+sl.quality+'/5.';
+    } catch(e) {}
   }
-}
-
-function openCalSettings(hint=''){
-  const msg = hint
-    ? `📅 Calendar fix needed: ${hint}\n\nSee secrets-setup.md for full setup instructions.\n\nQuick fix: Supabase Dashboard → Settings → Vault → add:\n  APPLE_CALDAV_USER = your@icloud.com\n  APPLE_CALDAV_PASSWORD = xxxx-xxxx-xxxx-xxxx (app-specific password)`
-    : 'Set APPLE_CALDAV_USER + APPLE_CALDAV_PASSWORD in Supabase Vault → see secrets-setup.md';
-  alert(msg);
-}
-
-// ── Week helpers ─────────────────────────────────────────────────────────
-function getWeekDates(offset=0){
-  // Rolling 7-day window: today + 6 days, shifted by week offsets
-  const now = new Date(); now.setHours(0,0,0,0);
-  const start = new Date(now); start.setDate(now.getDate() + offset*7);
-  return Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return localDateStr(d); });
-}
-
-// ── Init calendar tab ─────────────────────────────────────────────────────
-let _calRefreshInterval = null;
-
-async function initCalendarTab(){
-  calWeekOffset = 0;
-  calSelectedDate = localDateStr();
-  await refreshCalendar();
-  // Auto-refresh every 5 minutes while Calendar tab is open
-  if(_calRefreshInterval) clearInterval(_calRefreshInterval);
-  _calRefreshInterval = setInterval(()=>refreshCalendar(), 5*60*1000);
-}
-
-function stopCalendarAutoRefresh(){
-  if(_calRefreshInterval){ clearInterval(_calRefreshInterval); _calRefreshInterval=null; }
-}
-
-async function refreshCalendar(){
-  const days = getWeekDates(calWeekOffset);
-  const start = days[0], end = days[6];
-
-  // Week label
-  const labelEl = document.getElementById('cal-week-label');
-  if(labelEl){
-    const s = new Date(start+'T00:00:00');
-    const e = new Date(end+'T00:00:00');
-    const today = localDateStr();
-    labelEl.textContent = calWeekOffset===0
-      ? `This Week (${s.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${e.toLocaleDateString('en-US',{month:'short',day:'numeric'})})`
-      : `${s.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${e.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+  if (domain==='workout' || t.match(/workout|exercise|gym|lift/)) {
+    try {
+      const { data: wo } = await supa.from('workouts').select('type,duration_min,date').order('date',{ascending:false}).limit(1).maybeSingle();
+      if (wo) ctx+=' Last workout: '+wo.type+', '+wo.duration_min+'min ('+wo.date+').';
+    } catch(e) {}
   }
-
-  // Load events — merge with existing so optimistic inserts aren't lost
-  const fetched = await loadCalEvents(start, end);
-  // Keep any optimistic events not yet returned by iCloud (created in last 5 min)
-  const fiveMinAgo = Date.now() - 5*60*1000;
-  const optimistic = calEvents.filter(e => e._optimistic && new Date(e._ts||0).getTime() > fiveMinAgo && !fetched.find(f=>f.id===e.id));
-  calEvents = [...fetched, ...optimistic];
-
-  renderWeekStrip(days);
-  renderDayEvents(calSelectedDate);
-  renderWeekEvents(days);
-}
-
-// ── Week strip (7 day buttons) ────────────────────────────────────────────
-function renderWeekStrip(days){
-  const strip = document.getElementById('cal-week-strip');
-  if(!strip) return;
-  const today = localDateStr();
-  const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-
-  strip.innerHTML = days.map(d=>{
-    const dt = new Date(d+'T00:00:00');
-    const dayName = DAY_NAMES[dt.getDay()];
-    const dayNum  = dt.getDate();
-    const isToday = d===today;
-    const isSelected = d===calSelectedDate;
-    const hasEvents = calEvents.some(e=>e.start?.slice(0,10)===d);
-    return `<button onclick="calSelectDay('${d}')" style="display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:10px;border:1px solid ${isSelected?'var(--primary)':isToday?'var(--primary-border)':'var(--border)'};background:${isSelected?'var(--primary)':isToday?'var(--primary-dim)':'var(--card)'};cursor:pointer;transition:all .2s;gap:3px;">
-      <span style="font-size:10px;color:${isSelected?'#fff':'var(--text-muted)'};">${dayName}</span>
-      <span style="font-size:14px;font-weight:${isToday||isSelected?'700':'400'};color:${isSelected?'#fff':isToday?'var(--primary)':'var(--text)'};">${dayNum}</span>
-      <div style="width:5px;height:5px;border-radius:50%;background:${hasEvents?(isSelected?'#fff':'var(--teal)'):'transparent'};"></div>
-    </button>`;
-  }).join('');
-}
-
-async function calSelectDay(date){
-  calSelectedDate=date;
-  renderWeekStrip(getWeekDates(calWeekOffset));
-  // If no events loaded for this day yet, fetch from iCloud (handles past days)
-  const hasData = calEvents.some(e=>e.start?.slice(0,10)===date);
-  if(!hasData){
-    const fetched = await loadCalEvents(date,date);
-    calEvents = [...calEvents.filter(e=>e.start?.slice(0,10)!==date), ...fetched];
+  if (domain==='finance' || t.match(/money|finance|paycheck|budget/)) {
+    try {
+      const { data: pc } = await supa.from('paychecks').select('amount,date').order('date',{ascending:false}).limit(1).maybeSingle();
+      if (pc) ctx+=' Last paycheck: $'+pc.amount+' on '+pc.date+'.';
+    } catch(e) {}
   }
-  renderDayEvents(date);
-  const label=document.getElementById('cal-day-label');
-  if(label){const dt=new Date(date+'T00:00:00');label.textContent=date===localDateStr()?"Today's Events":dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
+  return ctx;
 }
 
-function renderDayEvents(date){
-  const el=document.getElementById('cal-events-list');if(!el)return;
-  const dayEvents=calEvents.filter(e=>e.start?.slice(0,10)===date);
-  if(!dayEvents.length){el.innerHTML='<div class="mem-empty">No events.</div>';return;}
-  el.innerHTML=dayEvents.map(e=>eventCard(e)).join('');
-}
-
-function renderWeekEvents(days){
-  const el=document.getElementById('cal-week-events');if(!el)return;
-  const today=localDateStr();let html='';
-  for(const d of days){
-    const dayEvts=calEvents.filter(e=>e.start?.slice(0,10)===d);if(!dayEvts.length)continue;
-    const dt=new Date(d+'T00:00:00');
-    const label=d===today?'Today':dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-    html+='<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">'+label+'</div>'+dayEvts.map(e=>eventCard(e,true)).join('')+'</div>';
-  }
-  el.innerHTML=html||'<div class="mem-empty">No events this week.</div>';
-}
-
-function eventCard(e,compact=false){
-  const timeStr=e.allDay?'All day':(e.start?.slice(11,16)||'');
-  const endStr=e.end&&!e.allDay?' - '+e.end.slice(11,16):'';
-  const delBtn=!compact&&e.id?`<button onclick="deleteCalEvent('${escHtml(e.id)}','${escHtml(e.href||'')}')" title="Delete event" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 0 0 8px;flex-shrink:0;line-height:1;" onmouseover="this.style.color='#e05252'" onmouseout="this.style.color='var(--text-muted)'">🗑</button>`:'';
-  let html='<div style="background:var(--card);border:1px solid var(--teal-border);border-left:3px solid var(--teal);border-radius:9px;padding:10px 12px;margin-bottom:6px;">';
-  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(e.location||e.notes?'4':'0')+'px;">';
-  html+='<div style="font-size:13px;font-weight:600;color:var(--text);flex:1;">'+escHtml(e.title||'')+'</div>';
-  html+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;"><span style="font-size:11px;color:var(--teal);">'+timeStr+endStr+'</span>'+delBtn+'</div></div>';
-  if(e.location&&!compact)html+='<div style="font-size:11px;color:var(--text-muted);">'+escHtml(e.location)+'</div>';
-  if(e.notes&&!compact)html+='<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">'+escHtml(e.notes.slice(0,100))+'</div>';
-  html+='</div>';
-  return html;
-}
-
-async function deleteCalEvent(uid, href=''){
-  if(!confirm('Delete this event from Apple Calendar?')) return;
-  try{
-    const res = await callEndpoint('apple-calendar', {uid, href: href||undefined}, 'DELETE');
-    const data = await res.json().catch(()=>({}));
-    if(data.ok!==false){
-      showToast('🗑 Event deleted');
-      calEvents = calEvents.filter(e=>e.id!==uid);
-      renderDayEvents(calSelectedDate);
-      renderWeekEvents(getWeekDates(calWeekOffset));
-      loadTodayCalEvents();
-    } else {
-      showToast('❌ '+(data.error||'Could not delete event').slice(0,80));
-    }
-  }catch(e){
-    showToast('❌ Could not reach calendar function');
-  }
-}
-
-async function calShiftWeek(dir){calWeekOffset+=dir;await refreshCalendar();}
-
-function toggleCalAllDay(){
-  const allDay=document.getElementById('cal-allday')?.checked;
-  const s=document.getElementById('cal-start'),en=document.getElementById('cal-end');
-  if(s)s.type=allDay?'date':'datetime-local';
-  if(en)en.type=allDay?'date':'datetime-local';
-}
-
-async function createCalEvent(){
-  const title=document.getElementById('cal-title')?.value.trim();
-  const start=document.getElementById('cal-start')?.value;
-  const end=document.getElementById('cal-end')?.value;
-  const location=document.getElementById('cal-location')?.value.trim()||null;
-  const notes=document.getElementById('cal-notes')?.value.trim()||null;
-  const allDay=document.getElementById('cal-allday')?.checked||false;
-  if(!title||!start){showToast('Title and start time are required');return;}
-  try{
-    const res=await callEndpoint('apple-calendar',{title,start,end:end||start,location,notes,allDay},'POST');
-    const json=await res.json();
-    if(!json.ok){showToast('Error: '+(json.error||'Could not create event').slice(0,80));return;}
-    showToast('Event added to Apple Calendar');
-    ['cal-title','cal-start','cal-end','cal-location','cal-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    // Optimistically add to calEvents so it shows immediately
-    const newEvt={id:json.uid||'',title,start,end:end||start,location,notes,allDay,_optimistic:true,_ts:new Date().toISOString()};
-    calEvents=calEvents.filter(e=>e.id!==newEvt.id);
-    calEvents.push(newEvt);
-    renderDayEvents(calSelectedDate);
-    renderWeekEvents(getWeekDates(calWeekOffset));
-    loadTodayCalEvents();
-    setTimeout(()=>refreshCalendar(),3000);
-  }catch(e){logError('frontend:calendar','network',e?.message||String(e),{action:'createCalEvent'});showToast('Could not create event');}
-}
-
-async function loadTodayCalEvents(){
-  const today=localDateStr();
-  const events=await loadCalEvents(today,today);
-  const sec=document.getElementById('today-cal-section'),list=document.getElementById('today-cal-list');
-  if(!sec||!list)return;
-  if(!events.length){sec.style.display='none';return;}
-  sec.style.display='block';
-  list.innerHTML=events.map(e=>eventCard(e,true)).join('');
-}
-
-function toggleChatMode(){
-  const btn=document.getElementById('chat-mode-btn');
-  const inp=document.getElementById('user-input');
-  const cur=btn?btn.getAttribute('data-mode'):'normal';
-  const next=cur==='normal'?'council':'normal';
-  if(btn) btn.setAttribute('data-mode',next);
-  if(next==='council'){
-    if(btn){btn.textContent='Council';btn.style.background='var(--primary-dim)';btn.style.borderColor='var(--primary-border)';btn.style.color='var(--primary)';}
-    if(inp)inp.placeholder='Ask the Council...';
-  } else {
-    if(btn){btn.textContent='Normal';btn.style.background='var(--teal-dim)';btn.style.borderColor='var(--teal-border)';btn.style.color='var(--teal)';}
-    if(inp)inp.placeholder='Chat with JARVIS...';
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// LAYER 1 — VOICE ENGINE
-// ═══════════════════════════════════════════════════════════
-
-// Sci-fi sound effects via Web Audio API
-var _vActx = null;
-function _vCtx(){ if(!_vActx) _vActx = new (window.AudioContext||window.webkitAudioContext)(); return _vActx; }
-
-function sfxActivate(){
-  try{
-    var c=_vCtx(),t=c.currentTime;
-    [0,0.08,0.16].forEach(function(d,i){
-      var o=c.createOscillator(),g=c.createGain();
-      o.connect(g);g.connect(c.destination);
-      o.frequency.setValueAtTime(400+i*200,t+d);
-      o.frequency.exponentialRampToValueAtTime(900+i*150,t+d+0.12);
-      g.gain.setValueAtTime(0.15,t+d);
-      g.gain.exponentialRampToValueAtTime(0.001,t+d+0.18);
-      o.start(t+d);o.stop(t+d+0.2);
-    });
-  }catch(e){}
-}
-
-function sfxDeactivate(){
-  try{
-    var c=_vCtx(),t=c.currentTime;
-    [0,0.08].forEach(function(d,i){
-      var o=c.createOscillator(),g=c.createGain();
-      o.connect(g);g.connect(c.destination);
-      o.frequency.setValueAtTime(600-i*150,t+d);
-      o.frequency.exponentialRampToValueAtTime(200,t+d+0.15);
-      g.gain.setValueAtTime(0.12,t+d);
-      g.gain.exponentialRampToValueAtTime(0.001,t+d+0.18);
-      o.start(t+d);o.stop(t+d+0.2);
-    });
-  }catch(e){}
-}
-
-var _thinkNodes=[];
-function sfxThinkStart(){
-  try{
-    sfxThinkStop();
-    var c=_vCtx();
-    [220,330,440,550].forEach(function(freq,i){
-      var o=c.createOscillator(),g=c.createGain();
-      o.connect(g);g.connect(c.destination);
-      o.frequency.value=freq; g.gain.value=0; o.start();
-      var iv=setInterval(function(){
-        try{var n=c.currentTime;g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(0.04,n+0.05);g.gain.linearRampToValueAtTime(0,n+0.15);}catch(e){clearInterval(iv);}
-      },400+i*120);
-      _thinkNodes.push({o:o,g:g,iv:iv});
-    });
-  }catch(e){}
-}
-function sfxThinkStop(){
-  try{
-    _thinkNodes.forEach(function(n){clearInterval(n.iv);try{n.g.gain.setValueAtTime(0,_vCtx().currentTime);n.o.stop();}catch(e){}});
-    _thinkNodes=[];
-  }catch(e){}
-}
-function sfxReady(){
-  try{
-    sfxThinkStop();
-    var c=_vCtx(),t=c.currentTime;
-    [[523,0],[659,0.1],[784,0.2]].forEach(function(pair){
-      var o=c.createOscillator(),g=c.createGain();
-      o.connect(g);g.connect(c.destination);
-      o.frequency.value=pair[0];
-      g.gain.setValueAtTime(0.1,t+pair[1]);
-      g.gain.exponentialRampToValueAtTime(0.001,t+pair[1]+0.25);
-      o.start(t+pair[1]);o.stop(t+pair[1]+0.3);
-    });
-  }catch(e){}
-}
-
-// Voice state
-var _vActive=false, _wakeActive=false;
-var _dgWS=null, _wakeWS=null;
-var _micStream=null, _wakeMic=null;
-var _recorder=null, _wakeRec=null;
-var _vAudio=null, _dgToken=null;
-var WAKE_WORDS=['jarvis','hey jarvis','ok jarvis'];
-
-function _vSetStatus(txt,cls){
-  var s=document.getElementById('voice-status-text');
-  var btn=document.getElementById('voice-btn');
-  if(s)s.textContent=txt;
-  if(btn){btn.className='';if(cls)btn.classList.add(cls);}
-}
-function _vSetTranscript(txt){
-  var t=document.getElementById('voice-transcript-text');
-  if(t)t.textContent=txt;
-}
-
-// Always-on wake word via Deepgram
-async function startWakeWord(){
-  if(_wakeActive||_vActive)return;
-  _wakeActive=true;
-  try{
-    var tr=await callEndpoint('voice-token',{},'POST');
-    var td=await tr.json();
-    if(!td.ok)throw new Error('no token');
-    _dgToken=td.token;
-    _wakeMic=await navigator.mediaDevices.getUserMedia({audio:true});
-    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false&keywords=jarvis:2';
-    _wakeWS=new WebSocket(wsUrl,['token',_dgToken]);
-    _wakeWS.onopen=function(){
-      _wakeRec=new MediaRecorder(_wakeMic,{mimeType:'audio/webm'});
-      _wakeRec.ondataavailable=function(e){
-        if(_wakeWS&&_wakeWS.readyState===1&&e.data.size>0&&!_vActive)_wakeWS.send(e.data);
-      };
-      _wakeRec.start(500);
-      var btn=document.getElementById('voice-btn');
-      if(btn)btn.style.opacity='0.6';
-      console.log('[JARVIS] Wake word active — say Jarvis');
-    };
-    _wakeWS.onmessage=function(e){
-      if(_vActive)return;
-      try{
-        var msg=JSON.parse(e.data);
-        var tx=(msg&&msg.channel&&msg.channel.alternatives&&msg.channel.alternatives[0]&&msg.channel.alternatives[0].transcript||'').toLowerCase().trim();
-        if(!tx)return;
-        var hit=WAKE_WORDS.some(function(w){return tx.indexOf(w)>=0;});
-        if(hit){console.log('[JARVIS] Wake word detected:',tx);_activateVoice();}
-      }catch(e){}
-    };
-    _wakeWS.onerror=function(){_wakeActive=false;};
-    _wakeWS.onclose=function(){_wakeActive=false;var btn=document.getElementById('voice-btn');if(btn)btn.style.opacity='1';};
-  }catch(err){_wakeActive=false;console.warn('[JARVIS] Wake word failed:',err.message);}
-}
-
-function stopWakeWord(){
-  _wakeActive=false;
-  try{if(_wakeRec)_wakeRec.stop();}catch(e){}
-  try{if(_wakeWS)_wakeWS.close();}catch(e){}
-  try{if(_wakeMic)_wakeMic.getTracks().forEach(function(t){t.stop();});}catch(e){}
-  _wakeWS=null;_wakeRec=null;_wakeMic=null;
-}
-
-async function _activateVoice(){
-  sfxActivate();
-  document.getElementById('voice-overlay').classList.add('open');
-  _vSetStatus('Listening...','listening');
-  _vSetTranscript('');
-  _vActive=true;
-  try{if(_wakeRec)_wakeRec.stop();}catch(e){}
-  await _startConversation();
-}
-
-async function toggleVoice(){
-  if(_vActive){cancelVoice();return;}
-  _vActive=true;
-  sfxActivate();
-  document.getElementById('voice-overlay').classList.add('open');
-  _vSetStatus('Listening...','listening');
-  _vSetTranscript('');
-  await _startConversation();
-}
-
-async function _startConversation(){
-  try{
-    // Always get fresh token for conversation
-    var tr=await callEndpoint('voice-token',{},'POST');
-    var td=await tr.json();
-    if(!td.ok)throw new Error(td.error||'no token');
-    _dgToken=td.token;
-    _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
-    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true&endpointing=500';
-    _dgWS=new WebSocket(wsUrl,['token',_dgToken]);
-    _dgToken=null;
-    var finalTx='',silTimer=null;
-    _dgWS.onopen=function(){
-      _recorder=new MediaRecorder(_micStream,{mimeType:'audio/webm'});
-      _recorder.ondataavailable=function(e){
-        if(_dgWS&&_dgWS.readyState===1&&e.data.size>0)_dgWS.send(e.data);
-      };
-      _recorder.start(250);
-    };
-    _dgWS.onmessage=function(e){
-      try{
-        var msg=JSON.parse(e.data);
-        var alt=msg&&msg.channel&&msg.channel.alternatives&&msg.channel.alternatives[0];
-        if(!alt)return;
-        var tx=(alt.transcript||'').trim();
-        if(!tx)return;
-        if(msg.is_final){
-          var clean=tx;
-          WAKE_WORDS.forEach(function(w){
-            var r=new RegExp('^'+w+'[,.]?\\s*','i');
-            clean=clean.replace(r,'');
-          });
-          finalTx+=(finalTx?' ':'')+clean;
-          _vSetTranscript(finalTx);
-          clearTimeout(silTimer);
-          silTimer=setTimeout(function(){_sendToJarvisVoice(finalTx);},1200);
-        } else {
-          _vSetTranscript(finalTx+' '+tx);
-        }
-      }catch(e){}
-    };
-    _dgWS.onerror=function(){showToast('Voice connection failed');cancelVoice();};
-    _dgWS.onclose=function(){if(_vActive)cancelVoice();};
-  }catch(err){
-    showToast('Voice error: '+err.message);
-    cancelVoice();
-  }
-}
-
-async function _sendToJarvisVoice(text){
-  if(!text||!text.trim()){cancelVoice();return;}
-  _vSetStatus('JARVIS is thinking...','processing');
-  sfxThinkStart();
-  try{
-    try{if(_recorder)_recorder.stop();}catch(e){}
-    try{if(_dgWS)_dgWS.close();}catch(e){}
-    var modeBtn=document.getElementById('chat-mode-btn');
-    var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
-    var sysPrompt=isNormal
-      ? 'You are JARVIS, Tony Martinez personal AI. Be casual, direct, natural — like a real conversation. 1-3 sentences max. No markdown, no lists.'
-      : buildCouncilPrompt()+'\n\nVOICE MODE: Be casual and natural. 1-3 sentences max. No markdown, no lists.';
-    var res=await callEndpoint('proxy',{
+// ── Voice AI — Claude Haiku streaming ─────────────────────────────────────
+async function streamVoiceResponse(userText, systemCtx, onSentence) {
+  try {
+    const res=await callEndpoint('proxy',{
       model:'claude-haiku-4-5-20251001',
       max_tokens:250,
-      system:sysPrompt,
-      messages:[{role:'user',content:text}]
+      system:systemCtx,
+      messages:[{role:'user',content:userText}],
+      stream:true
     });
-    var d=await res.json();
-    var reply=d&&d.content&&d.content[0]&&d.content[0].text||'Sorry, I had trouble with that.';
-    _vSetTranscript('JARVIS: '+reply);
-    _vSetStatus('Speaking... (tap Stop to interrupt)','processing');
-    sfxReady();
-    var sb=document.getElementById('voice-stop-btn');
-    var cb=document.getElementById('voice-cancel-btn');
-    if(sb)sb.style.display='inline-block';
-    if(cb)cb.style.display='none';
-    appendCouncilResponse('JARVIS\n'+reply);
-    saveSession(text, reply);
-    await _speakText(reply);
-  }catch(err){
-    sfxThinkStop();
-    showToast('Voice error: '+(err.message||'unknown'));
-  }finally{
-    cancelVoice();
-    // Longer delay to prevent self-trigger from JARVIS's own spoken voice
-    setTimeout(startWakeWord,5000);
-  }
-}
-
-var _stopSR=null;
-
-function _startStopListener(){
-  try{
-    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR)return;
-    _stopSR=new SR();
-    _stopSR.continuous=true;
-    _stopSR.interimResults=true;
-    _stopSR.lang='en-US';
-    _stopSR.onresult=function(e){
-      for(var i=e.resultIndex;i<e.results.length;i++){
-        var tx=e.results[i][0].transcript.toLowerCase().trim();
-        if(tx.indexOf('stop')>=0||tx.indexOf('cancel')>=0||tx.indexOf('quiet')>=0||tx.indexOf('enough')>=0){
-          console.log('[JARVIS] Stop command:',tx);
-          _stopStopListener();
-          cancelVoice();
-          break;
-        }
+    if (!res.ok) throw new Error('Proxy '+res.status);
+    const reader=res.body.getReader();
+    const decoder=new TextDecoder();
+    let buf='', sentenceBuf='';
+    while (true) {
+      const {done,value}=await reader.read();
+      if (done) break;
+      buf+=decoder.decode(value,{stream:true});
+      const lines=buf.split('\n'); buf=lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw=line.slice(6).trim();
+        if (raw==='[DONE]') break;
+        try {
+          const parsed=JSON.parse(raw);
+          const delta=parsed.delta?.text||parsed.choices?.[0]?.delta?.content||'';
+          if (!delta) continue;
+          sentenceBuf+=delta;
+          // Fire on sentence boundary
+          const end=sentenceBuf.search(/[.!?]\s/);
+          if (end!==-1) {
+            const sentence=sentenceBuf.slice(0,end+1).trim();
+            sentenceBuf=sentenceBuf.slice(end+2);
+            if (sentence) onSentence(sentence);
+          }
+        } catch(e) {}
       }
+    }
+    if (sentenceBuf.trim()) onSentence(sentenceBuf.trim());
+  } catch(e) {
+    // Non-streaming fallback via callHaiku
+    try {
+      const reply=await callHaiku(userText, 250);
+      if (reply) onSentence(reply);
+    } catch(e2) {
+      onSentence('I had trouble connecting sir. Please try again.');
+    }
+  }
+}
+
+// ── Voice State ───────────────────────────────────────────────────────────
+let voiceState='idle';
+let deepgramWakeWs=null, deepgramCmdWs=null;
+let voiceMediaStream=null, voiceAudioCtx=null, voiceProcessor=null;
+let cmdFinalText='', cmdSilenceTimer=null, cmdCtx=null, cmdProc=null;
+let wakeWordCooldownUntil=0; // short cooldown only for explicit stop commands
+let wakeWordMuted=false;        // true while JARVIS is speaking — prevents self-trigger
+let pendingMishearConfirm=null; // {text, resolve}
+
+// ── Deepgram Token — fetched from edge function (key stays in Vault) ────────
+let _deepgramToken=null, _deepgramTokenExpiry=0;
+async function fetchDeepgramToken() {
+  // Cache token for 20 seconds to avoid hammering the edge function
+  if (_deepgramToken && Date.now() < _deepgramTokenExpiry) return _deepgramToken;
+  try {
+    const res=await callEndpoint('voice-token',{});
+    const data=await res.json();
+    if (data.token) {
+      _deepgramToken=data.token;
+      // Ephemeral tokens expire in 30s; non-ephemeral keys can be cached longer
+      _deepgramTokenExpiry=Date.now()+(data.ephemeral?20000:300000);
+      return _deepgramToken;
+    }
+  } catch(e) { console.warn('[JARVIS] deepgram-token fetch failed:',e.message); }
+  return null;
+}
+
+// ── Wake Word — Deepgram (browser auth: access_token in URL) ─────────────
+async function startWakeWord() {
+  if (!voiceSettings.wakeEnabled) return;
+  if (deepgramWakeWs?.readyState===WebSocket.OPEN) return;
+  try {
+    voiceMediaStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    const dgToken=await fetchDeepgramToken();
+    if (!dgToken) { showToast('Voice: DEEPGRAM_KEY not set in Supabase Vault'); return; }
+    const dgUrl='wss://api.deepgram.com/v1/listen'
+      +'?access_token='+encodeURIComponent(dgToken)
+      +'&model=nova-2&language=en-US&endpointing=300&utterance_end_ms=1000&interim_results=true';
+    deepgramWakeWs=new WebSocket(dgUrl);
+
+    deepgramWakeWs.onopen=()=>{
+      updateWakeIndicator(true);
+      voiceState='wake-listening';
+      voiceAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      const src=voiceAudioCtx.createMediaStreamSource(voiceMediaStream);
+      voiceProcessor=voiceAudioCtx.createScriptProcessor(4096,1,1);
+      voiceProcessor.onaudioprocess=(e)=>{
+        if (deepgramWakeWs?.readyState===WebSocket.OPEN) {
+          const f=e.inputBuffer.getChannelData(0);
+          const i=new Int16Array(f.length);
+          for (let x=0;x<f.length;x++) i[x]=Math.max(-32768,Math.min(32767,f[x]*32768));
+          deepgramWakeWs.send(i.buffer);
+        }
+      };
+      src.connect(voiceProcessor); voiceProcessor.connect(voiceAudioCtx.destination);
     };
-    _stopSR.start();
-  }catch(e){console.warn('[voice] stop listener failed:',e.message);}
-}
 
-function _stopStopListener(){
-  try{if(_stopSR){_stopSR.stop();_stopSR=null;}}catch(e){}
-}
+    deepgramWakeWs.onmessage=(event)=>{
+      try {
+        const msg=JSON.parse(event.data);
+        const transcript=(msg.channel?.alternatives?.[0]?.transcript||'').toLowerCase();
+        if (!transcript) return;
 
-async function _speakText(text){
-  // Register as media so keyboard media-stop key works system-wide (even while gaming)
-  if('mediaSession' in navigator){
-    navigator.mediaSession.metadata = new MediaMetadata({ title: 'JARVIS', artist: 'Your AI Assistant' });
-    navigator.mediaSession.setActionHandler('pause', function(){ cancelVoice(); });
-    navigator.mediaSession.setActionHandler('stop', function(){ cancelVoice(); });
+        // ── Stop command while speaking ──
+        if (voiceState==='speaking' && /\b(stop|cancel|quiet|enough|silence)\b/.test(transcript)) {
+          stopSpeaking();
+          voiceState='wake-listening';
+          setVoiceStatus('Stopped.');
+          setTimeout(closeVoiceModal,800);
+          // 5 second cooldown — prevents JARVIS's own voice re-triggering wake word
+          wakeWordCooldownUntil=Date.now()+1000; // 1s — just lets last syllable fade
+          return;
+        }
+
+        // ── Wake word while JARVIS speaking → interrupt and listen ──
+        const ww=voiceSettings.wakeWord||'jarvis';
+        if (voiceState==='speaking' && transcript.includes(ww)) {
+          stopSpeaking();
+          voiceState='wake-listening';
+          wakeWordCooldownUntil=Date.now()+1000;
+        }
+
+        // ── Normal wake word detection ──
+        if (transcript.includes(ww) && voiceState==='wake-listening') {
+          if (wakeWordMuted || Date.now()<wakeWordCooldownUntil) return; // muted while JARVIS speaks
+          handleWakeWordDetected(transcript, ww);
+        }
+
+        // ── Mishear confirmation response ──
+        if (pendingMishearConfirm) {
+          const answer=transcript.trim();
+          if (/\b(yes|yeah|yep|correct|right|do it|send it|confirm|sure)\b/.test(answer)) {
+            const {text,resolve}=pendingMishearConfirm;
+            pendingMishearConfirm=null;
+            executeConfirmedCommand(text);
+          } else if (/\b(no|nope|don't|cancel|stop|wrong|nevermind|never mind)\b/.test(answer)) {
+            pendingMishearConfirm=null;
+            speak('Got it sir, cancelled.'); cancelVoice();
+          }
+          return;
+        }
+      } catch(e) {}
+    };
+
+    deepgramWakeWs.onerror=()=>stopWakeWord();
+    deepgramWakeWs.onclose=()=>{ updateWakeIndicator(false); voiceState='idle'; };
+  } catch(e) {
+    if (e.name==='NotAllowedError') showToast('Mic access denied — check browser settings');
+    else showToast('Wake word error: '+(e.message||e));
   }
-  // Escape key stops voice from any tab
-  var _escStop = function(e){ if(e.key==='Escape'){ cancelVoice(); document.removeEventListener('keydown',_escStop); } };
-  document.addEventListener('keydown', _escStop);
-  try{
-    var res=await fetch(supabaseUrl+'/functions/v1/voice-speak',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-      body:JSON.stringify({text:text})
-    });
-    if(!res.ok)throw new Error('TTS '+res.status);
-    var blob=await res.blob();
-    var url=URL.createObjectURL(blob);
-    _vAudio=new Audio(url);
-    await new Promise(function(resolve,reject){
-      _vAudio.onended=resolve;
-      _vAudio.onerror=reject;
-      _vAudio.play().catch(reject);
-    });
-    URL.revokeObjectURL(url);
-  }catch(err){
-    console.warn('[voice] TTS failed, using browser fallback:',err.message);
-    if(window.speechSynthesis){
-      var u=new SpeechSynthesisUtterance(text);u.rate=1.05;
-      window.speechSynthesis.speak(u);
-      await new Promise(function(r){u.onend=r;});
-    }
-  }finally{
-    try{_stopStopListener();}catch(e){}
-    document.removeEventListener('keydown', _escStop);
-    if('mediaSession' in navigator){
-      navigator.mediaSession.setActionHandler('pause', null);
-      navigator.mediaSession.setActionHandler('stop', null);
-    }
+}
+
+function stopWakeWord() {
+  try { deepgramWakeWs?.close(); } catch(e){}
+  deepgramWakeWs=null;
+  try { voiceProcessor?.disconnect(); } catch(e){}
+  try { voiceAudioCtx?.close(); } catch(e){}
+  try { voiceMediaStream?.getTracks().forEach(t=>t.stop()); } catch(e){}
+  voiceMediaStream=null; voiceState='idle'; updateWakeIndicator(false);
+}
+
+function handleWakeWordDetected(fullTranscript, wakeWord) {
+  voiceState='listening';
+  playActivationCue();
+  const idx=fullTranscript.indexOf(wakeWord);
+  const afterWake=fullTranscript.slice(idx+wakeWord.length).trim();
+  openVoiceModal();
+  if (afterWake.length>3) {
+    setVoiceTranscript(afterWake);
+    setTimeout(()=>processVoiceCommand(afterWake),300);
+  } else {
+    // Just wake word with a pause → "Yes sir"
+    if (voiceSettings.voiceReply) speak('Yes sir.');
+    setVoiceStatus('Listening...');
+    listenForCommand();
   }
 }
 
-function cancelVoice(){
-  _vActive=false;
-  sfxDeactivate();
-  sfxThinkStop();
-  try{if(_recorder)_recorder.stop();}catch(e){}
-  try{if(_dgWS)_dgWS.close();}catch(e){}
-  try{if(_micStream)_micStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
-  try{if(_vAudio)_vAudio.pause();}catch(e){}
-  try{_stopStopListener();}catch(e){}
-  _dgWS=null;_micStream=null;_recorder=null;_vAudio=null;
-  var sb=document.getElementById('voice-stop-btn');
-  var cb=document.getElementById('voice-cancel-btn');
-  if(sb)sb.style.display='none';
-  if(cb)cb.style.display='inline-block';
-  document.getElementById('voice-overlay').classList.remove('open');
-  var btn=document.getElementById('voice-btn');if(btn)btn.className='';
+// ── Tap-to-Talk ───────────────────────────────────────────────────────────
+function toggleVoice() {
+  if (voiceState==='listening'||voiceState==='processing'||voiceState==='speaking') {
+    cancelVoice(); return;
+  }
+  openVoiceModal(); voiceState='listening';
+  setVoiceStatus('Listening...'); listenForCommand();
 }
 
-// Auto-start wake word 3s after page load
-window.addEventListener('load',function(){setTimeout(startWakeWord,3000);});
-function saveVoiceSettings(){
-  localStorage.setItem('jarvis_vs_tts',document.getElementById('vs-tts-engine')?.value||'browser');
-  localStorage.setItem('jarvis_vs_el_key',document.getElementById('vs-el-key')?.value||'');
-  localStorage.setItem('jarvis_vs_el_voice',document.getElementById('vs-el-voice')?.value||'');
-  localStorage.setItem('jarvis_vs_wake',document.getElementById('vs-wakeword')?.value||'hey jarvis');
-  localStorage.setItem('jarvis_vs_reply',document.getElementById('vs-voice-reply')?.checked?'1':'0');
-  document.getElementById('voice-settings-overlay').classList.remove('open');
-  showToast('Voice settings saved');
+function cancelVoice() {
+  stopVoiceCapture(); stopSpeaking();
+  pendingMishearConfirm=null;
+  closeVoiceModal();
+  voiceState=(voiceSettings.wakeEnabled&&deepgramWakeWs?.readyState===WebSocket.OPEN)?'wake-listening':'idle';
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  const eng=document.getElementById('vs-tts-engine');
-  if(eng)eng.addEventListener('change',function(){
-    const isEL=this.value==='elevenlabs';
-    document.getElementById('vs-el-group').style.display=isEL?'block':'none';
-    document.getElementById('vs-el-voice-group').style.display=isEL?'block':'none';
+
+// ── Command Capture (Deepgram one-shot with semantic pause extension) ──────
+let semanticExtensionTimer=null;
+
+async function listenForCommand() {
+  if (!voiceSettings.deepgramKey) { listenBrowserFallback(); return; }
+  try {
+    const stream=voiceMediaStream||await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    const dgToken=await fetchDeepgramToken();
+    if (!dgToken) { listenBrowserFallback(); return; }
+    const dgUrl='wss://api.deepgram.com/v1/listen'
+      +'?access_token='+encodeURIComponent(dgToken)
+      +'&model=nova-2&language=en-US&endpointing=800&utterance_end_ms=1200&interim_results=true&smart_format=true';
+    deepgramCmdWs=new WebSocket(dgUrl);
+
+    deepgramCmdWs.onopen=()=>{
+      cmdCtx=new (window.AudioContext||window.webkitAudioContext)();
+      const src=cmdCtx.createMediaStreamSource(stream);
+      cmdProc=cmdCtx.createScriptProcessor(4096,1,1);
+      cmdProc.onaudioprocess=(e)=>{
+        if (deepgramCmdWs?.readyState===WebSocket.OPEN) {
+          const f=e.inputBuffer.getChannelData(0);
+          const i=new Int16Array(f.length);
+          for (let x=0;x<f.length;x++) i[x]=Math.max(-32768,Math.min(32767,f[x]*32768));
+          deepgramCmdWs.send(i.buffer);
+        }
+      };
+      src.connect(cmdProc); cmdProc.connect(cmdCtx.destination);
+    };
+
+    cmdFinalText='';
+    deepgramCmdWs.onmessage=(event)=>{
+      try {
+        const msg=JSON.parse(event.data);
+        const transcript=msg.channel?.alternatives?.[0]?.transcript||'';
+        if (transcript) setVoiceTranscript(transcript);
+        if (msg.is_final && transcript) {
+          cmdFinalText+=' '+transcript;
+          if (msg.speech_final) {
+            // ── Semantic pause detection ──
+            // If transcript ends mid-thought, extend listening window instead of processing
+            if (looksIncomplete(cmdFinalText.trim())) {
+              clearTimeout(semanticExtensionTimer);
+              setVoiceStatus('Still listening...');
+              // Give 2.5 more seconds for the user to finish their thought
+              semanticExtensionTimer=setTimeout(()=>{
+                // If still looks incomplete after extension, process anyway
+                finishListening();
+              }, 2500);
+            } else {
+              clearTimeout(semanticExtensionTimer);
+              clearTimeout(cmdSilenceTimer);
+              finishListening();
+            }
+          }
+        }
+      } catch(e) {}
+    };
+    deepgramCmdWs.onerror=()=>finishListening();
+    cmdSilenceTimer=setTimeout(finishListening,15000);
+  } catch(e) { listenBrowserFallback(); }
+}
+
+function stopVoiceCapture() {
+  clearTimeout(cmdSilenceTimer); clearTimeout(semanticExtensionTimer);
+  try { deepgramCmdWs?.close(); } catch(e){} deepgramCmdWs=null;
+  try { cmdProc?.disconnect(); } catch(e){}
+  try { cmdCtx?.close(); } catch(e){}
+}
+
+function finishListening() {
+  stopVoiceCapture();
+  const text=cmdFinalText.trim();
+  if (text.length<2) { cancelVoice(); return; }
+  setVoiceTranscript(text);
+  processVoiceCommand(text);
+}
+
+function listenBrowserFallback() {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if (!SR) { showToast('Add a Deepgram key in Voice Settings to use voice'); cancelVoice(); return; }
+  const recog=new SR();
+  recog.lang='en-US'; recog.interimResults=true;
+  recog.onresult=(e)=>{
+    const t=Array.from(e.results).map(r=>r[0].transcript).join('');
+    setVoiceTranscript(t);
+    if (e.results[e.results.length-1].isFinal) processVoiceCommand(t);
+  };
+  recog.onerror=()=>cancelVoice();
+  recog.onend=()=>{ if(voiceState==='listening') cancelVoice(); };
+  recog.start();
+}
+
+// ── Process Voice Command ─────────────────────────────────────────────────
+async function processVoiceCommand(text) {
+  if (!text?.trim()) { cancelVoice(); return; }
+  text=text.trim();
+
+  // Stop command
+  if (/^(stop|cancel|quiet|enough|silence)$/i.test(text)) { stopSpeaking(); cancelVoice(); return; }
+
+  // Volume control
+  if (handleVolumeCommand(text)) { setTimeout(cancelVoice,2000); return; }
+
+  voiceState='processing';
+  currentResponseText='';
+  setVoiceStatus('Processing...');
+
+  const intent=classifyIntent(text);
+
+  // ── Mishear detection for high-stakes commands ──
+  const mishearPrompt=getMishearCheck(text);
+  if (mishearPrompt) {
+    speak(mishearPrompt);
+    setVoiceStatus('Waiting for confirmation...');
+    pendingMishearConfirm={text, resolve:null};
+    return; // wait for yes/no in wake word listener
+  }
+
+  await executeConfirmedCommand(text, intent);
+}
+
+async function executeConfirmedCommand(text, intent) {
+  intent=intent||classifyIntent(text);
+
+  // Commands — no filler, just act
+  if (intent.type!=='command' && intent.filler) {
+    speak(intent.filler);
+    setVoiceStatus('Responding...');
+  }
+
+  const domain=detectDomain(text);
+
+  // Topic tracking
+  if (domain) sessionMemory.currentDomain=domain;
+  sessionMemory.history.push({role:'User',content:text,domain,ts:Date.now()});
+  if (sessionMemory.history.length>20) sessionMemory.history=sessionMemory.history.slice(-20);
+
+  // Build context and stream response
+  const systemCtx=await buildVoiceContext(text);
+
+  voiceState='speaking';
+  setVoiceSpeaking(true);
+  let fullResponse='';
+
+  await streamVoiceResponse(text, systemCtx, (sentence)=>{
+    if (voiceState!=='speaking') return;
+    fullResponse+=sentence+' ';
+    speak(sentence);
   });
+
+  // Track in session memory
+  sessionMemory.history.push({role:'JARVIS',content:fullResponse.trim(),domain,ts:Date.now()});
+  sessionMemory.lastResponseFull=fullResponse.trim();
+
+  // Display in chat
+  if (fullResponse.trim()) appendVoiceToChat('JARVIS', fullResponse.trim());
+
+  // Wait for TTS to drain
+  await new Promise(resolve=>{
+    const check=setInterval(()=>{ if(!ttsPlaying&&!ttsQueue.length){clearInterval(check);resolve();} },200);
+    setTimeout(()=>{clearInterval(check);resolve();},30000);
+  });
+
+  // Save to Supabase memory
+  try {
+    if (supa) await supa.from('memory').insert({
+      type:'voice_session',
+      content:'User: '+text+'\nJARVIS: '+fullResponse.trim(),
+      source:'voice',
+      created_at:new Date().toISOString()
+    });
+  } catch(e) {}
+
+  // Check for topic shift (for transition phrase)
+  const newDomain=detectDomain(text);
+  if (newDomain && sessionMemory.currentDomain && newDomain!==sessionMemory.currentDomain) {
+    // Topic just shifted — JARVIS already finished, next response will have new context
+    sessionMemory.currentDomain=newDomain;
+  }
+
+  voiceState=(voiceSettings.wakeEnabled&&deepgramWakeWs?.readyState===WebSocket.OPEN)?'wake-listening':'idle';
+  setVoiceSpeaking(false);
+  setVoiceStatus('Listening for "Jarvis"...');
+  setTimeout(closeVoiceModal,1000);
+}
+
+// ── UI Helpers ────────────────────────────────────────────────────────────
+function openVoiceModal() {
+  document.getElementById('voice-overlay')?.classList.add('open');
+  document.getElementById('voice-btn')?.classList.add('listening');
+}
+function closeVoiceModal() {
+  document.getElementById('voice-overlay')?.classList.remove('open');
+  const btn=document.getElementById('voice-btn');
+  if(btn) btn.classList.remove('listening','processing');
+  setVoiceStatus('Listening...'); setVoiceTranscript(''); setVoiceSpeaking(false);
+}
+function setVoiceStatus(msg){ const el=document.getElementById('voice-status-text'); if(el) el.textContent=msg; }
+function setVoiceTranscript(msg){ const el=document.getElementById('voice-transcript-text'); if(el) el.textContent=msg; }
+function setVoiceSpeaking(s){
+  const wf=document.getElementById('voice-waveform');
+  if(wf){ wf.classList.toggle('speaking',s); wf.classList.toggle('idle',!s); }
+}
+function updateWakeIndicator(active){
+  document.getElementById('voice-wake-indicator')?.classList.toggle('active',active);
+}
+function appendVoiceToChat(role,text){
+  const chatLog=document.getElementById('chat-log')||document.getElementById('chat-messages')||document.getElementById('messages');
+  if(!chatLog) return;
+  const div=document.createElement('div');
+  div.className=role==='JARVIS'?'msg jarvis':'msg user';
+  div.textContent=text;
+  chatLog.appendChild(div); chatLog.scrollTop=chatLog.scrollHeight;
+}
+
+// ── Keyboard Shortcuts ────────────────────────────────────────────────────
+document.addEventListener('keydown',(e)=>{
+  // Escape → stop speaking / cancel voice
+  if (e.key==='Escape' && (voiceState==='speaking'||voiceState==='listening'||voiceState==='processing')) {
+    stopSpeaking(); cancelVoice();
+  }
+  // MediaStop key (global media pause — works while gaming)
+  if (e.key==='MediaStop'||e.key==='MediaPlayPause') {
+    if (voiceState==='speaking') { stopSpeaking(); cancelVoice(); }
+  }
 });
 
-// ── Continue mastery from prior run ──────────────────────────────────────
-async function continueAgentMastery(i){
-  const a=agentLibrary[i];if(!a)return;
-  switchTab('mastery',Array.from(document.querySelectorAll('.tab')).find(t=>t.textContent.includes('Mastery')));
-  document.getElementById('mastery-topic').value=a.topic;
-  if(supa&&a.run_id){
-    try{
-      const{data:priorNotes}=await supa.from('mastery_notes').select('label,summary,source_title,source_url,raw_text').eq('run_id',a.run_id).limit(100);
-      if(priorNotes&&priorNotes.length){
-        mNotes=priorNotes.map(n=>({label:n.label,summary:n.summary,source:n.source_title||'',url:n.source_url||'',text:n.raw_text||n.summary||''}));
-        mConcepts=new Set();
-        mNotes.forEach(n=>{(n.summary||'').replace(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)\b/g,(_,c)=>{if(c.length>3&&c.length<30)mConcepts.add(c);});});
-        mCurrentMastery=a.mastery_score||0;
-        document.getElementById('stat-sources').textContent=mNotes.length;
-        document.getElementById('stat-concepts').textContent=mConcepts.size;
-        updateMasteryRing(mCurrentMastery);
-        addFeedEntry('learn','Continuing '+a.topic,'Loaded '+priorNotes.length+' prior sources. Starting from '+a.mastery_score+'% — hit Start to research new gaps.','');
-        showToast('Loaded '+priorNotes.length+' prior sources — hit Start to continue from '+a.mastery_score+'%');
-      }else{showToast('No prior notes — starting fresh for '+a.topic);}
-    }catch(e){showToast('Starting fresh run for '+a.topic);}
-  }else{showToast('Hit Start to deepen mastery of '+a.topic);}
+// ── Init ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  loadVoiceSettings();
+  loadVoiceProfile(); // async — loads from Supabase across all devices
+  // Wake word starts automatically — Deepgram key is fetched from Vault
+  if (voiceSettings.wakeEnabled) {
+    setTimeout(startWakeWord, 2500);
+  }
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYER 1 PHASE 2 — VOICE FINGERPRINTING
+// Siri-style trainer · Web Audio spectral extraction · Cosine similarity
+// Only Tony's voice activates JARVIS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Training phrases (Siri-style) ─────────────────────────────────────────
+const TRAINING_PHRASES = [
+  'Hey Jarvis',
+  'Jarvis what\'s my schedule today',
+  'Ok Jarvis remind me',
+  'Jarvis play some music',
+  'Hey Jarvis what\'s up'
+];
+
+// ── Voice Profile State ───────────────────────────────────────────────────
+let voiceProfile = null;          // stored fingerprint (averaged feature vector)
+let voiceProfileEnabled = false;  // only active after training
+let voiceSensitivity = 0.85;      // cosine similarity threshold (0-1)
+
+const VP_STORAGE_KEY = 'jarvis_voice_profile';
+const VP_ENABLED_KEY = 'jarvis_voice_profile_enabled';
+const VP_SENS_KEY    = 'jarvis_voice_sensitivity';
+
+async function loadVoiceProfile() {
+  // Try Supabase first (works across all devices), fall back to localStorage
+  try {
+    if (supa) {
+      const { data } = await supa.from('user_settings').select('value').eq('key','voice_profile').maybeSingle();
+      if (data?.value) {
+        const parsed=JSON.parse(data.value);
+        voiceProfile=parsed.profile||null;
+        voiceProfileEnabled=parsed.enabled||false;
+        voiceSensitivity=parsed.sensitivity||0.85;
+        return;
+      }
+    }
+  } catch(e) {}
+  // localStorage fallback
+  try {
+    const raw=localStorage.getItem(VP_STORAGE_KEY);
+    if (raw) voiceProfile=JSON.parse(raw);
+    voiceProfileEnabled=localStorage.getItem(VP_ENABLED_KEY)==='true';
+    voiceSensitivity=parseFloat(localStorage.getItem(VP_SENS_KEY)||'0.85');
+  } catch(e) {}
 }
 
-if(!supabaseUrl||!supabaseKey){
-  const b=document.createElement('div');
-  b.style.cssText='position:fixed;top:56px;left:0;right:0;z-index:50;background:rgba(124,111,255,.08);border-bottom:1px solid rgba(124,111,255,.25);padding:8px 20px;font-size:12px;color:var(--primary);display:flex;align-items:center;justify-content:space-between;';
-  b.innerHTML='<span>JARVIS needs Supabase keys - find JARVIS_CONFIG in index.html and paste your Supabase URL and anon key.</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:16px">X</button>';
-  document.body.appendChild(b);
+async function saveVoiceProfile(profile) {
+  voiceProfile=profile;
+  voiceProfileEnabled=true;
+  const payload=JSON.stringify({profile,enabled:true,sensitivity:voiceSensitivity});
+  // Save to Supabase (works across all devices)
+  try {
+    if (supa) {
+      await supa.from('user_settings').upsert({key:'voice_profile',value:payload},{onConflict:'key'});
+    }
+  } catch(e) {}
+  // Also localStorage as offline fallback
+  try {
+    localStorage.setItem(VP_STORAGE_KEY,JSON.stringify(profile));
+    localStorage.setItem(VP_ENABLED_KEY,'true');
+    localStorage.setItem(VP_SENS_KEY,String(voiceSensitivity));
+  } catch(e) {}
 }
-</script>
-<script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/sw.js').then(function(){
-      console.log('[JARVIS] PWA ready');
-    }).catch(function(e){ console.warn('[JARVIS] SW failed:', e); });
+
+// ── Spectral Feature Extraction ───────────────────────────────────────────
+// Captures ~2 seconds of audio and extracts a frequency fingerprint
+// Uses 32 frequency bands across the human speech range (80–8000 Hz)
+// Returns a normalized Float32Array — stable per-person, distinct across people
+
+const FEATURE_BANDS = 32;
+const RECORD_DURATION_MS = 1800; // record 1.8s of each phrase
+
+async function extractVoiceFeatures(stream) {
+  return new Promise((resolve, reject) => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.3;
+      source.connect(analyser);
+
+      const bufLen = analyser.frequencyBinCount;
+      const freqData = new Uint8Array(bufLen);
+      const accumulated = new Float64Array(FEATURE_BANDS);
+      let frames = 0;
+
+      // Sample at ~60fps for RECORD_DURATION_MS
+      const interval = setInterval(() => {
+        analyser.getByteFrequencyData(freqData);
+        // Map FFT bins to FEATURE_BANDS bands (focus on 80-8000Hz speech range)
+        const nyquist = audioCtx.sampleRate / 2;
+        const lowBin  = Math.floor(80   / nyquist * bufLen);
+        const highBin = Math.floor(8000 / nyquist * bufLen);
+        const range   = highBin - lowBin;
+        for (let b = 0; b < FEATURE_BANDS; b++) {
+          const start = lowBin + Math.floor(b * range / FEATURE_BANDS);
+          const end   = lowBin + Math.floor((b+1) * range / FEATURE_BANDS);
+          let sum = 0;
+          for (let i = start; i < end; i++) sum += freqData[i];
+          accumulated[b] += sum / Math.max(end - start, 1);
+        }
+        frames++;
+      }, 16);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        try { source.disconnect(); audioCtx.close(); } catch(e) {}
+
+        if (frames === 0) { reject(new Error('No audio captured')); return; }
+
+        // Average across frames
+        const avg = new Float32Array(FEATURE_BANDS);
+        for (let b = 0; b < FEATURE_BANDS; b++) avg[b] = accumulated[b] / frames;
+
+        // L2-normalize so comparison is scale-invariant (volume doesn't matter)
+        const magnitude = Math.sqrt(avg.reduce((s, v) => s + v*v, 0)) || 1;
+        for (let b = 0; b < FEATURE_BANDS; b++) avg[b] /= magnitude;
+
+        resolve(Array.from(avg));
+      }, RECORD_DURATION_MS);
+    } catch(e) { reject(e); }
   });
 }
+
+// ── Cosine Similarity ─────────────────────────────────────────────────────
+function cosineSimilarity(a, b) {
+  if (!a || !b || a.length !== b.length) return 0;
+  let dot = 0, magA = 0, magB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot  += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(magA) * Math.sqrt(magB) || 1);
+}
+
+// Average multiple feature vectors into one profile
+function averageFeatures(featuresList) {
+  const len = featuresList[0].length;
+  const avg = new Array(len).fill(0);
+  for (const feat of featuresList) {
+    for (let i = 0; i < len; i++) avg[i] += feat[i];
+  }
+  for (let i = 0; i < len; i++) avg[i] /= featuresList.length;
+  // Re-normalize
+  const mag = Math.sqrt(avg.reduce((s,v) => s+v*v, 0)) || 1;
+  return avg.map(v => v / mag);
+}
+
+// ── Voice Verification ────────────────────────────────────────────────────
+// Call this before activating wake word — returns true if it's Tony
+async function verifyVoice(stream) {
+  if (!voiceProfileEnabled || !voiceProfile) return true; // no profile = allow all
+  try {
+    const features = await extractVoiceFeatures(stream);
+    const similarity = cosineSimilarity(features, voiceProfile);
+    console.log('[JARVIS voice] similarity:', (similarity*100).toFixed(1)+'%', 'threshold:', (voiceSensitivity*100).toFixed(0)+'%');
+    return similarity >= voiceSensitivity;
+  } catch(e) {
+    return true; // on error, allow through — don't block JARVIS
+  }
+}
+
+// ── Trainer UI State ──────────────────────────────────────────────────────
+let trainerPhraseIndex = 0;
+let trainerFeatures = [];
+let trainerStream = null;
+let trainerCountdownTimer = null;
+
+function openVoiceTrainer() {
+  document.getElementById('voice-settings-overlay')?.classList.remove('open');
+  document.getElementById('voice-trainer-overlay')?.classList.add('open');
+  showTrainerStep('intro');
+}
+
+function showTrainerStep(step) {
+  ['intro','record','done'].forEach(s => {
+    const el = document.getElementById('vt-step-'+s);
+    if (el) el.style.display = s === step ? '' : 'none';
+  });
+}
+
+async function startVoiceTraining() {
+  trainerPhraseIndex = 0;
+  trainerFeatures = [];
+  showTrainerStep('record');
+  // Get mic access
+  try {
+    trainerStream = await navigator.mediaDevices.getUserMedia({audio:true, video:false});
+  } catch(e) {
+    showToast('Mic access denied — allow mic to train voice');
+    showTrainerStep('intro'); return;
+  }
+  loadTrainingPhrase(0);
+}
+
+function loadTrainingPhrase(index) {
+  const phrase = TRAINING_PHRASES[index];
+  const total  = TRAINING_PHRASES.length;
+
+  document.getElementById('vt-phrase-num').textContent  = 'Phrase '+(index+1)+' of '+total;
+  document.getElementById('vt-phrase-text').textContent = '"'+phrase+'"';
+  document.getElementById('vt-progress-fill').style.width = (index/total*100)+'%';
+  document.getElementById('vt-next-btn').style.display = 'none';
+  document.getElementById('vt-status-text').textContent = 'Get ready...';
+  setMicRingState('idle');
+
+  // Countdown then record
+  let count = 3;
+  clearInterval(trainerCountdownTimer);
+  trainerCountdownTimer = setInterval(() => {
+    if (count > 0) {
+      document.getElementById('vt-status-text').textContent = 'Recording in '+count+'...';
+      count--;
+    } else {
+      clearInterval(trainerCountdownTimer);
+      recordPhrase();
+    }
+  }, 1000);
+}
+
+async function recordPhrase() {
+  document.getElementById('vt-status-text').textContent = 'Listening... say the phrase now';
+  setMicRingState('recording');
+
+  try {
+    const features = await extractVoiceFeatures(trainerStream);
+    trainerFeatures.push(features);
+    setMicRingState('done');
+    document.getElementById('vt-status-text').textContent = 'Got it ✓';
+    document.getElementById('vt-next-btn').style.display = '';
+    document.getElementById('vt-next-btn').textContent =
+      trainerPhraseIndex < TRAINING_PHRASES.length - 1 ? 'Next →' : 'Finish ✓';
+  } catch(e) {
+    setMicRingState('idle');
+    document.getElementById('vt-status-text').textContent = 'Didn\'t catch that — try again';
+    document.getElementById('vt-next-btn').style.display = 'none';
+  }
+}
+
+function retryCurrentPhrase() {
+  clearInterval(trainerCountdownTimer);
+  // Remove last feature if it was captured
+  if (trainerFeatures.length > trainerPhraseIndex) trainerFeatures.pop();
+  loadTrainingPhrase(trainerPhraseIndex);
+}
+
+function nextTrainingPhrase() {
+  trainerPhraseIndex++;
+  if (trainerPhraseIndex >= TRAINING_PHRASES.length) {
+    // All phrases done — build profile
+    finalizePhrases();
+  } else {
+    loadTrainingPhrase(trainerPhraseIndex);
+  }
+}
+
+function finalizePhrases() {
+  // Stop training mic stream (wake word will use its own stream)
+  try { trainerStream?.getTracks().forEach(t => t.stop()); } catch(e) {}
+  trainerStream = null;
+
+  if (trainerFeatures.length < 3) {
+    showToast('Not enough phrases captured — please retrain');
+    showTrainerStep('intro'); return;
+  }
+
+  // Average all captured features into one voice profile
+  const profile = averageFeatures(trainerFeatures);
+  voiceSensitivity = 0.85;
+  saveVoiceProfile(profile);
+
+  // Show done step
+  document.getElementById('vt-progress-fill').style.width = '100%';
+  document.getElementById('vt-sensitivity').value = '85';
+  document.getElementById('vt-sens-val').textContent = '85%';
+  showTrainerStep('done');
+  showToast('Voice profile saved ✓');
+}
+
+function updateSensitivityLabel(val) {
+  document.getElementById('vt-sens-val').textContent = val+'%';
+}
+
+async function finishVoiceTraining() {
+  const sensEl = document.getElementById('vt-sensitivity');
+  if (sensEl) voiceSensitivity = parseInt(sensEl.value) / 100;
+  // Re-save profile with updated sensitivity to Supabase + localStorage
+  if (voiceProfile) await saveVoiceProfile(voiceProfile);
+  document.getElementById('voice-trainer-overlay')?.classList.remove('open');
+  showToast('Voice fingerprint active — only your voice works now ✓');
+}
+
+function setMicRingState(state) {
+  const ring = document.getElementById('vt-mic-ring');
+  if (!ring) return;
+  if (state === 'recording') {
+    ring.style.background = 'var(--primary)';
+    ring.style.transform = 'scale(1.15)';
+    ring.style.boxShadow = '0 0 0 8px rgba(124,111,255,0.2)';
+    ring.textContent = '🎤';
+  } else if (state === 'done') {
+    ring.style.background = 'var(--teal-dim, #0d2e2b)';
+    ring.style.borderColor = 'var(--teal, #00d9b4)';
+    ring.style.transform = 'scale(1)';
+    ring.style.boxShadow = 'none';
+    ring.textContent = '✓';
+  } else {
+    ring.style.background = 'var(--primary-dim)';
+    ring.style.borderColor = 'var(--primary)';
+    ring.style.transform = 'scale(1)';
+    ring.style.boxShadow = 'none';
+    ring.textContent = '🎤';
+  }
+}
+
+// ── Hook into Wake Word — verify before activating ────────────────────────
+// This patches handleWakeWordDetected to run voice verification first
+const _originalHandleWakeWord = handleWakeWordDetected;
+async function handleWakeWordDetected(fullTranscript, wakeWord) {
+  if (voiceProfileEnabled && voiceProfile && voiceMediaStream) {
+    const isMatch = await verifyVoice(voiceMediaStream);
+    if (!isMatch) {
+      console.log('[JARVIS voice] Wake word rejected — voice not recognized');
+      return; // not Tony's voice — silently ignore
+    }
+  }
+  _originalHandleWakeWord(fullTranscript, wakeWord);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+loadVoiceProfile();
+
+// END LAYER 1 PHASE 2 — VOICE FINGERPRINTING
+
+// END LAYER 1 — VOICE ENGINE
+
+
+
 </script>
 </body>
-</html>
+</html>                                                                                                                                                                                                                                                                                                                                                                                                  
