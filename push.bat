@@ -20,7 +20,7 @@ git commit -m "JARVIS update — %timestamp%"
 
 echo.
 echo [3/3] Pushing to GitHub (Vercel will auto-deploy)...
-git push
+git push origin main
 
 echo.
 echo Done! Your phone will update in ~30 seconds.
