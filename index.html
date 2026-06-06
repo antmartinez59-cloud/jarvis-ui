@@ -6472,13 +6472,18 @@ async function _startConversation(){
     var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true'
       +'&endpointing=1200&utterance_end_ms=2000';
     _dgWS=new WebSocket(wsUrl,['token',convToken]);
-    var finalTx='',silTimer=null;
+    var finalTx='',silTimer=null,_convTimeout=null;
     _dgWS.onopen=function(){
       _recorder=new MediaRecorder(_micStream,{mimeType:'audio/webm'});
       _recorder.ondataavailable=function(e){
         if(_dgWS&&_dgWS.readyState===1&&e.data.size>0)_dgWS.send(e.data);
       };
       _recorder.start(250);
+      _vSetStatus('Listening...','listening');
+      // Auto-close after 15s of silence — prevents stuck overlay
+      _convTimeout=setTimeout(function(){
+        if(_vActive&&!_speechHeard){ cancelVoice(); }
+      },15000);
     };
     _dgWS.onmessage=function(e){
       try{
@@ -6487,8 +6492,8 @@ async function _startConversation(){
         if(!alt)return;
         var tx=(alt.transcript||'').trim();
         if(!tx)return;
-        // Speech detected — cancel greeting timer
-        if(!_speechHeard){ _speechHeard=true; clearTimeout(_greetTimer); }
+        // Speech detected — cancel greeting + auto-close timers
+        if(!_speechHeard){ _speechHeard=true; clearTimeout(_greetTimer); clearTimeout(_convTimeout); }
         if(msg.is_final){
           var clean=tx;
           WAKE_WORDS.forEach(function(w){
