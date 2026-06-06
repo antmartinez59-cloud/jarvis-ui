@@ -6392,7 +6392,7 @@ async function startWakeWord(){
         console.log('[JARVIS] Wake word detected:',tx);_activateVoice();
       }catch(e){}
     };
-    _wakeWS.onerror=function(){ _wakeActive=false; };
+    _wakeWS.onerror=function(){ _wakeActive=false; if(!_vActive) setTimeout(startWakeWord, 3000); };
     _wakeWS.onclose=function(){
       _wakeActive=false;
       var btn=document.getElementById('voice-btn'); if(btn)btn.style.opacity='1';
@@ -6486,8 +6486,8 @@ async function _startConversation(){
     _dgWS.onerror=function(){ cancelVoice(); setTimeout(startWakeWord,1500); };
     _dgWS.onclose=function(){if(_vActive)cancelVoice();};
   }catch(err){
-    showToast('Voice error: '+err.message);
     cancelVoice();
+    setTimeout(startWakeWord, 1500); // always restart wake word even if conversation fails
   }
 }
 
