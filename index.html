@@ -6376,66 +6376,58 @@ function _vSetTranscript(txt){
   if(t)t.textContent=txt;
 }
 
-// Always-on wake word via Deepgram
-async function startWakeWord(){
+// Always-on wake word via browser SpeechRecognition (no API key, runs locally, reliable)
+var _wakeSR=null;
+function startWakeWord(){
   if(_wakeActive||_vActive)return;
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ console.warn('[JARVIS] SpeechRecognition not supported'); return; }
   _wakeActive=true;
   try{
-    var tr=await callEndpoint('voice-token',{},'POST');
-    var td=await tr.json();
-    if(!td.ok)throw new Error('no token');
-    var wakeToken=td.token; // local — never touches shared _dgToken
-    _wakeMic=await navigator.mediaDevices.getUserMedia({audio:true});
-    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=true'
-      +'&keywords=jarvis:2&keywords=hey%20jarvis:2&keywords=ok%20jarvis:2';
-    _wakeWS=new WebSocket(wsUrl,['token',wakeToken]);
-    _wakeWS.onopen=function(){
-      var _wakeMime=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg'].find(function(m){
-        try{return MediaRecorder.isTypeSupported(m);}catch(e){return false;}
-      })||'';
-      _wakeRec=new MediaRecorder(_wakeMic,_wakeMime?{mimeType:_wakeMime}:{});
-      _wakeRec.ondataavailable=function(e){
-        if(_wakeWS&&_wakeWS.readyState===1&&e.data.size>0&&!_vActive)_wakeWS.send(e.data);
-      };
-      _wakeRec.start(250);
+    _wakeSR=new SR();
+    _wakeSR.continuous=true;
+    _wakeSR.interimResults=true;
+    _wakeSR.lang='en-US';
+    _wakeSR.maxAlternatives=1;
+    _wakeSR.onstart=function(){
       var btn=document.getElementById('voice-btn');
       if(btn)btn.style.opacity='0.6';
       console.log('[JARVIS] Wake word active — say Jarvis');
     };
-    _wakeWS.onmessage=function(e){
-      try{
-        var msg=JSON.parse(e.data);
-        var tx=(msg&&msg.channel&&msg.channel.alternatives&&msg.channel.alternatives[0]&&msg.channel.alternatives[0].transcript||'').toLowerCase().trim();
-        if(!tx)return;
-        var hit=WAKE_WORDS.some(function(w){return tx.indexOf(w)>=0;});
-        if(!hit)return;
-        // Debounce — ignore if already activated in last 2s
-        if(_vActive)return;
-        // Wake word while JARVIS is speaking → finish current sentence then listen
-        if(_vAudio){
-          console.log('[JARVIS] Wake word interrupt — finishing sentence then listening');
-          _stopAfterSentence=true;
-          return;
-        }
-        console.log('[JARVIS] Wake word detected:',tx);_activateVoice();
-      }catch(e){}
+    _wakeSR.onresult=function(e){
+      if(_vActive)return;
+      var tx='';
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        tx+=(e.results[i][0].transcript||'').toLowerCase();
+      }
+      var hit=WAKE_WORDS.some(function(w){return tx.indexOf(w)>=0;});
+      if(!hit)return;
+      if(_vAudio){ _stopAfterSentence=true; return; }
+      console.log('[JARVIS] Wake word detected:',tx.trim());
+      _activateVoice();
     };
-    _wakeWS.onerror=function(){ _wakeActive=false; if(!_vActive) setTimeout(startWakeWord, 3000); };
-    _wakeWS.onclose=function(){
+    _wakeSR.onerror=function(e){
+      if(e.error==='no-speech')return; // normal silence, ignore
       _wakeActive=false;
-      var btn=document.getElementById('voice-btn'); if(btn)btn.style.opacity='1';
-      // Auto-reconnect — Deepgram closes idle connections after a few minutes
-      if(!_vActive) setTimeout(startWakeWord, 2000);
+      var btn=document.getElementById('voice-btn');if(btn)btn.style.opacity='1';
+      if(!_vActive)setTimeout(startWakeWord,2000);
     };
+    _wakeSR.onend=function(){
+      _wakeActive=false;
+      var btn=document.getElementById('voice-btn');if(btn)btn.style.opacity='1';
+      if(!_vActive)setTimeout(startWakeWord,500); // restart immediately
+    };
+    _wakeSR.start();
   }catch(err){_wakeActive=false;console.warn('[JARVIS] Wake word failed:',err.message);}
 }
 
 function stopWakeWord(){
   _wakeActive=false;
+  try{if(_wakeSR)_wakeSR.stop();}catch(e){}
   try{if(_wakeRec)_wakeRec.stop();}catch(e){}
   try{if(_wakeWS)_wakeWS.close();}catch(e){}
   try{if(_wakeMic)_wakeMic.getTracks().forEach(function(t){t.stop();});}catch(e){}
-  _wakeWS=null;_wakeRec=null;_wakeMic=null;
+  _wakeSR=null;_wakeWS=null;_wakeRec=null;_wakeMic=null;
 }
 
 var _greetTimer=null, _speechHeard=false, _stopAfterSentence=false;
