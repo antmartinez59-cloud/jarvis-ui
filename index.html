@@ -2753,7 +2753,8 @@ async function sendToCouncil(){
     const _chatInp=document.getElementById('user-input');
     const _chatText=_chatInp?.value.trim();
     if(_chatText && /\b(skip|next|previous|go back|pause|resume|unpause|shuffle|play)\b/i.test(_chatText)){
-      const _handled=await spHandleVoiceCmd(_chatText);
+      var _handled=false;
+      try{ _handled=await spHandleVoiceCmd(_chatText); }catch(e){ _handled=true; appendCouncilResponse('JARVIS\nSomething went wrong with Spotify.'); }
       if(_handled){
         _chatInp.value='';
         appendUserMsg(_chatText);
@@ -2779,7 +2780,7 @@ async function sendToCouncil(){
     const lid=appendLoading('JARVIS');
     try{
       const res=await callEndpoint('proxy',{model:'claude-sonnet-4-6',max_tokens:2000,
-        system:'You are JARVIS, Tony Martinez personal AI. Be direct, helpful, conversational. Tony lives in Prosper TX, bulking to 150lbs, works out 4x/week, tracks health and finances.',
+        system:'You are JARVIS, Tony Martinez personal AI. Be direct, helpful, conversational. Tony lives in Prosper TX, bulking to 150lbs, works out 4x/week, tracks health and finances. IMPORTANT: You cannot control Spotify or play music. If asked to play a song, say the music system will handle it — never pretend to execute it.',
         messages:[{role:'user',content:text}]});
       const d=await res.json();
       removeLoading(lid);
@@ -7236,7 +7237,9 @@ async function _sendToJarvisVoice(text){
     // Close mic immediately — prevents Deepgram double-firing while command executes
     try{if(_recorder)_recorder.stop();}catch(e){}
     try{if(_dgWS)_dgWS.close();}catch(e){}
-    var handled=await spHandleVoiceCmd(text);
+    var handled=false;
+    try{ handled=await spHandleVoiceCmd(text); }
+    catch(spErr){ console.error('[JARVIS Spotify]',spErr); await speak('Something went wrong with Spotify sir.'); handled=true; }
     if(handled){setTimeout(cancelVoice,500);setTimeout(startWakeWord,1200);return;}
   }
   // Handle mishear confirmation response
