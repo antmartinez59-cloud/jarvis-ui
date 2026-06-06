@@ -6773,12 +6773,16 @@ async function spPlay(uri) {
   _spLastPlay = Date.now();
   if (!await spEnsureToken()) { showToast('Connect Spotify first'); return; }
   var isSingleTrack = uri.includes(':track:');
-  var body = isSingleTrack ? { uris: [uri] } : { context_uri: uri };
-  // For single tracks with shuffle on — pause shuffle so track plays immediately, restore after
-  if (isSingleTrack && (_sp.shuffle || _sp.smartShuffle)) {
-    await spApi('/me/player/shuffle?state=false', 'PUT');
+  var res;
+  if (isSingleTrack && _sp.track) {
+    // Active context exists — add to play-next queue then skip, preserves shuffle
+    res = await spApi('/me/player/queue?uri=' + encodeURIComponent(uri), 'POST');
+    await spApi('/me/player/next', 'POST');
+  } else {
+    // No active context or playlist/album — play directly
+    var body = isSingleTrack ? { uris: [uri] } : { context_uri: uri };
+    res = await spApi('/me/player/play', 'PUT', body);
   }
-  var res = await spApi('/me/player/play', 'PUT', body);
   // If no active device, transfer playback to first available then retry
   if (res && !res.ok) {
     var devs = await spApi('/me/player/devices');
@@ -6799,8 +6803,8 @@ async function spPlay(uri) {
   } else {
     showToast('Playing ✓');
   }
-  // Re-apply shuffle after track starts — works for both single tracks and playlists
-  if (_sp.shuffle || _sp.smartShuffle) {
+  // Re-apply shuffle for playlist/album contexts
+  if (!isSingleTrack && (_sp.shuffle || _sp.smartShuffle)) {
     setTimeout(function(){ spApi('/me/player/shuffle?state=true', 'PUT'); }, 1000);
   }
   setTimeout(spPoll, 800);
