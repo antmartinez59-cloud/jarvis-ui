@@ -2102,6 +2102,12 @@ body.viewing-past .tracker-log-only{display:block;}
         </div>
       </div>
 
+      <!-- Devices -->
+      <div id="sp-devices-section" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:none;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:10px;">DEVICES</div>
+        <div id="sp-devices" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+
       <!-- Search -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;">
         <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:10px;">SEARCH</div>
@@ -6761,15 +6767,29 @@ async function spSeek(e, bar) {
 // ── Play by URI / search ───────────────────────────────────────────────────
 var _spLastPlay = 0;
 async function spPlay(uri) {
-  // Debounce — ignore if called within 3s of last play (prevents double-trigger restarts)
   if (Date.now() - _spLastPlay < 3000) return;
   _spLastPlay = Date.now();
   if (!await spEnsureToken()) { showToast('Connect Spotify first'); return; }
   var body = uri.includes('track') ? { uris: [uri] } : { context_uri: uri };
-  await spApi('/me/player/play', 'PUT', body);
+  var res = await spApi('/me/player/play', 'PUT', body);
+  // If no active device, transfer playback to first available then retry
+  if (res && !res.ok) {
+    var devs = await spApi('/me/player/devices');
+    var dev = devs?.devices?.find(function(d){ return d.is_active; }) || devs?.devices?.[0];
+    if (dev) {
+      await spApi('/me/player', 'PUT', { device_ids: [dev.id], play: false });
+      await new Promise(function(r){ setTimeout(r, 800); });
+      await spApi('/me/player/play', 'PUT', body);
+      showToast('Playing on ' + dev.name + ' ✓');
+    } else {
+      showToast('Open Spotify on a device first');
+      _spLastPlay = 0; return;
+    }
+  } else {
+    showToast('Playing ✓');
+  }
   setTimeout(spPoll, 800);
   setTimeout(spLoadQueue, 1500);
-  showToast('Playing ✓');
 }
 
 async function spSearch() {
@@ -6855,7 +6875,36 @@ async function spLoadQueue() {
   }).join('');
 }
 
-function spLoadAll() { spLoadPlaylists(); spLoadRecent(); spLoadQueue(); }
+async function spLoadDevices() {
+  if (!await spEnsureToken()) return;
+  var d = await spApi('/me/player/devices');
+  var sec = document.getElementById('sp-devices-section');
+  var el  = document.getElementById('sp-devices');
+  if (!d?.devices?.length) { if(sec) sec.style.display='none'; return; }
+  if(sec) sec.style.display='';
+  var icons = { computer:'💻', smartphone:'📱', speaker:'🔊', tv:'📺', game_console:'🎮', cast_video:'📺', cast_audio:'🔊' };
+  el.innerHTML = d.devices.map(function(dev) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;cursor:pointer;'
+      +(dev.is_active?'background:var(--primary-dim);border:1px solid var(--primary-border);':'border:1px solid transparent;')
+      +'" onclick="spTransferTo(\''+dev.id+'\')" title="Transfer playback here">'
+      +'<span style="font-size:18px;">'+(icons[dev.type]||'🎵')+'</span>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:13px;font-weight:600;color:'+(dev.is_active?'var(--primary)':'var(--text)')+';">'
+      +dev.name+(dev.is_active?' <span style="font-size:10px;">(active)</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:var(--text-muted);">Vol: '+dev.volume_percent+'%</div>'
+      +'</div></div>';
+  }).join('');
+}
+
+async function spTransferTo(deviceId) {
+  if (!await spEnsureToken()) return;
+  await spApi('/me/player', 'PUT', { device_ids: [deviceId], play: false });
+  showToast('Transferred ✓');
+  setTimeout(spLoadDevices, 800);
+  setTimeout(spPoll, 1000);
+}
+
+function spLoadAll() { spLoadPlaylists(); spLoadRecent(); spLoadQueue(); spLoadDevices(); }
 
 // ── Now playing poll ───────────────────────────────────────────────────────
 async function spPoll() {
