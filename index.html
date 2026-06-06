@@ -6767,7 +6767,7 @@ async function spLoadPlaylists() {
     return '<div onclick="spPlay(\'' + p.uri + '\')" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">'
       + '<img src="' + (p.images?.[0]?.url || '') + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-bottom:8px;" onerror="this.style.display=\'none\'">'
       + '<div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.name + '</div>'
-      + '<div style="font-size:10px;color:var(--text-muted);">' + p.tracks.total + ' tracks</div></div>';
+      + '<div style="font-size:10px;color:var(--text-muted);">' + (p.tracks?.total ?? '—') + ' tracks</div></div>';
   }).join('');
   // Store playlist names for voice matching
   _sp.playlists = d.items;
@@ -6797,7 +6797,7 @@ function spLoadAll() { spLoadPlaylists(); spLoadRecent(); }
 async function spPoll() {
   if (!await spEnsureToken()) return;
   var d = await spApi('/me/player');
-  if (!d || !d.item) return;
+  if (!d || !d.ok || !d.item) return;
   _sp.playing = d.is_playing;
   _sp.track = d.item;
   var art = d.item.album?.images?.[1]?.url || '';
