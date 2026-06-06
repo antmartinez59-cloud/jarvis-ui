@@ -6794,7 +6794,8 @@ async function spPlay(uri) {
     if (dev) {
       await spApi('/me/player', 'PUT', { device_ids: [dev.id], play: false });
       await new Promise(function(r){ setTimeout(r, 800); });
-      await spApi('/me/player/play', 'PUT', body);
+      var retryBody = isSingleTrack ? { uris: [uri] } : { context_uri: uri };
+      await spApi('/me/player/play', 'PUT', retryBody);
       showToast('Playing on ' + dev.name + ' ✓');
     } else {
       showToast('Open Spotify on a device first');

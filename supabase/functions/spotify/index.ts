@@ -98,9 +98,10 @@ Deno.serve(async (req) => {
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
       const text = await res.text();
-      const data = text ? JSON.parse(text) : {};
+      let data: Record<string, unknown> = {};
+      try { data = text ? JSON.parse(text) : {}; } catch(_) { data = {}; }
       // Return soft error instead of throwing — lets client handle gracefully
-      if (!res.ok) return new Response(JSON.stringify({ ok: false, status: res.status, error: data.error?.message || 'Spotify API error ' + res.status }), {
+      if (!res.ok) return new Response(JSON.stringify({ ok: false, status: res.status, error: (data.error as Record<string,unknown>)?.message || 'Spotify API error ' + res.status }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
       return new Response(JSON.stringify({ ok: true, ...data }), {
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('[spotify]', e.message);
     return new Response(JSON.stringify({ ok: false, error: e.message }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+      status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 });
