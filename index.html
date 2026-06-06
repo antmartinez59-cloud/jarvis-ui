@@ -7074,7 +7074,9 @@ async function spHandleVoiceCmd(text) {
       var query = byMatch
         ? byMatch[1].trim() + ' artist:' + byMatch[2].trim()
         : raw;
+      console.log('[JARVIS Spotify] searching:', query);
       var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track&limit=5');
+      console.log('[JARVIS Spotify] result:', d?.tracks?.items?.length, 'tracks, first:', d?.tracks?.items?.[0]?.name);
       var uri = d?.tracks?.items?.[0]?.uri;
       // Fallback: strip "artist:" and try plain search
       if (!uri && byMatch) {
@@ -7082,6 +7084,8 @@ async function spHandleVoiceCmd(text) {
         uri = d2?.tracks?.items?.[0]?.uri;
       }
       if (uri) { await spPlay(uri); await speak('Playing that now sir.'); return true; }
+      // Search returned nothing — tell Tony instead of letting AI fake it
+      await speak('Couldn\'t find that track sir, try a different name.'); return true;
     }
   }
 
