@@ -6623,7 +6623,10 @@ document.head.appendChild(_shakeStyle);
 
 var _sp = {
   token: null, refresh: null, expires: 0,
-  playing: false, shuffle: false, smartShuffle: false, repeat: 'off',
+  playing: false,
+  shuffle: localStorage.getItem('sp_shuffle')==='1',
+  smartShuffle: localStorage.getItem('sp_smart_shuffle')==='1',
+  repeat: 'off',
   track: null, deviceId: null, pollTimer: null
 };
 var SP_REDIRECT = window.location.origin + '/callback';
@@ -6728,21 +6731,20 @@ async function spCmd(cmd) {
     // 3-state cycle: off → shuffle → smart shuffle → off
     var sb = document.getElementById('sp-shuffle-btn');
     if (!_sp.shuffle && !_sp.smartShuffle) {
-      // off → shuffle
       _sp.shuffle = true; _sp.smartShuffle = false;
       await spApi('/me/player/shuffle?state=true', 'PUT');
       if(sb){ sb.style.color='var(--primary)'; sb.title='Shuffle ON'; }
     } else if (_sp.shuffle && !_sp.smartShuffle) {
-      // shuffle → smart shuffle
       _sp.smartShuffle = true;
       await spApi('/me/player/shuffle?state=true&smart_shuffle=true', 'PUT');
       if(sb){ sb.style.color='var(--teal)'; sb.title='Smart Shuffle ON'; }
     } else {
-      // smart shuffle / any state → off
       _sp.shuffle = false; _sp.smartShuffle = false;
       await spApi('/me/player/shuffle?state=false', 'PUT');
       if(sb){ sb.style.color='var(--text-muted)'; sb.title='Shuffle OFF'; }
     }
+    localStorage.setItem('sp_shuffle', _sp.shuffle ? '1' : '0');
+    localStorage.setItem('sp_smart_shuffle', _sp.smartShuffle ? '1' : '0');
   } else if (cmd === 'repeat') {
     var modes = ['off', 'context', 'track'];
     _sp.repeat = modes[(modes.indexOf(_sp.repeat) + 1) % 3];
@@ -6791,6 +6793,10 @@ async function spPlay(uri) {
     }
   } else {
     showToast('Playing ✓');
+  }
+  // Re-apply shuffle state — Spotify can reset it when a new context starts
+  if (_sp.shuffle || _sp.smartShuffle) {
+    setTimeout(function(){ spApi('/me/player/shuffle?state=true', 'PUT'); }, 600);
   }
   setTimeout(spPoll, 800);
   setTimeout(spLoadQueue, 1500);
@@ -6879,25 +6885,35 @@ async function spLoadQueue() {
   }).join('');
 }
 
+function _spHiddenDevices(){ try{ return JSON.parse(localStorage.getItem('sp_hidden_devices')||'[]'); }catch(e){ return []; } }
+function spHideDevice(id, e){ e.stopPropagation(); var h=_spHiddenDevices(); if(!h.includes(id)) h.push(id); localStorage.setItem('sp_hidden_devices',JSON.stringify(h)); spLoadDevices(); showToast('Device hidden — refresh to show again'); }
+function spShowAllDevices(){ localStorage.removeItem('sp_hidden_devices'); spLoadDevices(); }
+
 async function spLoadDevices() {
   if (!await spEnsureToken()) return;
   var d = await spApi('/me/player/devices');
   var sec = document.getElementById('sp-devices-section');
   var el  = document.getElementById('sp-devices');
   if (!d?.devices?.length) { if(sec) sec.style.display='none'; return; }
+  var hidden = _spHiddenDevices();
+  var visible = d.devices.filter(function(dev){ return !hidden.includes(dev.id); });
+  if (!visible.length) { if(sec) sec.style.display='none'; return; }
   if(sec) sec.style.display='';
   var icons = { computer:'💻', smartphone:'📱', speaker:'🔊', tv:'📺', game_console:'🎮', cast_video:'📺', cast_audio:'🔊' };
-  el.innerHTML = d.devices.map(function(dev) {
-    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;cursor:pointer;'
+  el.innerHTML = visible.map(function(dev) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;'
       +(dev.is_active?'background:var(--primary-dim);border:1px solid var(--primary-border);':'border:1px solid transparent;')
-      +'" onclick="spTransferTo(\''+dev.id+'\')" title="Transfer playback here">'
-      +'<span style="font-size:18px;">'+(icons[dev.type]||'🎵')+'</span>'
-      +'<div style="flex:1;min-width:0;">'
+      +'">'
+      +'<span style="font-size:18px;cursor:pointer;" onclick="spTransferTo(\''+dev.id+'\')" title="Transfer here">'+(icons[dev.type]||'🎵')+'</span>'
+      +'<div style="flex:1;min-width:0;cursor:pointer;" onclick="spTransferTo(\''+dev.id+'\')">'
       +'<div style="font-size:13px;font-weight:600;color:'+(dev.is_active?'var(--primary)':'var(--text)')+';">'
-      +dev.name+(dev.is_active?' <span style="font-size:10px;">(active)</span>':'')+'</div>'
+      +dev.name+(dev.is_active?' <span style="font-size:10px;color:var(--text-muted);">(active)</span>':'')+'</div>'
       +'<div style="font-size:11px;color:var(--text-muted);">Vol: '+dev.volume_percent+'%</div>'
-      +'</div></div>';
-  }).join('');
+      +'</div>'
+      +'<button onclick="spHideDevice(\''+dev.id+'\',event)" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;" title="Hide this device">✕</button>'
+      +'</div>';
+  }).join('')
+  + (hidden.length ? '<div style="margin-top:8px;"><button onclick="spShowAllDevices()" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;text-decoration:underline;">Show hidden devices</button></div>' : '');
 }
 
 async function spTransferTo(deviceId) {
