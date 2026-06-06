@@ -2748,27 +2748,15 @@ async function sendToCouncil(){
   var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
   console.log('[JARVIS] chat mode:', modeBtn&&modeBtn.getAttribute('data-mode'), 'isNormal:', isNormal);
 
-  // ── Spotify command interception (same as voice) ──────────────────────────
+  // ── Spotify command interception — always intercept, never let AI handle music ──
   {
     const _chatInp=document.getElementById('user-input');
     const _chatText=_chatInp?.value.trim();
     if(_chatText && /\b(skip|next|previous|go back|pause|resume|unpause|shuffle|play)\b/i.test(_chatText)){
-      var _handled=false;
-      try{ _handled=await spHandleVoiceCmd(_chatText); }catch(e){ _handled=true; appendCouncilResponse('JARVIS\nSomething went wrong with Spotify.'); }
-      if(_handled){
-        _chatInp.value='';
-        appendUserMsg(_chatText);
-        // Show what JARVIS did in chat
-        var _spReply='';
-        if(/\b(skip|next)\b/i.test(_chatText)) _spReply='Skipping sir.';
-        else if(/\bprevious|go back\b/i.test(_chatText)) _spReply='Going back sir.';
-        else if(/\bpause|stop the music\b/i.test(_chatText)) _spReply='Paused sir.';
-        else if(/\bresume|unpause\b/i.test(_chatText)) _spReply='Resuming sir.';
-        else if(/\bshuffle\b/i.test(_chatText)) _spReply='Shuffle toggled sir.';
-        else if(/\bplay\b/i.test(_chatText)) _spReply='Playing that now sir.';
-        if(_spReply) appendCouncilResponse('JARVIS\n'+_spReply);
-        return;
-      }
+      _chatInp.value='';
+      appendUserMsg(_chatText);
+      try{ await spHandleVoiceCmd(_chatText); }catch(e){ appendCouncilResponse('JARVIS\nSpotify error: '+e.message); }
+      return; // always return — AI never sees music commands
     }
   }
 
@@ -7052,37 +7040,40 @@ async function spHandleVoiceCmd(text) {
     return false; // handled by _volCmd
   }
 
-  // Play specific playlist by name — requires full name match or 2+ words matching
-  if (/\b(play)\b/.test(t) && _sp.playlists) {
-    var plMatch = _sp.playlists.find(function(p) {
-      var pn = p.name.toLowerCase();
-      if (t.includes(pn)) return true;
-      var words = pn.split(' ').filter(function(w){ return w.length > 4; });
-      var matches = words.filter(function(w){ return t.includes(w); });
-      return matches.length >= 2;
-    });
-    if (plMatch) { await spPlay(plMatch.uri); await speak('Playing ' + plMatch.name + ' sir.'); return true; }
-  }
-
   // Play artist or song by search
   if (/\b(play)\b/.test(t)) {
+    // Strip only command words — never strip "the/a/an" which could be part of artist names
     var raw = t
-      .replace(/\b(play|jarvis|hey|ok|please|can you|some|me|a|an|the|song|track|music)\b/g, '')
+      .replace(/\b(play|jarvis|hey|ok|please|can you)\b/g, '')
       .replace(/\s+/g, ' ').trim();
     if (raw.length > 1) {
-      // "song by artist" → precise field search; plain name → popularity-ranked search
       var byMatch = raw.match(/^(.+?)\s+by\s+(.+)$/i);
+      // Only check playlists when NO "by artist" — prevents artist names matching playlist names
+      if (!byMatch && _sp.playlists) {
+        var plMatch = _sp.playlists.find(function(p) {
+          var pn = p.name.toLowerCase();
+          if (raw === pn) return true; // exact match only
+          var words = pn.split(' ').filter(function(w){ return w.length > 4; });
+          return words.length >= 2 && words.every(function(w){ return raw.includes(w); });
+        });
+        if (plMatch) { await spPlay(plMatch.uri); await speak('Playing ' + plMatch.name + ' sir.'); return true; }
+      }
       var query = byMatch
-        ? byMatch[1].trim() + ' artist:' + byMatch[2].trim()
+        ? byMatch[1].trim() + ' artist:"' + byMatch[2].trim() + '"'
         : raw;
       console.log('[JARVIS Spotify] searching:', query);
       var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track&limit=5');
       console.log('[JARVIS Spotify] result:', d?.tracks?.items?.length, 'tracks, first:', d?.tracks?.items?.[0]?.name);
       var uri = d?.tracks?.items?.[0]?.uri;
-      // Fallback: strip "artist:" and try plain search
+      // Fallback 1: plain text search (handles spelling variations from voice)
       if (!uri && byMatch) {
-        var d2 = await spApi('/search?q=' + encodeURIComponent(raw) + '&type=track&limit=5');
+        var d2 = await spApi('/search?q=' + encodeURIComponent(byMatch[1].trim() + ' ' + byMatch[2].trim()) + '&type=track&limit=5');
         uri = d2?.tracks?.items?.[0]?.uri;
+      }
+      // Fallback 2: just the song name
+      if (!uri && byMatch) {
+        var d3 = await spApi('/search?q=' + encodeURIComponent(byMatch[1].trim()) + '&type=track&limit=5');
+        uri = d3?.tracks?.items?.[0]?.uri;
       }
       if (uri) { await spPlay(uri); await speak('Playing that now sir.'); return true; }
       // Search returned nothing — tell Tony instead of letting AI fake it
