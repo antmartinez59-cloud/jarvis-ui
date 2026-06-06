@@ -2747,6 +2747,30 @@ async function sendToCouncil(){
   var modeBtn=document.getElementById('chat-mode-btn');
   var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
   console.log('[JARVIS] chat mode:', modeBtn&&modeBtn.getAttribute('data-mode'), 'isNormal:', isNormal);
+
+  // ── Spotify command interception (same as voice) ──────────────────────────
+  {
+    const _chatInp=document.getElementById('user-input');
+    const _chatText=_chatInp?.value.trim();
+    if(_chatText && /\b(skip|next|previous|go back|pause|resume|unpause|shuffle|play)\b/i.test(_chatText)){
+      const _handled=await spHandleVoiceCmd(_chatText);
+      if(_handled){
+        _chatInp.value='';
+        appendUserMsg(_chatText);
+        // Show what JARVIS did in chat
+        var _spReply='';
+        if(/\b(skip|next)\b/i.test(_chatText)) _spReply='Skipping sir.';
+        else if(/\bprevious|go back\b/i.test(_chatText)) _spReply='Going back sir.';
+        else if(/\bpause|stop the music\b/i.test(_chatText)) _spReply='Paused sir.';
+        else if(/\bresume|unpause\b/i.test(_chatText)) _spReply='Resuming sir.';
+        else if(/\bshuffle\b/i.test(_chatText)) _spReply='Shuffle toggled sir.';
+        else if(/\bplay\b/i.test(_chatText)) _spReply='Playing that now sir.';
+        if(_spReply) appendCouncilResponse('JARVIS\n'+_spReply);
+        return;
+      }
+    }
+  }
+
   if(isNormal){
     const text=document.getElementById('user-input')?.value.trim();
     if(!text)return;
@@ -6990,7 +7014,7 @@ function spStartPoll() {
 // Called from _sendToJarvisVoice when command intent detected
 async function spHandleVoiceCmd(text) {
   var t = text.toLowerCase();
-  if (!await spEnsureToken()) { showToast('Spotify not connected'); return false; }
+  if (!await spEnsureToken()) { await speak('Spotify isn\'t connected sir, reconnect in the Spotify tab.'); return true; }
 
   // Skip / Next
   if (/\b(skip|next( song| track)?)\b/.test(t)) {
