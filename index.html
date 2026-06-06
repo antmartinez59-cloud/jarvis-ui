@@ -7065,7 +7065,7 @@ async function spHandleVoiceCmd(text) {
       var byMatch = raw.match(/^(.+?)\s+by\s+(.+)$/i);
       var query = byMatch
         ? 'track:"' + byMatch[1].trim() + '" artist:"' + byMatch[2].trim() + '"'
-        : raw;
+        : 'track:' + raw;
       var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track,artist&limit=5');
       var uri = d?.tracks?.items?.[0]?.uri;
       // Fallback: plain search without formatting if no results
