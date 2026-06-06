@@ -6198,13 +6198,24 @@ async function startWakeWord(){
       console.log('[JARVIS] Wake word active — say Jarvis');
     };
     _wakeWS.onmessage=function(e){
-      if(_vActive)return;
       try{
         var msg=JSON.parse(e.data);
         var tx=(msg&&msg.channel&&msg.channel.alternatives&&msg.channel.alternatives[0]&&msg.channel.alternatives[0].transcript||'').toLowerCase().trim();
         if(!tx)return;
         var hit=WAKE_WORDS.some(function(w){return tx.indexOf(w)>=0;});
-        if(hit){console.log('[JARVIS] Wake word detected:',tx);_activateVoice();}
+        if(!hit)return;
+        // Wake word while JARVIS is speaking → interrupt immediately and listen
+        if(_vActive&&_vAudio){
+          console.log('[JARVIS] Wake word interrupt while speaking');
+          try{_vAudio.pause();}catch(ex){}
+          _vAudio=null;
+          try{_stopStopListener();}catch(ex){}
+          cancelVoice();
+          setTimeout(function(){_activateVoice();},300);
+          return;
+        }
+        if(_vActive)return; // processing — ignore
+        console.log('[JARVIS] Wake word detected:',tx);_activateVoice();
       }catch(e){}
     };
     _wakeWS.onerror=function(){_wakeActive=false;};
@@ -6292,6 +6303,31 @@ async function _startConversation(){
   }
 }
 
+// Conversation memory — tracks recent exchanges for follow-up context
+var _voiceMem=[];
+function _getMemCtx(){
+  if(!_voiceMem.length)return '';
+  return ' Recent conversation: '+_voiceMem.slice(-3).map(function(m){return 'User: '+m.q+' | JARVIS: '+m.a;}).join(' | ');
+}
+
+// Mishear detection — confirms high-stakes commands before executing
+function _getMishearPrompt(text){
+  var t=text.toLowerCase();
+  var hasTime=/\b(\d{1,2}(:\d{2})?\s*(am|pm)|tonight|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(t);
+  var hasReminder=/\b(remind|reminder|remember|set a reminder)\b/.test(t);
+  var hasCalendar=/\b(add|create|schedule|set up|book)\b.*\b(event|meeting|appointment)\b/.test(t);
+  var hasMessage=/\b(text|message|send|tell)\b/.test(t);
+  if(hasTime&&(hasReminder||hasCalendar||hasMessage)){
+    var timeMatch=text.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)|tonight|tomorrow|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b)/i);
+    var when=timeMatch?' at '+timeMatch[0]:'';
+    if(hasReminder)return 'You said set a reminder'+when+' — is that right sir?';
+    if(hasCalendar)return 'You want me to add that to your calendar'+when+' — correct sir?';
+    if(hasMessage)return 'You want me to send that message'+when+' — should I?';
+  }
+  return null;
+}
+var _mishearPending=null; // {text} waiting for yes/no confirmation
+
 // Filler phrases — fires immediately while AI processes
 var _VF=[
   {k:['calendar','schedule','event','meeting','today','tomorrow'],f:'One second sir, let me check your calendar.'},
@@ -6345,6 +6381,20 @@ function _volCmd(text){
 async function _sendToJarvisVoice(text){
   if(!text||!text.trim()){cancelVoice();return;}
   if(_volCmd(text)){setTimeout(cancelVoice,2000);return;}
+  // Handle mishear confirmation response
+  if(_mishearPending){
+    var ans=text.toLowerCase();
+    var pending=_mishearPending.text;
+    _mishearPending=null;
+    if(/\b(yes|yeah|yep|correct|right|do it|send it|confirm|sure)\b/.test(ans)){
+      // Confirmed — execute the original command
+      text=pending;
+    } else {
+      // Cancelled
+      await _speakText('Got it sir, cancelled.');
+      cancelVoice();setTimeout(startWakeWord,800);return;
+    }
+  }
   _vSetStatus('JARVIS is thinking...','processing');
   sfxThinkStart();
   var filler=_getFiller(text);
@@ -6354,7 +6404,17 @@ async function _sendToJarvisVoice(text){
     try{if(_dgWS)_dgWS.close();}catch(e){}
     var modeBtn=document.getElementById('chat-mode-btn');
     var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
+    // Mishear detection — confirm before executing high-stakes commands
+    var mishearPrompt=_getMishearPrompt(text);
+    if(mishearPrompt){
+      _mishearPending={text:text};
+      sfxThinkStop();
+      await _speakText(mishearPrompt);
+      _vSetStatus('Waiting for confirmation...');
+      return; // wait for yes/no in next voice turn
+    }
     var sysPrompt=await _buildCtx(text);
+    sysPrompt+=_getMemCtx(); // inject recent conversation for follow-up context
     if(!isNormal)sysPrompt+='\n\n'+buildCouncilPrompt();
     var res=await callEndpoint('proxy',{
       model:'claude-haiku-4-5-20251001',
@@ -6373,7 +6433,15 @@ async function _sendToJarvisVoice(text){
     if(cb)cb.style.display='none';
     appendCouncilResponse('JARVIS\n'+reply);
     saveSession(text, reply);
-    await _speakText(reply);
+    // Save to conversation memory for follow-up context
+    _voiceMem.push({q:text,a:reply,ts:Date.now()});
+    if(_voiceMem.length>10)_voiceMem.shift();
+    // Speak sentence by sentence — starts talking before full response is done
+    var sentences=reply.match(/[^.!?]+[.!?]*/g)||[reply];
+    for(var si=0;si<sentences.length;si++){
+      var s=sentences[si].trim();
+      if(s)await _speakText(s);
+    }
   }catch(err){
     sfxThinkStop();
     showToast('Voice error: '+(err.message||'unknown'));
