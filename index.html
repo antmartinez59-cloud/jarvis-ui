@@ -7061,19 +7061,18 @@ async function spHandleVoiceCmd(text) {
       .replace(/\b(play|jarvis|hey|ok|please|can you|some|me|a|an|the|song|track|music)\b/g, '')
       .replace(/\s+/g, ' ').trim();
     if (raw.length > 1) {
-      // Detect "song by artist" pattern — format for precise Spotify search
+      // "song by artist" → precise field search; plain name → popularity-ranked search
       var byMatch = raw.match(/^(.+?)\s+by\s+(.+)$/i);
       var query = byMatch
-        ? 'track:"' + byMatch[1].trim() + '" artist:"' + byMatch[2].trim() + '"'
-        : 'track:' + raw;
-      var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track,artist&limit=5');
+        ? byMatch[1].trim() + ' artist:' + byMatch[2].trim()
+        : raw;
+      var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track&limit=5');
       var uri = d?.tracks?.items?.[0]?.uri;
-      // Fallback: plain search without formatting if no results
+      // Fallback: strip "artist:" and try plain search
       if (!uri && byMatch) {
         var d2 = await spApi('/search?q=' + encodeURIComponent(raw) + '&type=track&limit=5');
         uri = d2?.tracks?.items?.[0]?.uri;
       }
-      if (!uri) uri = d?.artists?.items?.[0]?.uri;
       if (uri) { await spPlay(uri); await speak('Playing that now sir.'); return true; }
     }
   }
