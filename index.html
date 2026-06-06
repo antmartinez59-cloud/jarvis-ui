@@ -7382,6 +7382,8 @@ function cancelVoice(){
   if(cb)cb.style.display='inline-block';
   document.getElementById('voice-overlay').classList.remove('open');
   var btn=document.getElementById('voice-btn');if(btn)btn.className='';
+  // Always restart wake word — startWakeWord guard prevents duplicates
+  setTimeout(startWakeWord, 800);
 }
 
 // Auto-start wake word 3s after page load
