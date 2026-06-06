@@ -6386,15 +6386,18 @@ async function startWakeWord(){
     if(!td.ok)throw new Error('no token');
     var wakeToken=td.token; // local — never touches shared _dgToken
     _wakeMic=await navigator.mediaDevices.getUserMedia({audio:true});
-    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false'
+    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=true'
       +'&keywords=jarvis:2&keywords=hey%20jarvis:2&keywords=ok%20jarvis:2';
     _wakeWS=new WebSocket(wsUrl,['token',wakeToken]);
     _wakeWS.onopen=function(){
-      _wakeRec=new MediaRecorder(_wakeMic,{mimeType:'audio/webm'});
+      var _wakeMime=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg'].find(function(m){
+        try{return MediaRecorder.isTypeSupported(m);}catch(e){return false;}
+      })||'';
+      _wakeRec=new MediaRecorder(_wakeMic,_wakeMime?{mimeType:_wakeMime}:{});
       _wakeRec.ondataavailable=function(e){
         if(_wakeWS&&_wakeWS.readyState===1&&e.data.size>0&&!_vActive)_wakeWS.send(e.data);
       };
-      _wakeRec.start(500);
+      _wakeRec.start(250);
       var btn=document.getElementById('voice-btn');
       if(btn)btn.style.opacity='0.6';
       console.log('[JARVIS] Wake word active — say Jarvis');
@@ -6406,13 +6409,14 @@ async function startWakeWord(){
         if(!tx)return;
         var hit=WAKE_WORDS.some(function(w){return tx.indexOf(w)>=0;});
         if(!hit)return;
+        // Debounce — ignore if already activated in last 2s
+        if(_vActive)return;
         // Wake word while JARVIS is speaking → finish current sentence then listen
-        if(_vActive&&_vAudio){
+        if(_vAudio){
           console.log('[JARVIS] Wake word interrupt — finishing sentence then listening');
-          _stopAfterSentence=true; // speaking loop checks this after each sentence
+          _stopAfterSentence=true;
           return;
         }
-        if(_vActive)return; // processing — ignore
         console.log('[JARVIS] Wake word detected:',tx);_activateVoice();
       }catch(e){}
     };
@@ -6468,13 +6472,20 @@ async function _startConversation(){
     var td=await tr.json();
     if(!td.ok)throw new Error(td.error||'no token');
     var convToken=td.token; // local — never touches shared _dgToken
-    _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    _micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+    // Verify mic track is actually live before proceeding
+    var micTrack=_micStream.getAudioTracks()[0];
+    if(!micTrack||micTrack.readyState!=='live') throw new Error('Microphone not active');
     var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true'
       +'&endpointing=1200&utterance_end_ms=2000';
     _dgWS=new WebSocket(wsUrl,['token',convToken]);
     var finalTx='',silTimer=null,_convTimeout=null;
+    // Pick best supported mimeType
+    var _mime=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg'].find(function(m){
+      try{return MediaRecorder.isTypeSupported(m);}catch(e){return false;}
+    })||'';
     _dgWS.onopen=function(){
-      _recorder=new MediaRecorder(_micStream,{mimeType:'audio/webm'});
+      _recorder=new MediaRecorder(_micStream,_mime?{mimeType:_mime}:{});
       _recorder.ondataavailable=function(e){
         if(_dgWS&&_dgWS.readyState===1&&e.data.size>0)_dgWS.send(e.data);
       };
