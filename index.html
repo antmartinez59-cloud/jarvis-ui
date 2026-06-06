@@ -7057,12 +7057,23 @@ async function spHandleVoiceCmd(text) {
 
   // Play artist or song by search
   if (/\b(play)\b/.test(t)) {
-    var query = t
+    var raw = t
       .replace(/\b(play|jarvis|hey|ok|please|can you|some|me|a|an|the|song|track|music)\b/g, '')
       .replace(/\s+/g, ' ').trim();
-    if (query.length > 1) {
-      var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track,artist&limit=3');
-      var uri = d?.tracks?.items?.[0]?.uri || d?.artists?.items?.[0]?.uri;
+    if (raw.length > 1) {
+      // Detect "song by artist" pattern — format for precise Spotify search
+      var byMatch = raw.match(/^(.+?)\s+by\s+(.+)$/i);
+      var query = byMatch
+        ? 'track:"' + byMatch[1].trim() + '" artist:"' + byMatch[2].trim() + '"'
+        : raw;
+      var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track,artist&limit=5');
+      var uri = d?.tracks?.items?.[0]?.uri;
+      // Fallback: plain search without formatting if no results
+      if (!uri && byMatch) {
+        var d2 = await spApi('/search?q=' + encodeURIComponent(raw) + '&type=track&limit=5');
+        uri = d2?.tracks?.items?.[0]?.uri;
+      }
+      if (!uri) uri = d?.artists?.items?.[0]?.uri;
       if (uri) { await spPlay(uri); await speak('Playing that now sir.'); return true; }
     }
   }
