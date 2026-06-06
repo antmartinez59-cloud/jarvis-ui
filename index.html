@@ -6354,10 +6354,10 @@ async function startWakeWord(){
     var tr=await callEndpoint('voice-token',{},'POST');
     var td=await tr.json();
     if(!td.ok)throw new Error('no token');
-    _dgToken=td.token;
+    var wakeToken=td.token; // local — never touches shared _dgToken
     _wakeMic=await navigator.mediaDevices.getUserMedia({audio:true});
     var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false&keywords=jarvis:2&keywords=hey%20jarvis:2&keywords=ok%20jarvis:2';
-    _wakeWS=new WebSocket(wsUrl,['token',_dgToken]);
+    _wakeWS=new WebSocket(wsUrl,['token',wakeToken]);
     _wakeWS.onopen=function(){
       _wakeRec=new MediaRecorder(_wakeMic,{mimeType:'audio/webm'});
       _wakeRec.ondataavailable=function(e){
@@ -6404,6 +6404,7 @@ function stopWakeWord(){
 }
 
 var _greetTimer=null, _speechHeard=false, _stopAfterSentence=false;
+function speak(text){ return _speakText(text); } // alias used by Spotify voice commands
 async function _activateVoice(){
   stopWakeWord(); // fully resets _wakeActive + closes WS + releases mic
   sfxActivate();
@@ -6435,11 +6436,10 @@ async function _startConversation(){
     var tr=await callEndpoint('voice-token',{},'POST');
     var td=await tr.json();
     if(!td.ok)throw new Error(td.error||'no token');
-    _dgToken=td.token;
+    var convToken=td.token; // local — never touches shared _dgToken
     _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
     var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true&endpointing=500';
-    _dgWS=new WebSocket(wsUrl,['token',_dgToken]);
-    _dgToken=null;
+    _dgWS=new WebSocket(wsUrl,['token',convToken]);
     var finalTx='',silTimer=null;
     _dgWS.onopen=function(){
       _recorder=new MediaRecorder(_micStream,{mimeType:'audio/webm'});
