@@ -6950,8 +6950,11 @@ async function spPoll() {
   // Sync shuffle state from Spotify (handles changes made outside JARVIS)
   var smartShuffle = d.smart_shuffle || false;
   var shuffleOn    = d.shuffle_state || false;
-  _sp.shuffle      = shuffleOn;
-  _sp.smartShuffle = smartShuffle;
+  if(_sp.shuffle !== shuffleOn || _sp.smartShuffle !== smartShuffle){
+    _sp.shuffle = shuffleOn; _sp.smartShuffle = smartShuffle;
+    localStorage.setItem('sp_shuffle', shuffleOn ? '1' : '0');
+    localStorage.setItem('sp_smart_shuffle', smartShuffle ? '1' : '0');
+  }
   var sb = document.getElementById('sp-shuffle-btn');
   if(sb){
     if(smartShuffle){ sb.style.color='var(--teal)'; sb.title='Smart Shuffle ON'; }
