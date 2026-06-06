@@ -6614,7 +6614,7 @@ document.head.appendChild(_shakeStyle);
 
 var _sp = {
   token: null, refresh: null, expires: 0,
-  playing: false, shuffle: false, repeat: 'off',
+  playing: false, shuffle: false, smartShuffle: false, repeat: 'off',
   track: null, deviceId: null, pollTimer: null
 };
 var SP_REDIRECT = window.location.origin + '/callback';
@@ -6716,10 +6716,24 @@ async function spCmd(cmd) {
   } else if (cmd === 'previous') {
     await spApi('/me/player/previous', 'POST'); setTimeout(spPoll, 800); setTimeout(spLoadQueue, 1200);
   } else if (cmd === 'shuffle') {
-    _sp.shuffle = !_sp.shuffle;
-    await spApi('/me/player/shuffle?state=' + _sp.shuffle, 'PUT');
+    // 3-state cycle: off → shuffle → smart shuffle → off
     var sb = document.getElementById('sp-shuffle-btn');
-    if (sb) sb.style.color = _sp.shuffle ? 'var(--primary)' : 'var(--text-muted)';
+    if (!_sp.shuffle && !_sp.smartShuffle) {
+      // off → shuffle
+      _sp.shuffle = true; _sp.smartShuffle = false;
+      await spApi('/me/player/shuffle?state=true', 'PUT');
+      if(sb){ sb.style.color='var(--primary)'; sb.title='Shuffle ON'; }
+    } else if (_sp.shuffle && !_sp.smartShuffle) {
+      // shuffle → smart shuffle
+      _sp.smartShuffle = true;
+      await spApi('/me/player/shuffle?state=true&smart_shuffle=true', 'PUT');
+      if(sb){ sb.style.color='var(--teal)'; sb.title='Smart Shuffle ON'; }
+    } else {
+      // smart shuffle / any state → off
+      _sp.shuffle = false; _sp.smartShuffle = false;
+      await spApi('/me/player/shuffle?state=false', 'PUT');
+      if(sb){ sb.style.color='var(--text-muted)'; sb.title='Shuffle OFF'; }
+    }
   } else if (cmd === 'repeat') {
     var modes = ['off', 'context', 'track'];
     _sp.repeat = modes[(modes.indexOf(_sp.repeat) + 1) % 3];
