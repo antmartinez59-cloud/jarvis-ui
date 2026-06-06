@@ -6775,7 +6775,11 @@ async function spPlay(uri) {
   // If no active device, transfer playback to first available then retry
   if (res && !res.ok) {
     var devs = await spApi('/me/player/devices');
-    var dev = devs?.devices?.find(function(d){ return d.is_active; }) || devs?.devices?.[0];
+    var all = devs?.devices || [];
+    var dev = all.find(function(d){ return d.name === 'RiftRunner'; })
+           || all.find(function(d){ return d.type === 'computer'; })
+           || all.find(function(d){ return d.is_active; })
+           || all[0];
     if (dev) {
       await spApi('/me/player', 'PUT', { device_ids: [dev.id], play: false });
       await new Promise(function(r){ setTimeout(r, 800); });
