@@ -2044,23 +2044,7 @@ body.viewing-past .tracker-log-only{display:block;}
       </div>
       <div class="form-hint">Say this phrase to activate voice on desktop without pressing anything.</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Voice Response</label>
-      <select id="vs-tts-engine" class="form-input">
-        <option value="browser">Browser built-in (free)</option>
-        <option value="elevenlabs">ElevenLabs (premium quality)</option>
-      </select>
-    </div>
-    <div id="vs-el-group" class="form-group" style="display:none;">
-      <label class="form-label">ElevenLabs API Key</label>
-      <input type="password" id="vs-el-key" class="form-input" placeholder="sk_...">
-      <div class="form-hint">Get your key at elevenlabs.io → Profile → API Key</div>
-    </div>
-    <div id="vs-el-voice-group" class="form-group" style="display:none;">
-      <label class="form-label">ElevenLabs Voice ID</label>
-      <input type="text" id="vs-el-voice" class="form-input" placeholder="Paste voice ID from ElevenLabs">
-      <div class="form-hint">ElevenLabs → Voice Library → click a voice → copy ID. Try "Adam" or "Rachel".</div>
-    </div>
+    <!-- ElevenLabs key + voice ID stored in Supabase Vault as ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID -->
     <div class="form-group">
       <label class="form-label">Response Volume</label>
       <input type="range" id="vs-volume" min="0" max="1" step="0.1" value="0.9" style="width:100%;accent-color:var(--primary);">
