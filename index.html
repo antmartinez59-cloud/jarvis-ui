@@ -6356,7 +6356,7 @@ async function startWakeWord(){
     if(!td.ok)throw new Error('no token');
     _dgToken=td.token;
     _wakeMic=await navigator.mediaDevices.getUserMedia({audio:true});
-    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false&keywords=jarvis:2';
+    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false&keywords=jarvis:2&keywords=hey%20jarvis:2&keywords=ok%20jarvis:2';
     _wakeWS=new WebSocket(wsUrl,['token',_dgToken]);
     _wakeWS.onopen=function(){
       _wakeRec=new MediaRecorder(_wakeMic,{mimeType:'audio/webm'});
@@ -6375,22 +6375,23 @@ async function startWakeWord(){
         if(!tx)return;
         var hit=WAKE_WORDS.some(function(w){return tx.indexOf(w)>=0;});
         if(!hit)return;
-        // Wake word while JARVIS is speaking → interrupt immediately and listen
+        // Wake word while JARVIS is speaking → finish current sentence then listen
         if(_vActive&&_vAudio){
-          console.log('[JARVIS] Wake word interrupt while speaking');
-          try{_vAudio.pause();}catch(ex){}
-          _vAudio=null;
-          try{_stopStopListener();}catch(ex){}
-          cancelVoice();
-          setTimeout(function(){_activateVoice();},300);
+          console.log('[JARVIS] Wake word interrupt — finishing sentence then listening');
+          _stopAfterSentence=true; // speaking loop checks this after each sentence
           return;
         }
         if(_vActive)return; // processing — ignore
         console.log('[JARVIS] Wake word detected:',tx);_activateVoice();
       }catch(e){}
     };
-    _wakeWS.onerror=function(){_wakeActive=false;};
-    _wakeWS.onclose=function(){_wakeActive=false;var btn=document.getElementById('voice-btn');if(btn)btn.style.opacity='1';};
+    _wakeWS.onerror=function(){ _wakeActive=false; };
+    _wakeWS.onclose=function(){
+      _wakeActive=false;
+      var btn=document.getElementById('voice-btn'); if(btn)btn.style.opacity='1';
+      // Auto-reconnect — Deepgram closes idle connections after a few minutes
+      if(!_vActive) setTimeout(startWakeWord, 2000);
+    };
   }catch(err){_wakeActive=false;console.warn('[JARVIS] Wake word failed:',err.message);}
 }
 
@@ -6402,14 +6403,14 @@ function stopWakeWord(){
   _wakeWS=null;_wakeRec=null;_wakeMic=null;
 }
 
-var _greetTimer=null, _speechHeard=false;
+var _greetTimer=null, _speechHeard=false, _stopAfterSentence=false;
 async function _activateVoice(){
+  stopWakeWord(); // fully resets _wakeActive + closes WS + releases mic
   sfxActivate();
   document.getElementById('voice-overlay').classList.add('open');
   _vSetStatus('Listening...','listening');
   _vSetTranscript('');
-  _vActive=true; _speechHeard=false;
-  try{if(_wakeRec)_wakeRec.stop();}catch(e){}
+  _vActive=true; _speechHeard=false; _stopAfterSentence=false;
   // Say "Yes sir?" if Tony pauses after wake word with no command
   clearTimeout(_greetTimer);
   _greetTimer=setTimeout(function(){
@@ -6474,7 +6475,7 @@ async function _startConversation(){
         }
       }catch(e){}
     };
-    _dgWS.onerror=function(){showToast('Voice connection failed');cancelVoice();};
+    _dgWS.onerror=function(){ cancelVoice(); setTimeout(startWakeWord,1500); };
     _dgWS.onclose=function(){if(_vActive)cancelVoice();};
   }catch(err){
     showToast('Voice error: '+err.message);
@@ -7162,11 +7163,17 @@ async function _sendToJarvisVoice(text){
     // Save to conversation memory for follow-up context
     _voiceMem.push({q:text,a:reply,ts:Date.now()});
     if(_voiceMem.length>10)_voiceMem.shift();
-    // Speak sentence by sentence — starts talking before full response is done
+    // Speak sentence by sentence — stops after current sentence if interrupted
     var sentences=reply.match(/[^.!?]+[.!?]*/g)||[reply];
     for(var si=0;si<sentences.length;si++){
       var s=sentences[si].trim();
       if(s)await _speakText(s);
+      if(_stopAfterSentence){
+        _stopAfterSentence=false;
+        cancelVoice();
+        setTimeout(function(){_activateVoice();},300);
+        return;
+      }
     }
   }catch(err){
     sfxThinkStop();
