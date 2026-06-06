@@ -2112,6 +2112,15 @@ body.viewing-past .tracker-log-only{display:block;}
         <div id="sp-search-results" style="margin-top:12px;"></div>
       </div>
 
+      <!-- Up Next -->
+      <div id="sp-queue-section" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;">UP NEXT</div>
+          <button onclick="spLoadQueue()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;">↻ Refresh</button>
+        </div>
+        <div id="sp-queue" style="display:flex;flex-direction:column;gap:2px;"></div>
+      </div>
+
       <!-- Your Playlists -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -2129,15 +2138,6 @@ body.viewing-past .tracker-log-only{display:block;}
         <div id="sp-recent" style="display:flex;flex-direction:column;gap:8px;">
           <div style="color:var(--text-muted);font-size:13px;">Connect Spotify to see recently played.</div>
         </div>
-      </div>
-
-      <!-- Up Next -->
-      <div id="sp-queue-section" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;">UP NEXT</div>
-          <button onclick="spLoadQueue()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;">↻ Refresh</button>
-        </div>
-        <div id="sp-queue" style="display:flex;flex-direction:column;gap:2px;"></div>
       </div>
 
     </div>
