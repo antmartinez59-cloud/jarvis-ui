@@ -6457,8 +6457,8 @@ async function _startConversation(){
     // Verify mic track is actually live before proceeding
     var micTrack=_micStream.getAudioTracks()[0];
     if(!micTrack||micTrack.readyState!=='live') throw new Error('Microphone not active');
-    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true'
-      +'&endpointing=1200&utterance_end_ms=2000';
+    var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-3&language=en-US&smart_format=true&interim_results=true'
+      +'&endpointing=1200&utterance_end_ms=2000&filler_words=false&punctuate=true';
     _dgWS=new WebSocket(wsUrl,['token',convToken]);
     var finalTx='',silTimer=null,_convTimeout=null;
     // Pick best supported mimeType
