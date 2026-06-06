@@ -2136,8 +2136,8 @@ body.viewing-past .tracker-log-only{display:block;}
 
 </div><!-- end #main -->
 
-<!-- Spotify mini-player (corner overlay, collapsible) -->
-<div id="sp-mini" style="display:none;position:fixed;bottom:90px;right:8px;width:260px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:140;overflow:hidden;transition:all .3s;">
+<!-- Spotify mini-player (corner overlay, draggable) -->
+<div id="sp-mini" style="display:none;position:fixed;bottom:90px;right:8px;width:260px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:140;overflow:hidden;transition:box-shadow .2s;cursor:grab;">
   <div style="padding:10px 12px;display:flex;align-items:center;gap:10px;">
     <img id="sp-mini-art" src="" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">
     <div style="flex:1;min-width:0;">
@@ -6893,6 +6893,54 @@ document.addEventListener('DOMContentLoaded', async function() {
     else spShowConnect(true);
   } else { spShowConnect(true); }
 });
+
+// ── Mini-player drag ──────────────────────────────────────────────────────
+(function(){
+  var el, dragging=false, ox=0, oy=0;
+  function onDown(e){
+    // Don't drag when clicking buttons
+    if(e.target.tagName==='BUTTON'||e.target.tagName==='IMG') return;
+    dragging=true;
+    var t=e.touches?e.touches[0]:e;
+    var r=el.getBoundingClientRect();
+    ox=t.clientX-r.left; oy=t.clientY-r.top;
+    el.style.transition='none'; el.style.cursor='grabbing';
+    el.style.right='auto'; el.style.bottom='auto';
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    var t=e.touches?e.touches[0]:e;
+    var x=t.clientX-ox, y=t.clientY-oy;
+    // Clamp to viewport
+    x=Math.max(0,Math.min(window.innerWidth-el.offsetWidth,x));
+    y=Math.max(0,Math.min(window.innerHeight-el.offsetHeight,y));
+    el.style.left=x+'px'; el.style.top=y+'px';
+    e.preventDefault();
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging=false;
+    el.style.cursor='grab';
+    // Save position
+    localStorage.setItem('sp_mini_pos',JSON.stringify({left:el.style.left,top:el.style.top}));
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    el=document.getElementById('sp-mini');
+    if(!el) return;
+    // Restore saved position
+    try{
+      var pos=JSON.parse(localStorage.getItem('sp_mini_pos')||'null');
+      if(pos){ el.style.right='auto'; el.style.bottom='auto'; el.style.left=pos.left; el.style.top=pos.top; }
+    }catch(e){}
+    el.addEventListener('mousedown',onDown);
+    el.addEventListener('touchstart',onDown,{passive:false});
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchend',onUp);
+  });
+})();
 
 // END LAYER 2 — SPOTIFY
 
