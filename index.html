@@ -715,6 +715,7 @@ body.viewing-past .tracker-log-only{display:block;}
     <button class="tab" onclick="switchTab('finance',this)" id="finance-tab">💰 Finance</button>
     <button class="tab" onclick="switchTab('todos',this)" id="todos-tab">📋 Todos</button>
     <button class="tab" onclick="switchTab('calendar',this)" id="calendar-tab">📅 Calendar</button>
+    <button class="tab" onclick="switchTab('spotify',this)" id="spotify-tab">🎵 Spotify</button>
   </div>
   <div class="header-right">
     <span id="mode-badge" style="font-size:11px;cursor:default;padding:4px 10px;border-radius:20px;border:1px solid var(--border);" title="Loading...">⏳ Loading</span>
@@ -736,6 +737,7 @@ body.viewing-past .tracker-log-only{display:block;}
   <button class="mnav-btn" onclick="switchTab('memory',this)" data-tab="memory">💾<span>Memory</span></button>
   <button class="mnav-btn" onclick="switchTab('today',this)" data-tab="today">📊<span>Today</span></button>
   <button class="mnav-btn" onclick="switchTab('finance',this)" data-tab="finance">💰<span>Finance</span></button>
+  <button class="mnav-btn" onclick="switchTab('spotify',this)" data-tab="spotify">🎵<span>Spotify</span></button>
 </nav>
 
 <div id="main">
@@ -1993,6 +1995,108 @@ body.viewing-past .tracker-log-only{display:block;}
   </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════
+     LAYER 2 — SPOTIFY TAB
+════════════════════════════════════════════════════════════ -->
+  <div class="view" id="view-spotify">
+    <div class="fin-scroll" style="padding:16px 20px;">
+
+      <!-- Connect banner -->
+      <div id="sp-connect-banner" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:32px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:48px;margin-bottom:12px;">🎵</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">Connect Spotify</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Link your Spotify account to control music from JARVIS and use voice commands while gaming.</div>
+        <button class="btn btn-primary" onclick="spConnect()" style="padding:12px 32px;font-size:15px;">Connect Spotify</button>
+      </div>
+
+      <!-- Now Playing -->
+      <div id="sp-now-playing" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:12px;">NOW PLAYING</div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <img id="sp-art" src="" style="width:72px;height:72px;border-radius:8px;object-fit:cover;background:var(--border);" onerror="this.style.display='none'">
+          <div style="flex:1;min-width:0;">
+            <div id="sp-track" style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+            <div id="sp-artist" style="font-size:13px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+            <div id="sp-album" style="font-size:11px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+          </div>
+        </div>
+        <!-- Progress bar -->
+        <div style="margin:14px 0 10px;">
+          <div style="height:4px;background:var(--border);border-radius:2px;cursor:pointer;" onclick="spSeek(event,this)">
+            <div id="sp-progress" style="height:4px;background:var(--primary);border-radius:2px;width:0%;transition:width .5s linear;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px;">
+            <span id="sp-pos">0:00</span><span id="sp-dur">0:00</span>
+          </div>
+        </div>
+        <!-- Controls -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
+          <button onclick="spCmd('shuffle')" id="sp-shuffle-btn" title="Shuffle" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);padding:6px;" title="Shuffle">⇌</button>
+          <button onclick="spCmd('previous')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);padding:6px;">⏮</button>
+          <button onclick="spCmd('playpause')" id="sp-play-btn" style="width:52px;height:52px;border-radius:50%;background:var(--primary);border:none;font-size:22px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;">▶</button>
+          <button onclick="spCmd('next')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);padding:6px;">⏭</button>
+          <button onclick="spCmd('repeat')" id="sp-repeat-btn" title="Repeat" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);padding:6px;">↻</button>
+        </div>
+        <!-- Volume -->
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
+          <span style="font-size:14px;">🔈</span>
+          <input type="range" id="sp-vol-slider" min="0" max="100" value="70" style="flex:1;accent-color:var(--primary);" oninput="spSetVolume(this.value)">
+          <span style="font-size:14px;">🔊</span>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:10px;">SEARCH</div>
+        <div style="display:flex;gap:8px;">
+          <input id="sp-search-input" type="text" class="form-input" placeholder="Songs, artists, albums…" onkeydown="if(event.key==='Enter')spSearch()" style="flex:1;">
+          <button class="btn btn-primary" onclick="spSearch()" style="padding:8px 16px;">Search</button>
+        </div>
+        <div id="sp-search-results" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- Your Playlists -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;">YOUR PLAYLISTS</div>
+          <button onclick="spLoadPlaylists()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;">↻ Refresh</button>
+        </div>
+        <div id="sp-playlists" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">
+          <div style="color:var(--text-muted);font-size:13px;grid-column:1/-1;">Connect Spotify to see your playlists.</div>
+        </div>
+      </div>
+
+      <!-- Recently Played -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:12px;">RECENTLY PLAYED</div>
+        <div id="sp-recent" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="color:var(--text-muted);font-size:13px;">Connect Spotify to see recently played.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<!-- Spotify mini-player (corner overlay, collapsible) -->
+<div id="sp-mini" style="display:none;position:fixed;bottom:90px;right:8px;width:260px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:140;overflow:hidden;transition:all .3s;">
+  <div style="padding:10px 12px;display:flex;align-items:center;gap:10px;">
+    <img id="sp-mini-art" src="" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">
+    <div style="flex:1;min-width:0;">
+      <div id="sp-mini-track" style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+      <div id="sp-mini-artist" style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <button onclick="spCmd('previous')" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--text);padding:2px;">⏮</button>
+      <button onclick="spCmd('playpause')" id="sp-mini-play" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--primary);padding:2px;">▶</button>
+      <button onclick="spCmd('next')" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--text);padding:2px;">⏭</button>
+      <button onclick="document.getElementById('sp-mini').style.display='none'" style="background:none;border:none;font-size:14px;cursor:pointer;color:var(--text-muted);padding:2px;margin-left:2px;">✕</button>
+    </div>
+  </div>
+  <div style="height:2px;background:var(--border);margin:0 12px;">
+    <div id="sp-mini-prog" style="height:2px;background:var(--primary);width:0%;transition:width .5s linear;"></div>
+  </div>
+</div>
 
 <div id="toast"></div>
 
@@ -6303,6 +6407,303 @@ async function _startConversation(){
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYER 2 — SPOTIFY
+// OAuth via edge function · API proxy · full tab · mini-player · voice cmds
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _sp = {
+  token: null, refresh: null, expires: 0,
+  playing: false, shuffle: false, repeat: 'off',
+  track: null, deviceId: null, pollTimer: null
+};
+var SP_REDIRECT = window.location.origin + '/callback';
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+async function spEdge(action, extra) {
+  var res = await callEndpoint('spotify', Object.assign({ action: action }, extra || {}));
+  return await res.json();
+}
+
+async function spApi(endpoint, method, payload) {
+  if (!await spEnsureToken()) return null;
+  var d = await spEdge('api', { endpoint: endpoint, method: method || 'GET', access_token: _sp.token, payload: payload });
+  return d;
+}
+
+async function spEnsureToken() {
+  if (_sp.token && Date.now() < _sp.expires - 30000) return true;
+  var rf = _sp.refresh || localStorage.getItem('sp_refresh');
+  if (!rf) return false;
+  var d = await spEdge('refresh_token', { refresh_token: rf });
+  if (!d.ok) { spClearAuth(); return false; }
+  _sp.token = d.access_token;
+  _sp.expires = Date.now() + (d.expires_in || 3600) * 1000;
+  if (d.refresh_token) { _sp.refresh = d.refresh_token; localStorage.setItem('sp_refresh', d.refresh_token); }
+  return true;
+}
+
+function spClearAuth() {
+  _sp.token = null; _sp.refresh = null; _sp.expires = 0;
+  localStorage.removeItem('sp_refresh');
+  spShowConnect(true);
+}
+
+function spFmtTime(ms) {
+  var s = Math.floor((ms || 0) / 1000);
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+// ── Auth flow ─────────────────────────────────────────────────────────────
+async function spConnect() {
+  var d = await spEdge('get_client_id');
+  if (!d.ok) { showToast('Spotify: ' + (d.error || 'no client ID in Vault')); return; }
+  var scopes = 'user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-read-collaborative user-read-recently-played';
+  var url = 'https://accounts.spotify.com/authorize?response_type=code'
+    + '&client_id=' + encodeURIComponent(d.client_id)
+    + '&scope=' + encodeURIComponent(scopes)
+    + '&redirect_uri=' + encodeURIComponent(SP_REDIRECT);
+  var popup = window.open(url, 'spotify-auth', 'width=500,height=700');
+  var check = setInterval(async function () {
+    try {
+      if (!popup || popup.closed) { clearInterval(check); return; }
+      var loc = popup.location.href;
+      if (loc.includes('code=')) {
+        clearInterval(check); popup.close();
+        var code = new URL(loc).searchParams.get('code');
+        var td = await spEdge('exchange_code', { code: code, redirect_uri: SP_REDIRECT });
+        if (!td.ok) { showToast('Spotify auth failed'); return; }
+        _sp.token = td.access_token; _sp.refresh = td.refresh_token;
+        _sp.expires = Date.now() + (td.expires_in || 3600) * 1000;
+        localStorage.setItem('sp_refresh', td.refresh_token);
+        showToast('Spotify connected ✓');
+        spShowConnect(false);
+        spLoadAll();
+        spStartPoll();
+      }
+    } catch (e) {}
+  }, 500);
+}
+
+function spShowConnect(show) {
+  var b = document.getElementById('sp-connect-banner');
+  var np = document.getElementById('sp-now-playing');
+  if (b) b.style.display = show ? '' : 'none';
+  if (np) np.style.display = show ? 'none' : '';
+}
+
+// ── Playback controls ─────────────────────────────────────────────────────
+async function spCmd(cmd) {
+  if (!await spEnsureToken()) { showToast('Connect Spotify first'); return; }
+  if (cmd === 'playpause') {
+    await spApi(_sp.playing ? '/me/player/pause' : '/me/player/play', 'PUT');
+    _sp.playing = !_sp.playing;
+    var btn = document.getElementById('sp-play-btn');
+    var mbtn = document.getElementById('sp-mini-play');
+    if (btn) btn.textContent = _sp.playing ? '⏸' : '▶';
+    if (mbtn) mbtn.textContent = _sp.playing ? '⏸' : '▶';
+  } else if (cmd === 'next') {
+    await spApi('/me/player/next', 'POST'); setTimeout(spPoll, 800);
+  } else if (cmd === 'previous') {
+    await spApi('/me/player/previous', 'POST'); setTimeout(spPoll, 800);
+  } else if (cmd === 'shuffle') {
+    _sp.shuffle = !_sp.shuffle;
+    await spApi('/me/player/shuffle?state=' + _sp.shuffle, 'PUT');
+    var sb = document.getElementById('sp-shuffle-btn');
+    if (sb) sb.style.color = _sp.shuffle ? 'var(--primary)' : 'var(--text-muted)';
+  } else if (cmd === 'repeat') {
+    var modes = ['off', 'context', 'track'];
+    _sp.repeat = modes[(modes.indexOf(_sp.repeat) + 1) % 3];
+    await spApi('/me/player/repeat?state=' + _sp.repeat, 'PUT');
+    var rb = document.getElementById('sp-repeat-btn');
+    if (rb) rb.style.color = _sp.repeat !== 'off' ? 'var(--primary)' : 'var(--text-muted)';
+  }
+}
+
+async function spSetVolume(val) {
+  if (!await spEnsureToken()) return;
+  await spApi('/me/player/volume?volume_percent=' + Math.round(val), 'PUT');
+}
+
+async function spSeek(e, bar) {
+  if (!_sp.track || !await spEnsureToken()) return;
+  var pct = e.offsetX / bar.offsetWidth;
+  var ms = Math.round(pct * _sp.track.duration_ms);
+  await spApi('/me/player/seek?position_ms=' + ms, 'PUT');
+}
+
+// ── Play by URI / search ───────────────────────────────────────────────────
+async function spPlay(uri) {
+  if (!await spEnsureToken()) { showToast('Connect Spotify first'); return; }
+  var body = uri.includes('track') ? { uris: [uri] } : { context_uri: uri };
+  await spApi('/me/player/play', 'PUT', body);
+  setTimeout(spPoll, 800);
+  showToast('Playing ✓');
+}
+
+async function spSearch() {
+  var q = document.getElementById('sp-search-input')?.value?.trim();
+  if (!q || !await spEnsureToken()) return;
+  var d = await spApi('/search?q=' + encodeURIComponent(q) + '&type=track,artist,playlist&limit=8');
+  if (!d) return;
+  var html = '';
+  // Tracks
+  (d.tracks?.items || []).forEach(function(t) {
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="spPlay(\'' + t.uri + '\')">'
+      + '<img src="' + (t.album?.images?.[2]?.url || '') + '" style="width:36px;height:36px;border-radius:4px;object-fit:cover;">'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + t.name + '</div>'
+      + '<div style="font-size:11px;color:var(--text-muted);">' + (t.artists?.[0]?.name || '') + '</div></div>'
+      + '<span style="font-size:18px;">▶</span></div>';
+  });
+  // Playlists
+  (d.playlists?.items || []).slice(0,4).forEach(function(p) {
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="spPlay(\'' + p.uri + '\')">'
+      + '<img src="' + (p.images?.[0]?.url || '') + '" style="width:36px;height:36px;border-radius:4px;object-fit:cover;">'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.name + '</div>'
+      + '<div style="font-size:11px;color:var(--text-muted);">Playlist</div></div>'
+      + '<span style="font-size:18px;">▶</span></div>';
+  });
+  var el = document.getElementById('sp-search-results');
+  if (el) el.innerHTML = html || '<div style="color:var(--text-muted);font-size:13px;">No results</div>';
+}
+
+async function spLoadPlaylists() {
+  if (!await spEnsureToken()) return;
+  var d = await spApi('/me/playlists?limit=50');
+  if (!d?.items) return;
+  var el = document.getElementById('sp-playlists');
+  if (!el) return;
+  el.innerHTML = d.items.map(function(p) {
+    return '<div onclick="spPlay(\'' + p.uri + '\')" style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">'
+      + '<img src="' + (p.images?.[0]?.url || '') + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;margin-bottom:8px;" onerror="this.style.display=\'none\'">'
+      + '<div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.name + '</div>'
+      + '<div style="font-size:10px;color:var(--text-muted);">' + p.tracks.total + ' tracks</div></div>';
+  }).join('');
+  // Store playlist names for voice matching
+  _sp.playlists = d.items;
+}
+
+async function spLoadRecent() {
+  if (!await spEnsureToken()) return;
+  var d = await spApi('/me/player/recently-played?limit=10');
+  if (!d?.items) return;
+  var el = document.getElementById('sp-recent');
+  if (!el) return;
+  var seen = new Set();
+  el.innerHTML = d.items.filter(function(i) {
+    if (seen.has(i.track.id)) return false; seen.add(i.track.id); return true;
+  }).map(function(i) {
+    return '<div onclick="spPlay(\'' + i.track.uri + '\')" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0;border-bottom:1px solid var(--border);">'
+      + '<img src="' + (i.track.album?.images?.[2]?.url || '') + '" style="width:36px;height:36px;border-radius:4px;object-fit:cover;">'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + i.track.name + '</div>'
+      + '<div style="font-size:11px;color:var(--text-muted);">' + i.track.artists[0].name + '</div></div>'
+      + '<span style="font-size:16px;color:var(--text-muted);">▶</span></div>';
+  }).join('');
+}
+
+function spLoadAll() { spLoadPlaylists(); spLoadRecent(); }
+
+// ── Now playing poll ───────────────────────────────────────────────────────
+async function spPoll() {
+  if (!await spEnsureToken()) return;
+  var d = await spApi('/me/player');
+  if (!d || !d.item) return;
+  _sp.playing = d.is_playing;
+  _sp.track = d.item;
+  var art = d.item.album?.images?.[1]?.url || '';
+  var name = d.item.name || '—';
+  var artist = d.item.artists?.map(function(a){return a.name;}).join(', ') || '—';
+  var pct = d.item.duration_ms ? Math.round((d.progress_ms / d.item.duration_ms) * 100) : 0;
+  // Full tab
+  var img = document.getElementById('sp-art'); if(img){img.src=art; img.style.display='';}
+  var t = document.getElementById('sp-track'); if(t) t.textContent=name;
+  var ar = document.getElementById('sp-artist'); if(ar) ar.textContent=artist;
+  var al = document.getElementById('sp-album'); if(al) al.textContent=d.item.album?.name||'';
+  var pr = document.getElementById('sp-progress'); if(pr) pr.style.width=pct+'%';
+  var pos = document.getElementById('sp-pos'); if(pos) pos.textContent=spFmtTime(d.progress_ms);
+  var dur = document.getElementById('sp-dur'); if(dur) dur.textContent=spFmtTime(d.item.duration_ms);
+  var pb = document.getElementById('sp-play-btn'); if(pb) pb.textContent=d.is_playing?'⏸':'▶';
+  var vsl = document.getElementById('sp-vol-slider'); if(vsl) vsl.value=d.device?.volume_percent||70;
+  // Mini-player
+  var mini = document.getElementById('sp-mini'); if(mini) mini.style.display='';
+  var mart = document.getElementById('sp-mini-art'); if(mart){mart.src=art; mart.style.display='';}
+  var mt = document.getElementById('sp-mini-track'); if(mt) mt.textContent=name;
+  var ma = document.getElementById('sp-mini-artist'); if(ma) ma.textContent=artist;
+  var mp = document.getElementById('sp-mini-prog'); if(mp) mp.style.width=pct+'%';
+  var mpb = document.getElementById('sp-mini-play'); if(mpb) mpb.textContent=d.is_playing?'⏸':'▶';
+}
+
+function spStartPoll() {
+  clearInterval(_sp.pollTimer);
+  _sp.pollTimer = setInterval(spPoll, 5000);
+  spPoll();
+}
+
+// ── Voice command routing ──────────────────────────────────────────────────
+// Called from _sendToJarvisVoice when command intent detected
+async function spHandleVoiceCmd(text) {
+  var t = text.toLowerCase();
+  if (!await spEnsureToken()) { return false; }
+
+  // Skip / Next
+  if (/\b(skip|next( song| track)?)\b/.test(t)) {
+    await spCmd('next'); speak('Skipping sir.'); return true;
+  }
+  // Previous
+  if (/\b(previous|go back|last song)\b/.test(t)) {
+    await spCmd('previous'); speak('Going back sir.'); return true;
+  }
+  // Pause
+  if (/\b(pause|stop the music|stop playing)\b/.test(t) && _sp.playing) {
+    await spCmd('playpause'); speak('Paused sir.'); return true;
+  }
+  // Resume
+  if (/\b(resume|unpause|play again|continue)\b/.test(t) && !_sp.playing) {
+    await spCmd('playpause'); speak('Resuming sir.'); return true;
+  }
+  // Shuffle
+  if (/\b(shuffle)\b/.test(t)) {
+    await spCmd('shuffle'); speak('Shuffle ' + (_sp.shuffle ? 'on' : 'off') + ' sir.'); return true;
+  }
+  // Volume
+  if (/\b(volume|turn it up|turn it down|louder|quieter)\b/.test(t)) {
+    return false; // handled by _volCmd
+  }
+
+  // Play specific playlist by name
+  if (/\b(play)\b/.test(t) && _sp.playlists) {
+    var plMatch = _sp.playlists.find(function(p) {
+      return t.includes(p.name.toLowerCase()) || p.name.toLowerCase().split(' ').some(function(w){ return w.length > 3 && t.includes(w); });
+    });
+    if (plMatch) { await spPlay(plMatch.uri); speak('Playing ' + plMatch.name + ' sir.'); return true; }
+  }
+
+  // Play artist or song by search
+  if (/\b(play)\b/.test(t)) {
+    var query = t.replace(/\b(play|jarvis|some|me|a|the)\b/g, '').trim();
+    if (query.length > 1) {
+      var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track,artist,playlist&limit=1');
+      var uri = d?.tracks?.items?.[0]?.uri || d?.playlists?.items?.[0]?.uri || d?.artists?.items?.[0]?.uri;
+      if (uri) { await spPlay(uri); speak('Playing that now sir.'); return true; }
+    }
+  }
+
+  return false;
+}
+
+// ── Init on load ───────────────────────────────────────────────────────────
+(async function spInit() {
+  var rf = localStorage.getItem('sp_refresh');
+  if (rf) {
+    _sp.refresh = rf;
+    var ok = await spEnsureToken();
+    if (ok) { spShowConnect(false); spLoadAll(); spStartPoll(); }
+    else spShowConnect(true);
+  } else { spShowConnect(true); }
+})();
+
+// END LAYER 2 — SPOTIFY
+
 // Conversation memory — tracks recent exchanges for follow-up context
 var _voiceMem=[];
 function _getMemCtx(){
@@ -6381,6 +6782,11 @@ function _volCmd(text){
 async function _sendToJarvisVoice(text){
   if(!text||!text.trim()){cancelVoice();return;}
   if(_volCmd(text)){setTimeout(cancelVoice,2000);return;}
+  // Spotify voice commands — handle before hitting AI
+  if(/\b(skip|next|previous|go back|pause|resume|unpause|shuffle|play)\b/.test(text.toLowerCase())){
+    var handled=await spHandleVoiceCmd(text);
+    if(handled){setTimeout(cancelVoice,2000);return;}
+  }
   // Handle mishear confirmation response
   if(_mishearPending){
     var ans=text.toLowerCase();
