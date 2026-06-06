@@ -6908,27 +6908,29 @@ function spStartPoll() {
 // Called from _sendToJarvisVoice when command intent detected
 async function spHandleVoiceCmd(text) {
   var t = text.toLowerCase();
-  if (!await spEnsureToken()) { return false; }
+  if (!await spEnsureToken()) { showToast('Spotify not connected'); return false; }
 
   // Skip / Next
   if (/\b(skip|next( song| track)?)\b/.test(t)) {
-    await spCmd('next'); speak('Skipping sir.'); return true;
+    await spCmd('next'); await speak('Skipping sir.'); return true;
   }
   // Previous
   if (/\b(previous|go back|last song)\b/.test(t)) {
-    await spCmd('previous'); speak('Going back sir.'); return true;
+    await spCmd('previous'); await speak('Going back sir.'); return true;
   }
-  // Pause
-  if (/\b(pause|stop the music|stop playing)\b/.test(t) && _sp.playing) {
-    await spCmd('playpause'); speak('Paused sir.'); return true;
+  // Pause — no state guard, always try
+  if (/\b(pause|stop the music|stop playing)\b/.test(t)) {
+    await spApi('/me/player/pause', 'PUT'); _sp.playing=false;
+    await speak('Paused sir.'); return true;
   }
-  // Resume
-  if (/\b(resume|unpause|play again|continue)\b/.test(t) && !_sp.playing) {
-    await spCmd('playpause'); speak('Resuming sir.'); return true;
+  // Resume — no state guard, always try
+  if (/\b(resume|unpause|play again|continue)\b/.test(t)) {
+    await spApi('/me/player/play', 'PUT'); _sp.playing=true;
+    await speak('Resuming sir.'); return true;
   }
   // Shuffle
   if (/\b(shuffle)\b/.test(t)) {
-    await spCmd('shuffle'); speak('Shuffle ' + (_sp.shuffle ? 'on' : 'off') + ' sir.'); return true;
+    await spCmd('shuffle'); await speak('Shuffle ' + (_sp.shuffle ? 'on' : 'off') + ' sir.'); return true;
   }
   // Volume
   if (/\b(volume|turn it up|turn it down|louder|quieter)\b/.test(t)) {
@@ -6939,12 +6941,12 @@ async function spHandleVoiceCmd(text) {
   if (/\b(play)\b/.test(t) && _sp.playlists) {
     var plMatch = _sp.playlists.find(function(p) {
       var pn = p.name.toLowerCase();
-      if (t.includes(pn)) return true; // exact name in command
+      if (t.includes(pn)) return true;
       var words = pn.split(' ').filter(function(w){ return w.length > 4; });
       var matches = words.filter(function(w){ return t.includes(w); });
-      return matches.length >= 2; // need at least 2 significant words to match
+      return matches.length >= 2;
     });
-    if (plMatch) { await spPlay(plMatch.uri); speak('Playing ' + plMatch.name + ' sir.'); return true; }
+    if (plMatch) { await spPlay(plMatch.uri); await speak('Playing ' + plMatch.name + ' sir.'); return true; }
   }
 
   // Play artist or song by search
@@ -6953,10 +6955,9 @@ async function spHandleVoiceCmd(text) {
       .replace(/\b(play|jarvis|hey|ok|please|can you|some|me|a|an|the|song|track|music)\b/g, '')
       .replace(/\s+/g, ' ').trim();
     if (query.length > 1) {
-      // Search tracks first, only fall back to playlist/artist if no track found
       var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track,artist&limit=3');
       var uri = d?.tracks?.items?.[0]?.uri || d?.artists?.items?.[0]?.uri;
-      if (uri) { await spPlay(uri); speak('Playing that now sir.'); return true; }
+      if (uri) { await spPlay(uri); await speak('Playing that now sir.'); return true; }
     }
   }
 
@@ -7108,7 +7109,7 @@ async function _sendToJarvisVoice(text){
     try{if(_recorder)_recorder.stop();}catch(e){}
     try{if(_dgWS)_dgWS.close();}catch(e){}
     var handled=await spHandleVoiceCmd(text);
-    if(handled){setTimeout(cancelVoice,2000);setTimeout(startWakeWord,2500);return;}
+    if(handled){setTimeout(cancelVoice,500);setTimeout(startWakeWord,1200);return;}
   }
   // Handle mishear confirmation response
   if(_mishearPending){
