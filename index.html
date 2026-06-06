@@ -6357,9 +6357,8 @@ async function startWakeWord(){
     var wakeToken=td.token; // local — never touches shared _dgToken
     _wakeMic=await navigator.mediaDevices.getUserMedia({audio:true});
     var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&interim_results=false'
-      +'&keywords=jarvis:2&keywords=hey%20jarvis:2&keywords=ok%20jarvis:2'
-      +'&access_token='+encodeURIComponent(wakeToken);
-    _wakeWS=new WebSocket(wsUrl);
+      +'&keywords=jarvis:2&keywords=hey%20jarvis:2&keywords=ok%20jarvis:2';
+    _wakeWS=new WebSocket(wsUrl,['token',wakeToken]);
     _wakeWS.onopen=function(){
       _wakeRec=new MediaRecorder(_wakeMic,{mimeType:'audio/webm'});
       _wakeRec.ondataavailable=function(e){
@@ -6441,9 +6440,8 @@ async function _startConversation(){
     var convToken=td.token; // local — never touches shared _dgToken
     _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
     var wsUrl='wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&interim_results=true'
-      +'&endpointing=1200&utterance_end_ms=2000'
-      +'&access_token='+encodeURIComponent(convToken);
-    _dgWS=new WebSocket(wsUrl);
+      +'&endpointing=1200&utterance_end_ms=2000';
+    _dgWS=new WebSocket(wsUrl,['token',convToken]);
     var finalTx='',silTimer=null;
     _dgWS.onopen=function(){
       _recorder=new MediaRecorder(_micStream,{mimeType:'audio/webm'});
