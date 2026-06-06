@@ -698,6 +698,61 @@ body.viewing-past .tracker-log-only{display:block;}
 </head>
 <body>
 
+<!-- ── JARVIS Security Lock Screen ─────────────────────────────────────── -->
+<div id="lock-screen" style="
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;">
+  <div style="font-size:56px;margin-bottom:8px;">🔒</div>
+  <div style="font-size:24px;font-weight:700;color:var(--text);margin-bottom:4px;">JARVIS</div>
+  <div style="font-size:13px;color:var(--text-muted);margin-bottom:36px;">Enter your PIN to continue</div>
+
+  <!-- PIN dots -->
+  <div id="pin-dots" style="display:flex;gap:14px;margin-bottom:28px;">
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+
+  <!-- Error message -->
+  <div id="pin-error" style="font-size:12px;color:var(--red);height:16px;margin-bottom:16px;"></div>
+
+  <!-- Numpad -->
+  <div style="display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(4,72px);gap:10px;">
+    <button class="pin-key" onclick="pinKey('1')">1</button>
+    <button class="pin-key" onclick="pinKey('2')">2</button>
+    <button class="pin-key" onclick="pinKey('3')">3</button>
+    <button class="pin-key" onclick="pinKey('4')">4</button>
+    <button class="pin-key" onclick="pinKey('5')">5</button>
+    <button class="pin-key" onclick="pinKey('6')">6</button>
+    <button class="pin-key" onclick="pinKey('7')">7</button>
+    <button class="pin-key" onclick="pinKey('8')">8</button>
+    <button class="pin-key" onclick="pinKey('9')">9</button>
+    <button class="pin-key" onclick="pinClear()" style="font-size:13px;color:var(--text-muted);">Clear</button>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key" onclick="pinBackspace()" style="font-size:20px;">⌫</button>
+  </div>
+
+  <!-- First-time setup hint + skip option -->
+  <div id="pin-setup-hint" style="display:none;font-size:12px;color:var(--text-muted);margin-top:24px;text-align:center;">
+    First time? Enter a 4-digit PIN to set it up.<br>
+    <button onclick="pinSkip()" style="margin-top:12px;background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-decoration:underline;">Skip — no PIN</button>
+  </div>
+</div>
+
+<style>
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border);border:2px solid var(--border-light);transition:all .15s;}
+.pin-dot.filled{background:var(--primary);border-color:var(--primary);}
+.pin-key{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--card);border:1px solid var(--border);
+  color:var(--text);font-size:22px;font-weight:600;cursor:pointer;
+  transition:all .15s;display:flex;align-items:center;justify-content:center;
+}
+.pin-key:hover{background:var(--card-hover);border-color:var(--primary-border);}
+.pin-key:active{background:var(--primary-dim);transform:scale(.94);}
+</style>
+
 <div id="header">
   <div class="logo">
     <div class="logo-icon">J</div>
@@ -6409,6 +6464,131 @@ async function _startConversation(){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SECURITY — PIN LOCK
+// 4-digit PIN · session timeout · nothing renders until unlocked
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _pin = { entry: '', locked: true, timeout: null, SESSION_MINS: 30 };
+var PIN_KEY = 'jarvis_pin_hash';
+var PIN_TS  = 'jarvis_pin_ts';
+
+// Simple hash (not crypto — PIN is local-only, not server-side)
+function _pinHash(s){ var h=0;for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return String(h); }
+
+function pinKey(d){
+  if(_pin.entry.length >= 4) return;
+  _pin.entry += d;
+  _updatePinDots();
+  if(_pin.entry.length === 4) setTimeout(_pinSubmit, 120);
+}
+function pinBackspace(){ _pin.entry=_pin.entry.slice(0,-1); _updatePinDots(); }
+function pinClear(){ _pin.entry=''; _updatePinDots(); }
+
+function _updatePinDots(){
+  var dots = document.querySelectorAll('.pin-dot');
+  dots.forEach(function(d,i){ d.classList.toggle('filled', i < _pin.entry.length); });
+}
+
+function _pinSubmit(){
+  var stored = localStorage.getItem(PIN_KEY);
+  var hash   = _pinHash(_pin.entry);
+
+  if(!stored || stored === 'skip'){
+    // First time or skipped — set the PIN
+    localStorage.setItem(PIN_KEY, hash);
+    _pinUnlock();
+    return;
+  }
+
+  if(hash === stored){
+    _pinUnlock();
+  } else {
+    _pin.entry = '';
+    _updatePinDots();
+    var err = document.getElementById('pin-error');
+    if(err){ err.textContent = 'Incorrect PIN'; setTimeout(function(){ err.textContent=''; }, 2000); }
+    // Shake animation
+    var dots = document.getElementById('pin-dots');
+    if(dots){ dots.style.animation='shake .3s'; setTimeout(function(){ dots.style.animation=''; }, 300); }
+  }
+}
+
+function pinSkip(){
+  // Disable PIN entirely — mark as skipped so lock screen never shows again
+  localStorage.setItem(PIN_KEY, 'skip');
+  _pinUnlock();
+}
+
+function _pinUnlock(){
+  _pin.locked = false;
+  _pin.entry  = '';
+  localStorage.setItem(PIN_TS, String(Date.now()));
+  var ls = document.getElementById('lock-screen');
+  if(ls){ ls.style.opacity='0'; ls.style.transition='opacity .3s'; setTimeout(function(){ ls.style.display='none'; }, 300); }
+  _pinResetTimeout();
+}
+
+function _pinLock(){
+  _pin.locked = true;
+  _pin.entry  = '';
+  clearTimeout(_pin.timeout);
+  _updatePinDots();
+  var err = document.getElementById('pin-error'); if(err) err.textContent='';
+  var ls  = document.getElementById('lock-screen');
+  if(ls){ ls.style.opacity='1'; ls.style.display='flex'; }
+}
+
+function _pinResetTimeout(){
+  clearTimeout(_pin.timeout);
+  _pin.timeout = setTimeout(_pinLock, _pin.SESSION_MINS * 60 * 1000);
+}
+
+// Reset inactivity timer on user interaction
+['click','keydown','touchstart','mousemove'].forEach(function(ev){
+  document.addEventListener(ev, function(){
+    if(!_pin.locked) _pinResetTimeout();
+  }, { passive: true });
+});
+
+// Keyboard support for PIN entry
+document.addEventListener('keydown', function(e){
+  if(_pin.locked){
+    if(e.key>='0'&&e.key<='9') pinKey(e.key);
+    else if(e.key==='Backspace') pinBackspace();
+    else if(e.key==='Escape') pinClear();
+  }
+});
+
+// Shake keyframe
+var _shakeStyle = document.createElement('style');
+_shakeStyle.textContent = '@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}';
+document.head.appendChild(_shakeStyle);
+
+// Init — check if session is still valid
+(function _pinInit(){
+  var stored = localStorage.getItem(PIN_KEY);
+  var ts     = parseInt(localStorage.getItem(PIN_TS)||'0');
+  var elapsed = Date.now() - ts;
+  var hint = document.getElementById('pin-setup-hint');
+
+  if(!stored){
+    // No PIN set yet — show setup hint with skip option
+    if(hint) hint.style.display = '';
+    return; // lock screen already showing
+  }
+  if(stored === 'skip'){
+    // User chose no PIN — unlock immediately always
+    _pinUnlock(); return;
+  }
+
+  if(elapsed < _pin.SESSION_MINS * 60 * 1000){
+    // Recent session — unlock immediately
+    _pinUnlock();
+  }
+  // else: session expired, stay locked
+})();
+
+
 // LAYER 2 — SPOTIFY
 // OAuth via edge function · API proxy · full tab · mini-player · voice cmds
 // ═══════════════════════════════════════════════════════════════════════════
@@ -6464,27 +6644,36 @@ async function spConnect() {
     + '&client_id=' + encodeURIComponent(d.client_id)
     + '&scope=' + encodeURIComponent(scopes)
     + '&redirect_uri=' + encodeURIComponent(SP_REDIRECT);
-  var popup = window.open(url, 'spotify-auth', 'width=500,height=700');
-  var check = setInterval(async function () {
-    try {
-      if (!popup || popup.closed) { clearInterval(check); return; }
-      var loc = popup.location.href;
-      if (loc.includes('code=')) {
-        clearInterval(check); popup.close();
-        var code = new URL(loc).searchParams.get('code');
-        var td = await spEdge('exchange_code', { code: code, redirect_uri: SP_REDIRECT });
-        if (!td.ok) { showToast('Spotify auth failed'); return; }
-        _sp.token = td.access_token; _sp.refresh = td.refresh_token;
-        _sp.expires = Date.now() + (td.expires_in || 3600) * 1000;
-        localStorage.setItem('sp_refresh', td.refresh_token);
-        showToast('Spotify connected ✓');
-        spShowConnect(false);
-        spLoadAll();
-        spStartPoll();
-      }
-    } catch (e) {}
-  }, 500);
+
+  // Listen for postMessage from callback.html (popup case)
+  function onMsg(e) {
+    if (e.origin !== window.location.origin || !e.data || e.data.type !== 'spotify_callback') return;
+    window.removeEventListener('message', onMsg);
+    _spHandleCode(e.data.code, e.data.error);
+  }
+  window.addEventListener('message', onMsg);
+  window.open(url, 'spotify-auth', 'width=500,height=700');
 }
+
+// Called by callback.html via postMessage (popup) or on page load (new tab)
+async function _spHandleCode(code, error) {
+  if (error || !code) { showToast('Spotify auth cancelled'); return; }
+  var td = await spEdge('exchange_code', { code: code, redirect_uri: SP_REDIRECT });
+  if (!td.ok) { showToast('Spotify auth failed: ' + (td.error || '')); return; }
+  _sp.token = td.access_token; _sp.refresh = td.refresh_token;
+  _sp.expires = Date.now() + (td.expires_in || 3600) * 1000;
+  localStorage.setItem('sp_refresh', td.refresh_token);
+  showToast('Spotify connected ✓');
+  spShowConnect(false);
+  spLoadAll();
+  spStartPoll();
+}
+
+// On page load — pick up code if auth came back as a new tab redirect
+(function _spCheckRedirect() {
+  var code = localStorage.getItem('sp_auth_code');
+  if (code) { localStorage.removeItem('sp_auth_code'); _spHandleCode(code, null); }
+})();
 
 function spShowConnect(show) {
   var b = document.getElementById('sp-connect-banner');
