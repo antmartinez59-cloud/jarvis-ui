@@ -2124,11 +2124,20 @@ body.viewing-past .tracker-log-only{display:block;}
       </div>
 
       <!-- Recently Played -->
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;">
         <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:12px;">RECENTLY PLAYED</div>
         <div id="sp-recent" style="display:flex;flex-direction:column;gap:8px;">
           <div style="color:var(--text-muted);font-size:13px;">Connect Spotify to see recently played.</div>
         </div>
+      </div>
+
+      <!-- Up Next -->
+      <div id="sp-queue-section" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;">UP NEXT</div>
+          <button onclick="spLoadQueue()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;">↻ Refresh</button>
+        </div>
+        <div id="sp-queue" style="display:flex;flex-direction:column;gap:2px;"></div>
       </div>
 
     </div>
@@ -6695,9 +6704,9 @@ async function spCmd(cmd) {
     if (btn) btn.textContent = _sp.playing ? '⏸' : '▶';
     if (mbtn) mbtn.textContent = _sp.playing ? '⏸' : '▶';
   } else if (cmd === 'next') {
-    await spApi('/me/player/next', 'POST'); setTimeout(spPoll, 800);
+    await spApi('/me/player/next', 'POST'); setTimeout(spPoll, 800); setTimeout(spLoadQueue, 1200);
   } else if (cmd === 'previous') {
-    await spApi('/me/player/previous', 'POST'); setTimeout(spPoll, 800);
+    await spApi('/me/player/previous', 'POST'); setTimeout(spPoll, 800); setTimeout(spLoadQueue, 1200);
   } else if (cmd === 'shuffle') {
     _sp.shuffle = !_sp.shuffle;
     await spApi('/me/player/shuffle?state=' + _sp.shuffle, 'PUT');
@@ -6793,7 +6802,30 @@ async function spLoadRecent() {
   }).join('');
 }
 
-function spLoadAll() { spLoadPlaylists(); spLoadRecent(); }
+async function spLoadQueue() {
+  if (!await spEnsureToken()) return;
+  var d = await spApi('/me/player/queue');
+  var sec = document.getElementById('sp-queue-section');
+  var el  = document.getElementById('sp-queue');
+  if (!d || !d.ok || !d.queue) { if(sec) sec.style.display='none'; return; }
+  var items = d.queue.slice(0, 10);
+  if (!items.length) { if(sec) sec.style.display='none'; return; }
+  if(sec) sec.style.display='';
+  el.innerHTML = items.map(function(t, i) {
+    var art  = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
+    var name = t.name || '—';
+    var artist = t.artists?.map(function(a){ return a.name; }).join(', ') || '—';
+    return '<div onclick="spPlay(\'' + t.uri + '\')" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:7px 8px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background=\'var(--card-hover)\'" onmouseout="this.style.background=\'\'">'
+      + '<div style="font-size:11px;color:var(--text-muted);width:16px;text-align:right;flex-shrink:0;">' + (i+1) + '</div>'
+      + '<img src="' + art + '" style="width:36px;height:36px;border-radius:4px;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\'">'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + name + '</div>'
+      + '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + artist + '</div>'
+      + '</div></div>';
+  }).join('');
+}
+
+function spLoadAll() { spLoadPlaylists(); spLoadRecent(); spLoadQueue(); }
 
 // ── Now playing poll ───────────────────────────────────────────────────────
 async function spPoll() {
