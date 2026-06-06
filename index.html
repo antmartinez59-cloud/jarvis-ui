@@ -2003,7 +2003,7 @@ body.viewing-past .tracker-log-only{display:block;}
     <div class="fin-scroll" style="padding:16px 20px;">
 
       <!-- Connect banner -->
-      <div id="sp-connect-banner" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:32px;text-align:center;margin-bottom:16px;">
+      <div id="sp-connect-banner" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:32px;text-align:center;margin-bottom:16px;">
         <div style="font-size:48px;margin-bottom:12px;">🎵</div>
         <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">Connect Spotify</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Link your Spotify account to control music from JARVIS and use voice commands while gaming.</div>
@@ -6692,7 +6692,7 @@ async function spHandleVoiceCmd(text) {
 }
 
 // ── Init on load ───────────────────────────────────────────────────────────
-(async function spInit() {
+document.addEventListener('DOMContentLoaded', async function() {
   var rf = localStorage.getItem('sp_refresh');
   if (rf) {
     _sp.refresh = rf;
@@ -6700,7 +6700,7 @@ async function spHandleVoiceCmd(text) {
     if (ok) { spShowConnect(false); spLoadAll(); spStartPoll(); }
     else spShowConnect(true);
   } else { spShowConnect(true); }
-})();
+});
 
 // END LAYER 2 — SPOTIFY
 
