@@ -6402,13 +6402,19 @@ function stopWakeWord(){
   _wakeWS=null;_wakeRec=null;_wakeMic=null;
 }
 
+var _greetTimer=null, _speechHeard=false;
 async function _activateVoice(){
   sfxActivate();
   document.getElementById('voice-overlay').classList.add('open');
   _vSetStatus('Listening...','listening');
   _vSetTranscript('');
-  _vActive=true;
+  _vActive=true; _speechHeard=false;
   try{if(_wakeRec)_wakeRec.stop();}catch(e){}
+  // Say "Yes sir?" if Tony pauses after wake word with no command
+  clearTimeout(_greetTimer);
+  _greetTimer=setTimeout(function(){
+    if(_vActive&&!_speechHeard) _speakText('Yes sir?');
+  },1500);
   await _startConversation();
 }
 
@@ -6448,6 +6454,8 @@ async function _startConversation(){
         if(!alt)return;
         var tx=(alt.transcript||'').trim();
         if(!tx)return;
+        // Speech detected — cancel greeting timer
+        if(!_speechHeard){ _speechHeard=true; clearTimeout(_greetTimer); }
         if(msg.is_final){
           var clean=tx;
           WAKE_WORDS.forEach(function(w){
@@ -6734,11 +6742,16 @@ async function spSeek(e, bar) {
 }
 
 // ── Play by URI / search ───────────────────────────────────────────────────
+var _spLastPlay = 0;
 async function spPlay(uri) {
+  // Debounce — ignore if called within 3s of last play (prevents double-trigger restarts)
+  if (Date.now() - _spLastPlay < 3000) return;
+  _spLastPlay = Date.now();
   if (!await spEnsureToken()) { showToast('Connect Spotify first'); return; }
   var body = uri.includes('track') ? { uris: [uri] } : { context_uri: uri };
   await spApi('/me/player/play', 'PUT', body);
   setTimeout(spPoll, 800);
+  setTimeout(spLoadQueue, 1500);
   showToast('Playing ✓');
 }
 
@@ -6848,6 +6861,17 @@ async function spPoll() {
   var dur = document.getElementById('sp-dur'); if(dur) dur.textContent=spFmtTime(d.item.duration_ms);
   var pb = document.getElementById('sp-play-btn'); if(pb) pb.textContent=d.is_playing?'⏸':'▶';
   var vsl = document.getElementById('sp-vol-slider'); if(vsl) vsl.value=d.device?.volume_percent||70;
+  // Sync shuffle state from Spotify (handles changes made outside JARVIS)
+  var smartShuffle = d.smart_shuffle || false;
+  var shuffleOn    = d.shuffle_state || false;
+  _sp.shuffle      = shuffleOn;
+  _sp.smartShuffle = smartShuffle;
+  var sb = document.getElementById('sp-shuffle-btn');
+  if(sb){
+    if(smartShuffle){ sb.style.color='var(--teal)'; sb.title='Smart Shuffle ON'; }
+    else if(shuffleOn){ sb.style.color='var(--primary)'; sb.title='Shuffle ON'; }
+    else { sb.style.color='var(--text-muted)'; sb.title='Shuffle OFF'; }
+  }
   // Mini-player
   var mini = document.getElementById('sp-mini'); if(mini) mini.style.display='';
   var mart = document.getElementById('sp-mini-art'); if(mart){mart.src=art; mart.style.display='';}
@@ -6894,20 +6918,27 @@ async function spHandleVoiceCmd(text) {
     return false; // handled by _volCmd
   }
 
-  // Play specific playlist by name
+  // Play specific playlist by name — requires full name match or 2+ words matching
   if (/\b(play)\b/.test(t) && _sp.playlists) {
     var plMatch = _sp.playlists.find(function(p) {
-      return t.includes(p.name.toLowerCase()) || p.name.toLowerCase().split(' ').some(function(w){ return w.length > 3 && t.includes(w); });
+      var pn = p.name.toLowerCase();
+      if (t.includes(pn)) return true; // exact name in command
+      var words = pn.split(' ').filter(function(w){ return w.length > 4; });
+      var matches = words.filter(function(w){ return t.includes(w); });
+      return matches.length >= 2; // need at least 2 significant words to match
     });
     if (plMatch) { await spPlay(plMatch.uri); speak('Playing ' + plMatch.name + ' sir.'); return true; }
   }
 
   // Play artist or song by search
   if (/\b(play)\b/.test(t)) {
-    var query = t.replace(/\b(play|jarvis|some|me|a|the)\b/g, '').trim();
+    var query = t
+      .replace(/\b(play|jarvis|hey|ok|please|can you|some|me|a|an|the|song|track|music)\b/g, '')
+      .replace(/\s+/g, ' ').trim();
     if (query.length > 1) {
-      var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track,artist,playlist&limit=1');
-      var uri = d?.tracks?.items?.[0]?.uri || d?.playlists?.items?.[0]?.uri || d?.artists?.items?.[0]?.uri;
+      // Search tracks first, only fall back to playlist/artist if no track found
+      var d = await spApi('/search?q=' + encodeURIComponent(query) + '&type=track,artist&limit=3');
+      var uri = d?.tracks?.items?.[0]?.uri || d?.artists?.items?.[0]?.uri;
       if (uri) { await spPlay(uri); speak('Playing that now sir.'); return true; }
     }
   }
@@ -7056,8 +7087,11 @@ async function _sendToJarvisVoice(text){
   if(_volCmd(text)){setTimeout(cancelVoice,2000);return;}
   // Spotify voice commands — handle before hitting AI
   if(/\b(skip|next|previous|go back|pause|resume|unpause|shuffle|play)\b/.test(text.toLowerCase())){
+    // Close mic immediately — prevents Deepgram double-firing while command executes
+    try{if(_recorder)_recorder.stop();}catch(e){}
+    try{if(_dgWS)_dgWS.close();}catch(e){}
     var handled=await spHandleVoiceCmd(text);
-    if(handled){setTimeout(cancelVoice,2000);return;}
+    if(handled){setTimeout(cancelVoice,2000);setTimeout(startWakeWord,2500);return;}
   }
   // Handle mishear confirmation response
   if(_mishearPending){
