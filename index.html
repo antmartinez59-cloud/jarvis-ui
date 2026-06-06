@@ -640,6 +640,13 @@ body.viewing-past .tracker-log-only{display:block;}
   cursor:pointer;display:flex;align-items:center;justify-content:center;
   box-shadow:0 2px 12px rgba(0,0,0,.3);z-index:150;transition:all .2s;
 }
+#voice-settings-btn{
+  position:fixed;bottom:80px;right:142px;width:36px;height:36px;border-radius:50%;
+  background:var(--card);border:1px solid var(--border);color:var(--text-muted);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:150;transition:all .2s;font-size:16px;
+}
+#voice-settings-btn:hover{border-color:var(--primary-border);color:var(--primary);}
 #voice-btn:hover{border-color:var(--primary-border);color:var(--primary);}
 #voice-btn.listening{background:var(--primary);border-color:var(--primary);color:#fff;
   box-shadow:0 0 0 4px rgba(124,111,255,.25),0 2px 12px rgba(124,111,255,.4);
@@ -1993,6 +2000,9 @@ body.viewing-past .tracker-log-only{display:block;}
      VOICE SYSTEM — UI ELEMENTS
 ════════════════════════════════════════════════════════════ -->
 
+<!-- Voice settings gear button -->
+<button id="voice-settings-btn" onclick="document.getElementById('voice-settings-overlay').classList.add('open')" title="Voice Settings">⚙️</button>
+
 <!-- Mic button (tap-to-talk, always visible) -->
 <button id="voice-btn" onclick="toggleVoice()" title="Tap to talk (or say Hey Jarvis on desktop)">
   <svg id="voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2021,7 +2031,7 @@ body.viewing-past .tracker-log-only{display:block;}
 
 <!-- Voice settings modal -->
 <div class="modal-overlay" id="voice-settings-overlay">
-  <div class="modal" style="width:420px;">
+  <div class="modal" style="width:420px;max-height:90vh;overflow-y:auto;">
     <h3>🎙️ Voice Settings</h3>
     <p class="modal-sub">Configure how Jarvis listens and speaks.</p>
     <div class="form-group">
