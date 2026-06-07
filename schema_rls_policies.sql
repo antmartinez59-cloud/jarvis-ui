@@ -7,7 +7,8 @@ DECLARE
   tables text[] := ARRAY[
     'accounts','categories','connections','jarvis_health',
     'notifications','paycheck_rules','portfolio','profile_history',
-    'repos','user_settings','watchlist'
+    'repos','user_settings','watchlist',
+    'people','people_history','tia_vault'
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
