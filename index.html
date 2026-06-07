@@ -2876,6 +2876,18 @@ async function sendToCouncil(){
     }
   }
 
+  // ── Message interception — draft + confirm before sending ──
+  {
+    const _mi = document.getElementById('user-input');
+    const _mt = _mi?.value.trim();
+    if(_mt && /\b(text|message|send|tell)\b.*\b(to\b|mom|dad|bryce|jacob|logan|gavin|cash|christian|spencer|tia)/i.test(_mt)) {
+      _mi.value = '';
+      appendUserMsg(_mt);
+      await _handleMessageDraft(_mt);
+      return;
+    }
+  }
+
   // ── Reminder interception — parse and call apple-remind directly ──
   {
     const _ri=document.getElementById('user-input');
@@ -7559,6 +7571,108 @@ async function submitAddPerson() {
   else showToast('Error adding person');
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYER 4 — MESSAGING SYSTEM
+// Draft + confirm flow, Twilio send, Apple Shortcuts queue
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _msgDraft = null; // { name, phone, body }
+
+async function _handleMessageDraft(text) {
+  // Parse recipient + message body from text
+  var recipientName = null, recipientPhone = null, msgBody = null;
+
+  // Extract recipient name
+  var rMatch = text.match(/\b(?:text|message|tell|send)\s+(\w+)\b/i);
+  var nameRaw = rMatch ? rMatch[1] : null;
+
+  // Find phone from people table
+  if(nameRaw && _people.length) {
+    var match = _people.find(function(p){ return p.name.toLowerCase() === nameRaw.toLowerCase(); });
+    if(!match) match = _people.find(function(p){ return p.name.toLowerCase().startsWith(nameRaw.toLowerCase()); });
+    if(match){ recipientName = match.name; recipientPhone = match.phone; }
+  }
+
+  // Extract message body — everything after "that" or "saying" or "to say"
+  var bodyMatch = text.match(/\b(?:that|saying|to say|:)\s+(.+)/i);
+  if(!bodyMatch) bodyMatch = text.match(/(?:text|message)\s+\w+\s+(.+)/i);
+  msgBody = bodyMatch ? bodyMatch[1].trim() : null;
+
+  if(!recipientName || !recipientPhone) {
+    appendCouncilResponse('JARVIS\nI couldn\'t find that contact sir. Who do you want to message?');
+    return;
+  }
+  if(!msgBody) {
+    appendCouncilResponse('JARVIS\nWhat should I say to ' + recipientName + ' sir?');
+    return;
+  }
+
+  _msgDraft = { name: recipientName, phone: recipientPhone, body: msgBody };
+  _showMessageDraftModal();
+}
+
+function _showMessageDraftModal() {
+  if(!_msgDraft) return;
+  var existing = document.getElementById('msg-draft-modal');
+  if(existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'msg-draft-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML =
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:min(420px,90vw);">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:12px;">READY TO SEND</div>'
+    +'<div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">To: <span style="color:var(--text);font-weight:600;">'+_msgDraft.name+'</span> <span style="color:var(--text-dim);font-size:11px;">('+(_msgDraft.phone||'no number')+')</span></div>'
+    +'<textarea id="msg-draft-body" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;color:var(--text);min-height:80px;resize:vertical;margin-bottom:16px;box-sizing:border-box;">'+_msgDraft.body+'</textarea>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button onclick="_sendMessageNow()" class="btn btn-primary" style="flex:1;">Send ✓</button>'
+    +'<button onclick="_cancelMessageDraft()" class="btn" style="flex:1;">Cancel</button>'
+    +'</div>'
+    +'<div id="msg-send-status" style="font-size:12px;color:var(--text-muted);margin-top:10px;text-align:center;"></div>'
+    +'</div>';
+  document.body.appendChild(modal);
+}
+
+function _cancelMessageDraft() {
+  _msgDraft = null;
+  var m = document.getElementById('msg-draft-modal');
+  if(m) m.remove();
+}
+
+async function _sendMessageNow() {
+  var bodyEl = document.getElementById('msg-draft-body');
+  var body = bodyEl?.value.trim();
+  if(!body || !_msgDraft) return;
+  _msgDraft.body = body;
+
+  var statusEl = document.getElementById('msg-send-status');
+  if(statusEl) statusEl.textContent = 'Sending…';
+
+  try {
+    var res = await fetch(supabaseUrl+'/functions/v1/send-message', {
+      method: 'POST',
+      headers: {'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+      body: JSON.stringify({ recipientName:_msgDraft.name, recipientPhone:_msgDraft.phone, body:_msgDraft.body })
+    });
+    var d = await res.json();
+    if(d.ok) {
+      appendCouncilResponse('JARVIS\nMessage sent to '+_msgDraft.name+' ✓');
+      showToast('Sent to '+_msgDraft.name+' ✓');
+      _cancelMessageDraft();
+    } else {
+      if(statusEl) statusEl.textContent = 'Error: '+(d.error||'Send failed');
+    }
+  } catch(e) {
+    if(statusEl) statusEl.textContent = 'Error: '+e.message;
+  }
+}
+
+// Voice command: "send/text [name] that [message]"
+async function _handleMessageVoice(text) {
+  await _handleMessageDraft(text);
+}
+
 function editPerson(id) {
   var p = _people.find(function(x){return x.id===id;});
   if(!p) return;
@@ -7849,6 +7963,13 @@ async function _sendToJarvisVoice(text){
   // Tia's Vault — check before anything else (voice = auto-confirmed since wake word already fired)
   if(checkTiaPhrase(text, 100)){ cancelVoice(); return; }
   if(_volCmd(text)){setTimeout(cancelVoice,2000);return;}
+  // Message interception in voice
+  if(/\b(text|message|tell|send)\b.*\b(mom|dad|bryce|jacob|logan|gavin|cash|christian|spencer|tia)/i.test(text)){
+    cancelVoice();
+    await _handleMessageVoice(text);
+    setTimeout(startWakeWord,800);
+    return;
+  }
   // Spotify voice commands — handle before hitting AI
   if(/\b(skip|next|previous|go back|pause|resume|unpause|shuffle|play)\b/.test(text.toLowerCase())){
     // Close mic immediately — prevents Deepgram double-firing while command executes

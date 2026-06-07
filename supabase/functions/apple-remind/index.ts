@@ -214,7 +214,17 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join('\r\n') + '\r\n';
 
     const homeUrl = await getCalendarHome();
-    const collections = await findVtodoCollections(homeUrl);
+    let collections = await findVtodoCollections(homeUrl);
+
+    // Fallback: use known Reminders collection UUID if discovery returns nothing
+    if (!collections.length) {
+      console.log('[remind] Discovery found no VTODO collections — using known UUID 3BD98F0E');
+      const proto = homeUrl.startsWith('https') ? 'https' : 'http';
+      const hostWithPort = homeUrl.split('/')[2];
+      const homePath = '/' + homeUrl.split('/').slice(3).join('/');
+      const base = `${proto}://${hostWithPort}`;
+      collections = [{ url: `${base}${homePath}3BD98F0E/`, name: 'Reminders' }];
+    }
 
     let created = false;
     let usedCollection = '';
@@ -236,4 +246,53 @@ Deno.serve(async (req) => {
       const errBody = res.ok ? '' : await res.text().catch(() => '');
       console.log('[remind] PUT status:', res.status, errBody.slice(0, 200));
 
-      if (res.ok || re
+      if (res.ok || res.status === 201) {
+        created = true;
+        usedCollection = name;
+        console.log('[remind] created in:', name);
+        break;
+      }
+      lastErr = `${res.status}: ${errBody.slice(0, 100)}`;
+    }
+
+    if (!created && collections.length) {
+      // Try fallback UUID if dynamic discovery failed
+      const homeUrl2 = await getCalendarHome();
+      const proto = homeUrl2.startsWith('https') ? 'https' : 'http';
+      const hostWithPort = homeUrl2.split('/')[2];
+      const homePath = '/' + homeUrl2.split('/').slice(3).join('/');
+      const fallbackUrl = `${proto}://${hostWithPort}${homePath}3BD98F0E/${uid}.ics`;
+      console.log('[remind] trying fallback PUT to 3BD98F0E:', fallbackUrl);
+      const res2 = await fetch(fallbackUrl, {
+        method: 'PUT',
+        headers: { ...authHeader(), 'Content-Type': 'text/calendar; charset=utf-8', 'If-None-Match': '*' },
+        body: vtodo,
+      });
+      const errBody2 = res2.ok ? '' : await res2.text().catch(() => '');
+      console.log('[remind] fallback PUT status:', res2.status, errBody2.slice(0, 200));
+      if (res2.ok || res2.status === 201) {
+        created = true;
+        usedCollection = '3BD98F0E (fallback)';
+      } else {
+        lastErr = `fallback ${res2.status}: ${errBody2.slice(0, 100)}`;
+      }
+    }
+
+    if (!created) {
+      return new Response(JSON.stringify({ ok: false, error: 'PUT failed: ' + lastErr }), {
+        status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: true, uid, collection: usedCollection }), {
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[remind] error:', msg);
+    return new Response(JSON.stringify({ ok: false, error: msg }), {
+      status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+  }
+});
