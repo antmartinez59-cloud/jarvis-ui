@@ -7615,11 +7615,21 @@ async function _handleMessageDraft(text) {
   var rMatch = text.match(/\b(?:text|message|tell|send)\s+(\w+)\b/i);
   var nameRaw = rMatch ? rMatch[1] : null;
 
-  // Find phone from people table
+  // Find phone from people table — handle duplicates
   if(nameRaw && _people.length) {
-    var match = _people.find(function(p){ return p.name.toLowerCase() === nameRaw.toLowerCase(); });
-    if(!match) match = _people.find(function(p){ return p.name.toLowerCase().startsWith(nameRaw.toLowerCase()); });
-    if(match){ recipientName = match.name; recipientPhone = match.phone; }
+    var exactMatches = _people.filter(function(p){ return p.name.toLowerCase() === nameRaw.toLowerCase(); });
+    var partialMatches = _people.filter(function(p){ return p.name.toLowerCase().startsWith(nameRaw.toLowerCase()); });
+    var allMatches = exactMatches.length ? exactMatches : partialMatches;
+
+    if(allMatches.length === 1) {
+      recipientName = allMatches[0].name;
+      recipientPhone = allMatches[0].phone;
+    } else if(allMatches.length > 1) {
+      // Multiple matches — ask Tony to clarify
+      var options = allMatches.map(function(p,i){ return (i+1)+'. '+p.name+(p.phone?' ('+p.phone+')':''); }).join('\n');
+      appendCouncilResponse('JARVIS\nI found '+allMatches.length+' contacts named '+nameRaw+' sir:\n'+options+'\n\nWhich one? Reply with the number.');
+      return;
+    }
   }
 
   // Extract message body — everything after "that" or "saying" or "to say"
