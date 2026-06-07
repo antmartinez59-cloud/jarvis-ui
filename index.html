@@ -7649,22 +7649,47 @@ async function _sendMessageNow() {
   var statusEl = document.getElementById('msg-send-status');
   if(statusEl) statusEl.textContent = 'Sending…';
 
-  try {
-    var res = await fetch(supabaseUrl+'/functions/v1/send-message', {
-      method: 'POST',
-      headers: {'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-      body: JSON.stringify({ recipientName:_msgDraft.name, recipientPhone:_msgDraft.phone, body:_msgDraft.body })
+  // Clean phone — strip non-digits except leading +
+  var phone = (_msgDraft.phone||'').replace(/[^\d+]/g,'');
+  if(!phone.startsWith('+')) phone = '+1'+phone;
+
+  // Try Apple Shortcuts first (works when on iPhone)
+  var shortcutInput = encodeURIComponent(phone+'|'+body);
+  var shortcutUrl = 'shortcuts://run-shortcut?name=JARVIS%20Send&input='+shortcutInput;
+
+  var isMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if(isMobile) {
+    // On iPhone — open Shortcuts directly
+    window.location.href = shortcutUrl;
+    // Log to Supabase
+    await fetch(supabaseUrl+'/rest/v1/messages', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({recipient_name:_msgDraft.name,recipient_phone:phone,body:body,status:'sent',method:'shortcut',sent_at:new Date().toISOString()})
     });
-    var d = await res.json();
-    if(d.ok) {
-      appendCouncilResponse('JARVIS\nMessage sent to '+_msgDraft.name+' ✓');
-      showToast('Sent to '+_msgDraft.name+' ✓');
-      _cancelMessageDraft();
-    } else {
-      if(statusEl) statusEl.textContent = 'Error: '+(d.error||'Send failed');
+    appendCouncilResponse('JARVIS\nOpening Shortcuts to send to '+_msgDraft.name+' ✓');
+    _cancelMessageDraft();
+  } else {
+    // On PC — show the Shortcuts link + fallback to Twilio
+    if(statusEl) statusEl.innerHTML = 'Open on iPhone: <a href="'+shortcutUrl+'" style="color:var(--primary);">Tap to send via Shortcuts</a><br><small style="color:var(--text-muted);">Or sending via Twilio SMS…</small>';
+    try {
+      var res = await fetch(supabaseUrl+'/functions/v1/send-message', {
+        method:'POST',
+        headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+        body:JSON.stringify({recipientName:_msgDraft.name,recipientPhone:phone,body:body})
+      });
+      var d = await res.json();
+      if(d.ok){
+        appendCouncilResponse('JARVIS\nMessage sent to '+_msgDraft.name+' via SMS ✓');
+        showToast('Sent to '+_msgDraft.name+' ✓');
+        _cancelMessageDraft();
+      } else {
+        if(statusEl) statusEl.innerHTML += '<br>SMS error: '+(d.error||'Twilio not ready yet');
+      }
+    } catch(e) {
+      if(statusEl) statusEl.innerHTML += '<br>'+e.message;
     }
-  } catch(e) {
-    if(statusEl) statusEl.textContent = 'Error: '+e.message;
   }
 }
 
