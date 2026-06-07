@@ -2915,14 +2915,18 @@ async function sendToCouncil(){
           if(_rd<new Date()) _rd.setDate(_rd.getDate()+1);
           _rAt = _rd.toISOString();
         }
-        // Build due date string
+        // Build due date string in local format Shortcuts can parse
         var _dueStr = '';
+        var _dueDate;
         if(_rAt) {
-          _dueStr = _rAt;
+          _dueDate = new Date(_rAt);
         } else {
-          var _dd = new Date(Date.now() + _rMins*60000);
-          _dueStr = _dd.toISOString();
+          _dueDate = new Date(Date.now() + _rMins*60000);
         }
+        // Format as "MM/DD/YYYY HH:MM:SS" local time — what Shortcuts accepts
+        var _pad = function(n){ return n<10?'0'+n:String(n); };
+        _dueStr = _pad(_dueDate.getMonth()+1)+'/'+_pad(_dueDate.getDate())+'/'+_dueDate.getFullYear()
+          +' '+_pad(_dueDate.getHours())+':'+_pad(_dueDate.getMinutes())+':00';
         var _reminderTitle = _rTitle || _rt;
         var _shortcutInput = encodeURIComponent(_reminderTitle+'|'+_dueStr);
         var _shortcutUrl = 'shortcuts://run-shortcut?name=JARVIS%20Remind&input='+_shortcutInput;
