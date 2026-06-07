@@ -2872,7 +2872,53 @@ async function sendToCouncil(){
       _chatInp.value='';
       appendUserMsg(_chatText);
       try{ await spHandleVoiceCmd(_chatText); }catch(e){ appendCouncilResponse('JARVIS\nSpotify error: '+e.message); }
-      return; // always return — AI never sees music commands
+      return;
+    }
+  }
+
+  // ── Reminder interception — parse and call apple-remind directly ──
+  {
+    const _ri=document.getElementById('user-input');
+    const _rt=_ri?.value.trim();
+    if(_rt && /\b(remind me|set a reminder|reminder)\b/i.test(_rt)){
+      _ri.value='';
+      appendUserMsg(_rt);
+      try {
+        // Parse time from text e.g. "remind me to call mom at 3pm"
+        var _rTitle = _rt.replace(/^(remind me to?|set a reminder to?|reminder to?)/i,'').replace(/\b(at|in|on|tomorrow|tonight)\b.*/i,'').trim();
+        if(!_rTitle) _rTitle = _rt;
+        var _rMins = 60; // default 1 hour
+        var _rAt = null;
+        var _inMatch = _rt.match(/in (\d+) (min|minute|hour|hr)/i);
+        var _atMatch = _rt.match(/at (\d{1,2})(?::(\d{2}))? *(am|pm)?/i);
+        if(_inMatch){
+          var _n=parseInt(_inMatch[1]);
+          _rMins = /hour|hr/i.test(_inMatch[2]) ? _n*60 : _n;
+        } else if(_atMatch){
+          var _h=parseInt(_atMatch[1]),_m=parseInt(_atMatch[2]||'0'),_ap=(_atMatch[3]||'').toLowerCase();
+          if(_ap==='pm'&&_h<12)_h+=12;
+          if(_ap==='am'&&_h===12)_h=0;
+          var _rd=new Date(); _rd.setHours(_h,_m,0,0);
+          if(_rd<new Date()) _rd.setDate(_rd.getDate()+1);
+          _rAt = _rd.toISOString();
+        }
+        var _rBody = {title:_rTitle||_rt};
+        if(_rAt) _rBody.dueDate=_rAt; else _rBody.dueMinutesFromNow=_rMins;
+        var _rRes = await fetch(supabaseUrl+'/functions/v1/apple-remind',{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+          body:JSON.stringify(_rBody)
+        });
+        var _rD = await _rRes.json();
+        if(_rD.ok){
+          appendCouncilResponse('JARVIS\nReminder set sir — "'+(_rTitle||_rt)+'" is in your Apple Reminders ✓');
+        } else {
+          appendCouncilResponse('JARVIS\nCouldn\'t set the reminder: '+(_rD.error||'check Vault keys'));
+        }
+      } catch(e) {
+        appendCouncilResponse('JARVIS\nReminder error: '+e.message);
+      }
+      return;
     }
   }
 
