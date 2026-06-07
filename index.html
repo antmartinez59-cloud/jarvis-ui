@@ -7368,9 +7368,12 @@ function peopleFilterContacts() {
 }
 
 function upcomingBday(dateStr) {
-  var d = new Date(dateStr); var now = new Date();
-  d.setFullYear(now.getFullYear());
-  if(d < now) d.setFullYear(now.getFullYear()+1);
+  if(!dateStr) return '';
+  // Parse parts directly to avoid UTC→local timezone shift
+  var parts = dateStr.split('-');
+  var now = new Date();
+  var d = new Date(now.getFullYear(), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+  if(d < now) d = new Date(now.getFullYear()+1, parseInt(parts[1],10)-1, parseInt(parts[2],10));
   var days = Math.round((d-now)/(1000*60*60*24));
   if(days===0) return 'Today! 🎉';
   if(days===1) return 'Tomorrow!';
