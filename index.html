@@ -2422,6 +2422,7 @@ const JARVIS_CONFIG = {
   userName:     'Tony',
   obsidianVault: '',  // paste your Obsidian vault name here (e.g. 'MyVault')
   pushcutUrl: 'https://api.pushcut.io/z107N-rEKto0U5gO693vQ/notifications/JARVIS%20Reminder',
+  pushcutMsgUrl: 'https://api.pushcut.io/z107N-rEKto0U5gO693vQ/notifications/JARVIS%20Message',
 };
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -7696,31 +7697,24 @@ async function _sendMessageNow() {
       body:JSON.stringify({recipient_name:_msgDraft.name,recipient_phone:phone,body:body,status:'sent',method:'shortcut',sent_at:new Date().toISOString()})
     });
     appendCouncilResponse('JARVIS\nOpening Shortcuts to send to '+_msgDraft.name+' ✓');
-    _cancelMessageDraft();
   } else {
-    // On PC — show the Shortcuts link + fallback to Twilio
-    if(statusEl) statusEl.innerHTML = 'Open on iPhone: <a href="'+shortcutUrl+'" style="color:var(--primary);">Tap to send via Shortcuts</a><br><small style="color:var(--text-muted);">Or sending via Twilio SMS…</small>';
-    try {
-      var res = await fetch(supabaseUrl+'/functions/v1/send-message', {
+    // On PC — ping Pushcut to trigger JARVIS Send on iPhone
+    var _pcMsgUrl = JARVIS_CONFIG.pushcutMsgUrl;
+    if(_pcMsgUrl) {
+      fetch(_pcMsgUrl, {
         method:'POST',
-        headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-        body:JSON.stringify({recipientName:_msgDraft.name,recipientPhone:phone,body:body})
-      });
-      var d = await res.json();
-      if(d.ok){
-        appendCouncilResponse('JARVIS\nMessage sent to '+_msgDraft.name+' via SMS ✓');
-        showToast('Sent to '+_msgDraft.name+' ✓');
-        _cancelMessageDraft();
-      } else {
-        if(statusEl) statusEl.innerHTML += '<br>SMS error: '+(d.error||'Twilio not ready yet');
-      }
-    } catch(e) {
-      if(statusEl) statusEl.innerHTML += '<br>'+e.message;
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({title:'Send to '+_msgDraft.name, text:body, input:phone+'|'+body})
+      }).then(function(r){
+        if(r.ok){
+          appendCouncilResponse('JARVIS\nNotification sent to your iPhone — tap it to send to '+_msgDraft.name+' sir.');
+          _cancelMessageDraft();
+        } else { if(statusEl) statusEl.textContent = 'Pushcut error'; }
+      }).catch(function(e){ if(statusEl) statusEl.textContent = 'Error: '+e.message; });
     }
   }
 }
 
-// Voice command: "send/text [name] that [message]"
 async function _handleMessageVoice(text) {
   await _handleMessageDraft(text);
 }
