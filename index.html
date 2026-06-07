@@ -7369,16 +7369,26 @@ function peopleFilterContacts() {
 
 function upcomingBday(dateStr) {
   if(!dateStr) return '';
-  // Parse parts directly to avoid UTC→local timezone shift
   var parts = dateStr.split('-');
+  var month = parseInt(parts[1],10)-1;
+  var day = parseInt(parts[2],10);
+  var year = parseInt(parts[0],10);
+  var noYear = (year === 1604 || year === 0);
   var now = new Date();
-  var d = new Date(now.getFullYear(), parseInt(parts[1],10)-1, parseInt(parts[2],10));
-  if(d < now) d = new Date(now.getFullYear()+1, parseInt(parts[1],10)-1, parseInt(parts[2],10));
+  var d = new Date(now.getFullYear(), month, day);
+  if(d < now) d = new Date(now.getFullYear()+1, month, day);
   var days = Math.round((d-now)/(1000*60*60*24));
+  var dateLabel = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  if(noYear) {
+    if(days===0) return 'Today! 🎉';
+    if(days===1) return 'Tomorrow!';
+    if(days<=7) return 'In '+days+' days ('+dateLabel+')';
+    return dateLabel;
+  }
   if(days===0) return 'Today! 🎉';
   if(days===1) return 'Tomorrow!';
   if(days<=7) return 'In '+days+' days';
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return dateLabel;
 }
 
 function daysSince(dateStr) {
