@@ -2914,18 +2914,23 @@ async function sendToCouncil(){
           if(_rd<new Date()) _rd.setDate(_rd.getDate()+1);
           _rAt = _rd.toISOString();
         }
-        var _rBody = {title:_rTitle||_rt};
-        if(_rAt) _rBody.dueDate=_rAt; else _rBody.dueMinutesFromNow=_rMins;
-        var _rRes = await fetch(supabaseUrl+'/functions/v1/apple-remind',{
-          method:'POST',
-          headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-          body:JSON.stringify(_rBody)
-        });
-        var _rD = await _rRes.json();
-        if(_rD.ok){
-          appendCouncilResponse('JARVIS\nReminder set sir — "'+(_rTitle||_rt)+'" is in your Apple Reminders ✓');
+        // Build due date string
+        var _dueStr = '';
+        if(_rAt) {
+          _dueStr = _rAt;
         } else {
-          appendCouncilResponse('JARVIS\nCouldn\'t set the reminder: '+(_rD.error||'check Vault keys'));
+          var _dd = new Date(Date.now() + _rMins*60000);
+          _dueStr = _dd.toISOString();
+        }
+        var _reminderTitle = _rTitle || _rt;
+        var _shortcutInput = encodeURIComponent(_reminderTitle+'|'+_dueStr);
+        var _shortcutUrl = 'shortcuts://run-shortcut?name=JARVIS%20Remind&input='+_shortcutInput;
+        var _isMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if(_isMobile) {
+          window.location.href = _shortcutUrl;
+          appendCouncilResponse('JARVIS\nOpening Shortcuts to set reminder: "'+_reminderTitle+'" ✓');
+        } else {
+          appendCouncilResponse('JARVIS\nReminder ready — open on your iPhone to confirm: <a href="'+_shortcutUrl+'" style="color:var(--primary);">Tap to add reminder</a>');
         }
       } catch(e) {
         appendCouncilResponse('JARVIS\nReminder error: '+e.message);
