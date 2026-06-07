@@ -7270,12 +7270,25 @@ var _peopleLoaded = false;
 
 // Relationship tone labels
 var _relTone = {
-  family:       { label:'Family',       color:'var(--teal)' },
-  best_friend:  { label:'Best Friend',  color:'var(--primary)' },
-  close_friend: { label:'Close Friend', color:'var(--green)' },
-  professional: { label:'Professional', color:'var(--orange)' },
-  special:      { label:'Special',      color:'#c084fc' }
+  family:       { label:'Family',         color:'var(--teal)' },
+  best_friend:  { label:'Best Friend',    color:'var(--primary)' },
+  my_person:    { label:'My Person',      color:'var(--green)' },
+  close_friend: { label:'Close Friend',   color:'#34d399' },
+  friend:       { label:'Friend',         color:'var(--text-muted)' },
+  professional: { label:'Professional',   color:'var(--orange)' },
+  special:      { label:'Special',        color:'#c084fc' }
 };
+
+// Role options for the edit dropdown
+var _roleOptions = [
+  { value:'family',       label:'Family' },
+  { value:'best_friend',  label:'Best Friend' },
+  { value:'my_person',    label:'My Person' },
+  { value:'close_friend', label:'Close Friend' },
+  { value:'friend',       label:'Friend' },
+  { value:'professional', label:'Professional' },
+  { value:'special',      label:'Special' },
+];
 
 async function loadPeople() {
   if(!supabaseUrl||!supabaseKey){ console.warn('[People] No Supabase keys'); return; }
@@ -7448,8 +7461,13 @@ function openAddPerson() {
     +'<input id="add-phone" class="form-input" placeholder="Phone" style="font-size:14px;">'
     +'<input id="add-birthday" class="form-input" type="date" style="font-size:14px;">'
     +'<select id="add-rel" class="form-input" style="font-size:14px;">'
-    +'<option value="close_friend">Close Friend</option><option value="best_friend">Best Friend</option>'
-    +'<option value="family">Family</option><option value="professional">Professional</option></select>'
+    +'<option value="my_person">My Person</option>'
+    +'<option value="best_friend">Best Friend</option>'
+    +'<option value="family">Family</option>'
+    +'<option value="close_friend">Close Friend</option>'
+    +'<option value="friend">Friend</option>'
+    +'<option value="professional">Professional</option>'
+    +'<option value="special">Special</option></select>'
     +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);">'
     +'<input type="checkbox" id="add-core"> Add to core circle</label>'
     +'<button onclick="submitAddPerson()" class="btn btn-primary" style="margin-top:4px;">Add Person</button></div>';
@@ -7470,7 +7488,64 @@ async function submitAddPerson() {
   else showToast('Error adding person');
 }
 
-function editPerson(id) { showToast('Edit coming soon'); }
+function editPerson(id) {
+  var p = _people.find(function(x){return x.id===id;});
+  if(!p) return;
+  _currentPerson = p;
+  var modal = document.getElementById('people-modal');
+  var content = document.getElementById('people-modal-content');
+  var roleOpts = _roleOptions.map(function(r){
+    return '<option value="'+r.value+'"'+(p.relationship_type===r.value?' selected':'')+'>'+r.label+'</option>';
+  }).join('');
+  content.innerHTML =
+    '<div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:20px;">Edit — '+p.name+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:12px;">'
+    +'<div><label style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.5px;display:block;margin-bottom:4px;">NAME</label>'
+    +'<input id="edit-name" class="form-input" value="'+escHtml(p.name||'')+'" style="font-size:14px;width:100%;"></div>'
+    +'<div><label style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.5px;display:block;margin-bottom:4px;">PHONE</label>'
+    +'<input id="edit-phone" class="form-input" value="'+escHtml(p.phone||'')+'" placeholder="+1 (972) 555-0000" style="font-size:14px;width:100%;"></div>'
+    +'<div><label style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.5px;display:block;margin-bottom:4px;">BIRTHDAY</label>'
+    +'<input id="edit-bday" class="form-input" type="date" value="'+(p.birthday||'')+'" style="font-size:14px;width:100%;"></div>'
+    +'<div><label style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.5px;display:block;margin-bottom:4px;">ROLE</label>'
+    +'<select id="edit-role" class="form-input" style="font-size:14px;width:100%;">'+roleOpts+'</select></div>'
+    +'<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">'
+    +'<input type="checkbox" id="edit-core"'+(p.is_core_circle?' checked':'')+' style="width:16px;height:16px;">'
+    +'<label for="edit-core" style="font-size:13px;color:var(--text);">Core circle</label></div>'
+    +'<div style="display:flex;gap:8px;margin-top:4px;">'
+    +'<button onclick="savePersonEdit('+p.id+')" class="btn btn-primary" style="flex:1;font-size:13px;">Save</button>'
+    +'<button onclick="openPersonModal('+p.id+')" class="btn" style="flex:1;font-size:13px;">Cancel</button>'
+    +'</div></div>';
+  modal.style.display='flex';
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+async function savePersonEdit(id) {
+  var name = document.getElementById('edit-name')?.value.trim();
+  if(!name){ showToast('Name required'); return; }
+  var payload = {
+    name: name,
+    phone: document.getElementById('edit-phone')?.value.trim() || null,
+    birthday: document.getElementById('edit-bday')?.value || null,
+    relationship_type: document.getElementById('edit-role')?.value || 'close_friend',
+    is_core_circle: document.getElementById('edit-core')?.checked || false,
+  };
+  var res = await fetch(supabaseUrl+'/rest/v1/people?id=eq.'+id, {
+    method:'PATCH',
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey,'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
+  if(res.ok){
+    // Update local cache
+    var p = _people.find(function(x){return x.id===id;});
+    if(p) Object.assign(p, payload);
+    showToast(name+' updated ✓');
+    closePeopleModal();
+    renderPeople();
+  } else {
+    showToast('Save failed — try again');
+  }
+}
 
 // ── iCloud CardDAV sync ─────────────────────────────────────────────────────
 async function peopleSync() {

@@ -88,6 +88,13 @@ Deno.serve(async (req) => {
       } catch (_) { continue; }
     }
 
+    // Debug: return first 3 vCards raw if ?debug=1
+    const url2 = new URL(req.url);
+    if (url2.searchParams.get('debug') === '1') {
+      const sample = (vcText.match(/BEGIN:VCARD[\s\S]*?END:VCARD/g) ?? []).slice(0,3);
+      return new Response(JSON.stringify({ url: successUrl, sample }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+
     if (!vcText || !vcText.includes('BEGIN:VCARD')) {
       return new Response(JSON.stringify({
         ok: false,
@@ -107,18 +114,35 @@ Deno.serve(async (req) => {
       const name = fnMatch?.[1]?.trim().replace(/\r/g, '');
       if (!name || name.length < 2) continue;
 
-      const phone = vcard.match(/^TEL[^:]*:(.+)/m)?.[1]?.trim().replace(/\r/g, '').replace(/[\s\-\(\)\.]/g, '') ?? null;
+      // Handle vCard 3.0 (TEL;TYPE=CELL:+1234) and 4.0 (TEL;VALUE=uri:tel:+1234)
+      const telRaw = vcard.match(/^TEL[^:]*:(.+)/m)?.[1]?.trim().replace(/\r/g, '') ?? null;
+      const phone = telRaw ? telRaw.replace(/^tel:/i, '').replace(/[\s\-\(\)\.]/g, '') : null;
       const email = vcard.match(/^EMAIL[^:]*:(.+)/m)?.[1]?.trim().replace(/\r/g, '') ?? null;
       const icloud_uid = vcard.match(/^UID[;:](.+)/m)?.[1]?.trim().replace(/\r/g, '') ?? '';
 
       let bday: string|null = null;
-      const bdayMatch = vcard.match(/^BDAY[;:]{1}(\d{4}-?\d{2}-?\d{2})/m);
-      if (bdayMatch) {
-        const raw = bdayMatch[1].replace(/-/g, '');
-        bday = raw.length >= 8 ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}` : null;
+      // Handle all Apple vCard birthday formats:
+      // BDAY:1990-01-15  |  BDAY:19900115  |  BDAY;VALUE=date:1990-01-15
+      // BDAY;X-APPLE-OMIT-YEAR=1604:1604-01-15  |  BDAY:--0115 (no year)
+      const bdayLine = vcard.match(/^BDAY[^:]*:(.+)/m)?.[1]?.trim().replace(/\r/g,'') ?? '';
+      if (bdayLine && !bdayLine.startsWith('--')) {
+        const raw = bdayLine.replace(/-/g, '').replace(/T.*/, '');
+        // Skip Apple's fake year 1604 (means no year saved) — store as current-year placeholder
+        const year = raw.slice(0,4);
+        if (raw.length >= 8 && year !== '1604') {
+          bday = `${year}-${raw.slice(4,6)}-${raw.slice(6,8)}`;
+        } else if (raw.length >= 4 && year !== '1604') {
+          // partial date — skip
+          bday = null;
+        }
       }
 
-      const patch = { phone, email, birthday: bday, ...(icloud_uid ? { icloud_uid } : {}) };
+      // Only patch fields that actually exist in iCloud — never overwrite with null
+      const patch: Record<string,unknown> = {};
+      if (icloud_uid) patch.icloud_uid = icloud_uid;
+      if (phone) patch.phone = phone;
+      if (email) patch.email = email;
+      if (bday) patch.birthday = bday;
 
       const existByUid = icloud_uid ? byIcloudUid.get(icloud_uid) : undefined;
       const existByName = byContactName.get(name.toLowerCase().trim());
