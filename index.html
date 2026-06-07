@@ -8196,7 +8196,11 @@ function cancelVoice(){
 }
 
 // Auto-start wake word 3s after page load
-window.addEventListener('load',function(){setTimeout(startWakeWord,3000);});
+window.addEventListener('load',function(){
+  setTimeout(startWakeWord,3000);
+  // Pre-load contacts so messaging works without visiting People tab
+  setTimeout(function(){ if(supabaseUrl&&supabaseKey&&!_peopleLoaded) loadPeople(); }, 2000);
+});
 function saveVoiceSettings(){
   localStorage.setItem('jarvis_vs_tts',document.getElementById('vs-tts-engine')?.value||'browser');
   localStorage.setItem('jarvis_vs_el_key',document.getElementById('vs-el-key')?.value||'');
