@@ -7652,7 +7652,12 @@ function _showMessageDraftModal() {
     '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:min(420px,90vw);">'
     +'<div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:12px;">READY TO SEND</div>'
     +'<div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">To: <span style="color:var(--text);font-weight:600;">'+_msgDraft.name+'</span> <span style="color:var(--text-dim);font-size:11px;">('+(_msgDraft.phone||'no number')+')</span></div>'
-    +'<textarea id="msg-draft-body" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;color:var(--text);min-height:80px;resize:vertical;margin-bottom:16px;box-sizing:border-box;">'+_msgDraft.body+'</textarea>'
+    +'<textarea id="msg-draft-body" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;color:var(--text);min-height:80px;resize:vertical;margin-bottom:12px;box-sizing:border-box;">'+_msgDraft.body+'</textarea>'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">'
+    +'<label style="font-size:11px;color:var(--text-muted);font-weight:600;white-space:nowrap;">SEND AT</label>'
+    +'<input id="msg-schedule-time" type="datetime-local" class="form-input" style="flex:1;font-size:13px;" placeholder="Leave blank to send now">'
+    +'</div>'
+    +'<div style="font-size:10px;color:var(--text-muted);margin-bottom:12px;">Leave blank to send immediately. All messages sent from JARVIS Twilio number with your name prefix.</div>'
     +'<div style="display:flex;gap:8px;">'
     +'<button onclick="_sendMessageNow()" class="btn btn-primary" style="flex:1;">Send ✓</button>'
     +'<button onclick="_cancelMessageDraft()" class="btn" style="flex:1;">Cancel</button>'
@@ -7677,43 +7682,56 @@ async function _sendMessageNow() {
   var statusEl = document.getElementById('msg-send-status');
   if(statusEl) statusEl.textContent = 'Sending…';
 
-  // Clean phone — strip non-digits except leading +
+  // Clean phone
   var phone = (_msgDraft.phone||'').replace(/[^\d+]/g,'');
   if(!phone.startsWith('+')) phone = '+1'+phone;
 
-  // Try Apple Shortcuts first (works when on iPhone)
-  var shortcutInput = encodeURIComponent(phone+'|'+body);
-  var shortcutUrl = 'shortcuts://run-shortcut?name=JARVIS%20Send&input='+shortcutInput;
+  // Add Anthony's prefix to all outbound messages
+  var fullBody = "Hey it's Anthony, this is my automated messaging system — " + body;
 
-  var isMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Check if this is a scheduled send
+  var schedEl = document.getElementById('msg-schedule-time');
+  var schedTime = schedEl ? schedEl.value : null;
 
-  if(isMobile) {
-    // On iPhone — open Shortcuts directly
-    window.location.href = shortcutUrl;
-    // Log to Supabase
-    await fetch(supabaseUrl+'/rest/v1/messages', {
+  if(schedTime) {
+    // Scheduled send — save to Supabase, pg_cron fires it
+    var sendAt = new Date(schedTime).toISOString();
+    var res = await fetch(supabaseUrl+'/rest/v1/messages', {
       method:'POST',
-      headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({recipient_name:_msgDraft.name,recipient_phone:phone,body:body,status:'sent',method:'shortcut',sent_at:new Date().toISOString()})
+      headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify({recipient_name:_msgDraft.name,recipient_phone:phone,body:fullBody,status:'scheduled',method:'twilio',send_at:sendAt})
     });
-    appendCouncilResponse('JARVIS\nOpening Shortcuts to send to '+_msgDraft.name+' ✓');
+    if(res.ok){
+      var d = await res.json();
+      appendCouncilResponse('JARVIS\nScheduled message to '+_msgDraft.name+' for '+new Date(sendAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' sir ✓');
+      showToast('Scheduled ✓');
+      _cancelMessageDraft();
+    } else {
+      if(statusEl) statusEl.textContent = 'Failed to schedule';
+    }
   } else {
-    // On PC — ping Pushcut to trigger JARVIS Send on iPhone
-    var _pcMsgUrl = JARVIS_CONFIG.pushcutMsgUrl;
-    if(_pcMsgUrl) {
-      fetch(_pcMsgUrl, {
+    // Send now via Twilio
+    try {
+      var res2 = await fetch(supabaseUrl+'/functions/v1/send-message', {
         method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({title:'Send to '+_msgDraft.name, text:body, input:phone+'|'+body})
-      }).then(function(r){
-        if(r.ok){
-          appendCouncilResponse('JARVIS\nNotification sent to your iPhone — tap it to send to '+_msgDraft.name+' sir.');
-          _cancelMessageDraft();
-        } else { if(statusEl) statusEl.textContent = 'Pushcut error'; }
-      }).catch(function(e){ if(statusEl) statusEl.textContent = 'Error: '+e.message; });
+        headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+        body:JSON.stringify({recipientName:_msgDraft.name,recipientPhone:phone,body:fullBody})
+      });
+      var d2 = await res2.json();
+      if(d2.ok){
+        appendCouncilResponse('JARVIS\nMessage sent to '+_msgDraft.name+' ✓');
+        showToast('Sent to '+_msgDraft.name+' ✓');
+        _cancelMessageDraft();
+      } else {
+        if(statusEl) statusEl.textContent = 'Send failed: '+(d2.error||'Twilio not verified yet');
+      }
+    } catch(e){
+      if(statusEl) statusEl.textContent = 'Error: '+e.message;
     }
   }
 }
+
+
 
 async function _handleMessageVoice(text) {
   await _handleMessageDraft(text);
