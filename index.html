@@ -7340,14 +7340,25 @@ function renderContactsList(list) {
   if(!el) return;
   list = list.slice().sort(function(a,b){ return a.name.localeCompare(b.name); });
   if(!list.length){ el.innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:12px;">No contacts yet — tap ↻ Sync iCloud to import.</div>'; return; }
-  el.innerHTML = list.map(function(p) {
-    var initials = p.name.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
-    return '<div onclick="openPersonModal('+p.id+')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background=\'var(--card-hover)\'" onmouseout="this.style.background=\'\'">'
+  var html = '';
+  var currentLetter = '';
+  list.forEach(function(p) {
+    var letter = p.name.replace(/[^a-zA-Z]/g,'').charAt(0).toUpperCase() || '#';
+    if(letter !== currentLetter) {
+      currentLetter = letter;
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px 4px;margin-top:6px;">'
+        +'<span style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:1px;min-width:14px;">'+letter+'</span>'
+        +'<div style="flex:1;height:1px;background:var(--border);opacity:0.5;"></div>'
+        +'</div>';
+    }
+    var initials = p.name.replace(/[^\w\s]/g,'').trim().split(/\s+/).map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2)||p.name.slice(0,2).toUpperCase();
+    html += '<div onclick="openPersonModal('+p.id+')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background=\'var(--card-hover)\'" onmouseout="this.style.background=\'\'">'
       +'<div style="width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text-muted);flex-shrink:0;">'+(p.photo_url?'<img src="'+p.photo_url+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">':initials)+'</div>'
       +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);">'+p.name+'</div>'+(p.phone?'<div style="font-size:11px;color:var(--text-muted);">'+p.phone+'</div>':'')+'</div>'
       +(p.birthday?'<div style="font-size:11px;color:var(--text-muted);">🎂 '+upcomingBday(p.birthday)+'</div>':'')
       +'</div>';
-  }).join('');
+  });
+  el.innerHTML = html;
 }
 
 function peopleFilterContacts() {
