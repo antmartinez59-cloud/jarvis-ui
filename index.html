@@ -2421,6 +2421,7 @@ const JARVIS_CONFIG = {
   braveKey:     '',  // set via Supabase Vault secret BRAVE_KEY
   userName:     'Tony',
   obsidianVault: '',  // paste your Obsidian vault name here (e.g. 'MyVault')
+  pushcutUrl: 'https://api.pushcut.io/z107N-rEKto0U5gO693vQ/notifications/JARVIS%20Reminder',
 };
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -2930,7 +2931,24 @@ async function sendToCouncil(){
           window.location.href = _shortcutUrl;
           appendCouncilResponse('JARVIS\nOpening Shortcuts to set reminder: "'+_reminderTitle+'" ✓');
         } else {
-          appendCouncilResponse('JARVIS\nReminder ready — open on your iPhone to confirm: <a href="'+_shortcutUrl+'" style="color:var(--primary);">Tap to add reminder</a>');
+          // On PC — ping Pushcut to trigger Shortcut on iPhone
+          var _pcUrl = (window.JARVIS_CONFIG||{}).pushcutUrl || JARVIS_CONFIG.pushcutUrl;
+          if(_pcUrl) {
+            fetch(_pcUrl, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({
+                title:'JARVIS Reminder',
+                text:_reminderTitle,
+                input:_reminderTitle+'|'+_dueStr
+              })
+            }).then(function(r){
+              if(r.ok) appendCouncilResponse('JARVIS\nReminder sent to your iPhone — tap the notification to confirm sir.');
+              else appendCouncilResponse('JARVIS\nCouldn\'t reach Pushcut — check your phone is connected.');
+            }).catch(function(){ appendCouncilResponse('JARVIS\nPushcut unreachable sir.'); });
+          } else {
+            appendCouncilResponse('JARVIS\nReminder ready — open on your iPhone: <a href="'+_shortcutUrl+'" style="color:var(--primary);">Tap to add reminder</a>');
+          }
         }
       } catch(e) {
         appendCouncilResponse('JARVIS\nReminder error: '+e.message);
