@@ -7313,8 +7313,8 @@ async function loadPeople() {
 }
 
 function renderPeople() {
-  var core = _people.filter(function(p){ return p.is_core_circle && !p.is_tia_vault; });
-  var all  = _people.filter(function(p){ return !p.is_core_circle && !p.is_tia_vault; });
+  var core = _people.filter(function(p){ return p.is_core_circle && !p.is_tia_vault; }).sort(function(a,b){return a.name.localeCompare(b.name);});
+  var all  = _people.filter(function(p){ return !p.is_core_circle && !p.is_tia_vault; }).sort(function(a,b){return a.name.localeCompare(b.name);});
 
   // Core circle cards
   var grid = document.getElementById('people-core-grid');
@@ -7338,6 +7338,7 @@ function renderPeople() {
 function renderContactsList(list) {
   var el = document.getElementById('people-contacts-list');
   if(!el) return;
+  list = list.slice().sort(function(a,b){ return a.name.localeCompare(b.name); });
   if(!list.length){ el.innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:12px;">No contacts yet — tap ↻ Sync iCloud to import.</div>'; return; }
   el.innerHTML = list.map(function(p) {
     var initials = p.name.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
