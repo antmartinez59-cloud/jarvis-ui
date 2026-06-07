@@ -773,6 +773,7 @@ body.viewing-past .tracker-log-only{display:block;}
     <button class="tab" onclick="switchTab('todos',this)" id="todos-tab">📋 Todos</button>
     <button class="tab" onclick="switchTab('calendar',this)" id="calendar-tab">📅 Calendar</button>
     <button class="tab" onclick="switchTab('spotify',this)" id="spotify-tab">🎵 Spotify</button>
+    <button class="tab" onclick="switchTab('people',this)" id="people-tab">👥 People</button>
   </div>
   <div class="header-right">
     <span id="mode-badge" style="font-size:11px;cursor:default;padding:4px 10px;border-radius:20px;border:1px solid var(--border);" title="Loading...">⏳ Loading</span>
@@ -795,6 +796,7 @@ body.viewing-past .tracker-log-only{display:block;}
   <button class="mnav-btn" onclick="switchTab('today',this)" data-tab="today">📊<span>Today</span></button>
   <button class="mnav-btn" onclick="switchTab('finance',this)" data-tab="finance">💰<span>Finance</span></button>
   <button class="mnav-btn" onclick="switchTab('spotify',this)" data-tab="spotify">🎵<span>Spotify</span></button>
+  <button class="mnav-btn" onclick="switchTab('people',this)" data-tab="people">👥<span>People</span></button>
 </nav>
 
 <div id="main">
@@ -2149,7 +2151,114 @@ body.viewing-past .tracker-log-only{display:block;}
     </div>
   </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════
+     PEOPLE TAB
+════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-people">
+  <div class="fin-scroll" style="padding:16px 20px;">
+
+    <!-- Core Circle -->
+    <div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;">CORE CIRCLE</div>
+        <button onclick="peopleSync()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;">↻ Sync iCloud</button>
+      </div>
+      <div id="people-core-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;"></div>
+    </div>
+
+    <!-- All Contacts -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;">ALL CONTACTS</div>
+        <input id="people-search" type="text" class="form-input" placeholder="Search…" oninput="peopleFilterContacts()" style="width:160px;font-size:12px;padding:6px 10px;">
+      </div>
+      <div id="people-contacts-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Person Profile Modal -->
+<div id="people-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px;width:min(480px,92vw);max-height:85vh;overflow-y:auto;position:relative;">
+    <button onclick="closePeopleModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;">✕</button>
+    <div id="people-modal-content"></div>
+  </div>
+</div>
+
 </div><!-- end #main -->
+
+<!-- ── Tia's Vault Overlay ─────────────────────────────────────── -->
+<div id="tia-vault-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:#04040a;flex-direction:column;align-items:center;justify-content:center;">
+  <!-- Layer 1: voice phrase (handled in JS, this shows PIN entry) -->
+  <div id="tia-vault-inner" style="width:min(380px,90vw);text-align:center;">
+    <div style="font-size:36px;margin-bottom:8px;">🔐</div>
+    <div style="font-size:20px;font-weight:700;color:#c084fc;margin-bottom:4px;letter-spacing:1px;">TIA'S VAULT</div>
+    <div id="tia-vault-status" style="font-size:12px;color:#888;margin-bottom:28px;">Voice confirmed. Enter your vault PIN.</div>
+
+    <!-- PIN dots -->
+    <div id="tia-pin-dots" style="display:flex;gap:14px;justify-content:center;margin-bottom:20px;">
+      <div class="tia-dot"></div><div class="tia-dot"></div>
+      <div class="tia-dot"></div><div class="tia-dot"></div>
+    </div>
+    <div id="tia-pin-error" style="font-size:12px;color:#f87171;height:16px;margin-bottom:14px;"></div>
+
+    <!-- Numpad -->
+    <div style="display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(4,72px);gap:10px;justify-content:center;">
+      <button class="tia-key" onclick="tiaPinKey('1')">1</button>
+      <button class="tia-key" onclick="tiaPinKey('2')">2</button>
+      <button class="tia-key" onclick="tiaPinKey('3')">3</button>
+      <button class="tia-key" onclick="tiaPinKey('4')">4</button>
+      <button class="tia-key" onclick="tiaPinKey('5')">5</button>
+      <button class="tia-key" onclick="tiaPinKey('6')">6</button>
+      <button class="tia-key" onclick="tiaPinKey('7')">7</button>
+      <button class="tia-key" onclick="tiaPinKey('8')">8</button>
+      <button class="tia-key" onclick="tiaPinKey('9')">9</button>
+      <button class="tia-key" onclick="tiaPinClear()" style="font-size:13px;color:#888;">Clear</button>
+      <button class="tia-key" onclick="tiaPinKey('0')">0</button>
+      <button class="tia-key" onclick="tiaPinBack()" style="font-size:20px;">⌫</button>
+    </div>
+    <button onclick="closeTiaVault()" style="margin-top:20px;background:none;border:none;color:#555;font-size:12px;cursor:pointer;">Cancel</button>
+  </div>
+
+  <!-- Vault content (shown after PIN) -->
+  <div id="tia-vault-content" style="display:none;width:min(480px,92vw);max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:22px;font-weight:700;color:#c084fc;">🔐 Tia's Vault</div>
+        <div style="font-size:12px;color:#666;margin-top:2px;">Private. Protected. Yours.</div>
+      </div>
+      <button onclick="closeTiaVault()" style="background:none;border:none;color:#555;font-size:22px;cursor:pointer;">✕</button>
+    </div>
+
+    <!-- Add note -->
+    <div style="background:#0d0d1a;border:1px solid #2a1f4a;border-radius:12px;padding:14px;margin-bottom:16px;">
+      <textarea id="tia-note-input" placeholder="Add a memory, feeling, plan..." style="width:100%;background:none;border:none;color:#e0d0ff;font-size:13px;resize:none;min-height:70px;outline:none;font-family:inherit;" rows="3"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <select id="tia-note-cat" style="background:#1a1030;border:1px solid #3a2060;border-radius:8px;color:#c084fc;font-size:12px;padding:6px 10px;">
+          <option value="note">Note</option>
+          <option value="feeling">Feeling</option>
+          <option value="date">Important Date</option>
+          <option value="plan">Plan</option>
+          <option value="memory">Memory</option>
+        </select>
+        <button onclick="tiaSaveNote()" style="background:#6d28d9;border:none;border-radius:8px;color:#fff;font-size:12px;padding:6px 16px;cursor:pointer;">Save</button>
+      </div>
+    </div>
+
+    <!-- Entries -->
+    <div id="tia-vault-entries" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+</div>
+
+<style>
+.tia-dot{width:14px;height:14px;border-radius:50%;background:#2a1f4a;border:2px solid #3a2060;transition:all .15s;}
+.tia-dot.filled{background:#c084fc;border-color:#c084fc;}
+.tia-key{width:72px;height:72px;border-radius:50%;background:#0d0d1a;border:1px solid #2a1f4a;color:#e0d0ff;font-size:22px;font-weight:600;cursor:pointer;transition:all .15s;}
+.tia-key:hover{background:#1a1030;border-color:#6d28d9;}
+.tia-key:active{background:#2d1060;transform:scale(.94);}
+</style>
 
 <!-- Spotify mini-player (corner overlay, draggable) -->
 <div id="sp-mini" style="display:none;position:fixed;bottom:90px;right:8px;width:260px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:140;overflow:hidden;transition:box-shadow .2s;cursor:grab;">
@@ -2747,6 +2856,13 @@ async function sendToCouncil(){
   var modeBtn=document.getElementById('chat-mode-btn');
   var isNormal=modeBtn&&modeBtn.getAttribute('data-mode')==='normal';
   console.log('[JARVIS] chat mode:', modeBtn&&modeBtn.getAttribute('data-mode'), 'isNormal:', isNormal);
+
+  // ── Tia's Vault phrase check ──────────────────────────────────────────────
+  {
+    const _vaultInp=document.getElementById('user-input');
+    const _vaultText=_vaultInp?.value.trim();
+    if(_vaultText && checkTiaPhrase(_vaultText, 100)){ _vaultInp.value=''; return; }
+  }
 
   // ── Spotify command interception — always intercept, never let AI handle music ──
   {
@@ -7145,6 +7261,347 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // END LAYER 2 — SPOTIFY
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LAYER 3 — PEOPLE TAB + TIA'S VAULT
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _people = [];
+var _peopleLoaded = false;
+
+// Relationship tone labels
+var _relTone = {
+  family:       { label:'Family',       color:'var(--teal)' },
+  best_friend:  { label:'Best Friend',  color:'var(--primary)' },
+  close_friend: { label:'Close Friend', color:'var(--green)' },
+  professional: { label:'Professional', color:'var(--orange)' },
+  special:      { label:'Special',      color:'#c084fc' }
+};
+
+async function loadPeople() {
+  if(!supabaseUrl||!supabaseKey) return;
+  var res = await fetch(supabaseUrl+'/rest/v1/people?select=*&order=is_core_circle.desc,name.asc', {
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey}
+  });
+  if(!res.ok) return;
+  _people = await res.json();
+  _peopleLoaded = true;
+  renderPeople();
+}
+
+function renderPeople() {
+  var core = _people.filter(function(p){ return p.is_core_circle && !p.is_tia_vault; });
+  var all  = _people.filter(function(p){ return !p.is_core_circle && !p.is_tia_vault; });
+
+  // Core circle cards
+  var grid = document.getElementById('people-core-grid');
+  if(grid) grid.innerHTML = core.map(function(p) {
+    var tone = _relTone[p.relationship_type] || _relTone.close_friend;
+    var initials = p.name.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    var bdayStr = p.birthday ? upcomingBday(p.birthday) : '';
+    return '<div onclick="openPersonModal('+p.id+')" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor=\''+tone.color+'\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      + '<div style="width:52px;height:52px;border-radius:50%;background:'+tone.color+'22;border:2px solid '+tone.color+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:'+tone.color+';margin:0 auto 10px;">'+(p.photo_url?'<img src="'+p.photo_url+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">':initials)+'</div>'
+      + '<div style="font-size:13px;font-weight:700;color:var(--text);text-align:center;margin-bottom:3px;">'+p.name+'</div>'
+      + '<div style="font-size:10px;color:'+tone.color+';text-align:center;margin-bottom:6px;">'+tone.label+'</div>'
+      + (bdayStr?'<div style="font-size:10px;color:var(--text-muted);text-align:center;">🎂 '+bdayStr+'</div>':'')
+      + (p.last_contacted?'<div style="font-size:10px;color:var(--text-muted);text-align:center;">Last: '+daysSince(p.last_contacted)+'</div>':'')
+      +'</div>';
+  }).join('') + '<div onclick="openAddPerson()" style="background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--text-muted);font-size:24px;">+</div>';
+
+  // All contacts list
+  renderContactsList(all);
+}
+
+function renderContactsList(list) {
+  var el = document.getElementById('people-contacts-list');
+  if(!el) return;
+  if(!list.length){ el.innerHTML='<div style="color:var(--text-muted);font-size:13px;padding:12px;">No contacts yet — tap ↻ Sync iCloud to import.</div>'; return; }
+  el.innerHTML = list.map(function(p) {
+    var initials = p.name.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    return '<div onclick="openPersonModal('+p.id+')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background=\'var(--card-hover)\'" onmouseout="this.style.background=\'\'">'
+      +'<div style="width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text-muted);flex-shrink:0;">'+(p.photo_url?'<img src="'+p.photo_url+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">':initials)+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);">'+p.name+'</div>'+(p.phone?'<div style="font-size:11px;color:var(--text-muted);">'+p.phone+'</div>':'')+'</div>'
+      +(p.birthday?'<div style="font-size:11px;color:var(--text-muted);">🎂 '+upcomingBday(p.birthday)+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function peopleFilterContacts() {
+  var q = (document.getElementById('people-search')?.value||'').toLowerCase();
+  var list = _people.filter(function(p){ return !p.is_core_circle && !p.is_tia_vault && (!q || p.name.toLowerCase().includes(q) || (p.phone||'').includes(q)); });
+  renderContactsList(list);
+}
+
+function upcomingBday(dateStr) {
+  var d = new Date(dateStr); var now = new Date();
+  d.setFullYear(now.getFullYear());
+  if(d < now) d.setFullYear(now.getFullYear()+1);
+  var days = Math.round((d-now)/(1000*60*60*24));
+  if(days===0) return 'Today! 🎉';
+  if(days===1) return 'Tomorrow!';
+  if(days<=7) return 'In '+days+' days';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function daysSince(dateStr) {
+  if(!dateStr) return '';
+  var days = Math.round((Date.now()-new Date(dateStr))/(1000*60*60*24));
+  if(days===0) return 'Today';
+  if(days===1) return 'Yesterday';
+  if(days<7) return days+'d ago';
+  if(days<30) return Math.floor(days/7)+'w ago';
+  return Math.floor(days/30)+'mo ago';
+}
+
+// ── Person modal ────────────────────────────────────────────────────────────
+var _currentPerson = null;
+function openPersonModal(id) {
+  var p = _people.find(function(x){return x.id===id;});
+  if(!p) return;
+  _currentPerson = p;
+  var tone = _relTone[p.relationship_type] || _relTone.close_friend;
+  var initials = p.name.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+  var modal = document.getElementById('people-modal');
+  var content = document.getElementById('people-modal-content');
+  content.innerHTML =
+    '<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">'
+    +'<div style="width:64px;height:64px;border-radius:50%;background:'+tone.color+'22;border:2px solid '+tone.color+';display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:'+tone.color+';flex-shrink:0;">'+(p.photo_url?'<img src="'+p.photo_url+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">':initials)+'</div>'
+    +'<div><div style="font-size:18px;font-weight:700;color:var(--text);">'+p.name+'</div>'
+    +'<div style="font-size:12px;color:'+tone.color+';">'+tone.label+'</div>'
+    +(p.phone?'<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📞 '+p.phone+'</div>':'')+'</div></div>'
+    +(p.birthday?'<div style="background:var(--surface);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text-muted);">🎂 Birthday: <b style="color:var(--text);">'+new Date(p.birthday).toLocaleDateString('en-US',{month:'long',day:'numeric'})+'</b> — <span style="color:var(--primary);">'+upcomingBday(p.birthday)+'</span></div>':'')
+    +(p.last_contacted?'<div style="background:var(--surface);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text-muted);">💬 Last contacted: <b style="color:var(--text);">'+daysSince(p.last_contacted)+'</b></div>':'')
+    +'<div style="margin-bottom:12px;">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.5px;margin-bottom:8px;">SHARED HISTORY</div>'
+    +'<div id="person-history-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<input id="person-history-input" type="text" class="form-input" placeholder="Add a note about '+p.name+'…" style="flex:1;font-size:13px;" onkeydown="if(event.key===\'Enter\')savePersonHistory('+p.id+')">'
+    +'<button onclick="savePersonHistory('+p.id+')" class="btn btn-primary" style="padding:8px 14px;font-size:12px;">Save</button>'
+    +'</div></div>'
+    +'<div style="display:flex;gap:8px;margin-top:4px;">'
+    +'<button onclick="markContacted('+p.id+')" class="btn" style="flex:1;font-size:12px;">✓ Mark Contacted</button>'
+    +'<button onclick="editPerson('+p.id+')" class="btn" style="flex:1;font-size:12px;">✏️ Edit</button>'
+    +'</div>';
+  loadPersonHistory(p.id);
+  modal.style.display='flex';
+}
+
+function closePeopleModal(){ document.getElementById('people-modal').style.display='none'; _currentPerson=null; }
+
+async function loadPersonHistory(personId) {
+  var res = await fetch(supabaseUrl+'/rest/v1/people_history?person_id=eq.'+personId+'&order=created_at.desc&limit=10',{
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey}
+  });
+  if(!res.ok) return;
+  var items = await res.json();
+  var el = document.getElementById('person-history-list');
+  if(!el) return;
+  el.innerHTML = items.length ? items.map(function(h){
+    return '<div style="background:var(--surface);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);">'+h.note+'<span style="float:right;color:var(--text-muted);font-size:10px;">'+new Date(h.created_at).toLocaleDateString()+'</span></div>';
+  }).join('') : '<div style="color:var(--text-muted);font-size:12px;">No notes yet.</div>';
+}
+
+async function savePersonHistory(personId) {
+  var inp = document.getElementById('person-history-input');
+  var note = inp?.value.trim();
+  if(!note) return;
+  await fetch(supabaseUrl+'/rest/v1/people_history',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({person_id:personId,note:note})
+  });
+  inp.value='';
+  loadPersonHistory(personId);
+  showToast('Note saved ✓');
+}
+
+async function markContacted(personId) {
+  var today = new Date().toISOString().split('T')[0];
+  await fetch(supabaseUrl+'/rest/v1/people?id=eq.'+personId,{
+    method:'PATCH',
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey,'Content-Type':'application/json'},
+    body:JSON.stringify({last_contacted:today})
+  });
+  var p = _people.find(function(x){return x.id===personId;});
+  if(p) p.last_contacted=today;
+  showToast('Marked as contacted ✓');
+  closePeopleModal();
+  renderPeople();
+}
+
+function openAddPerson() {
+  var modal = document.getElementById('people-modal');
+  var content = document.getElementById('people-modal-content');
+  content.innerHTML = '<div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:20px;">Add Person</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;">'
+    +'<input id="add-name" class="form-input" placeholder="Name" style="font-size:14px;">'
+    +'<input id="add-phone" class="form-input" placeholder="Phone" style="font-size:14px;">'
+    +'<input id="add-birthday" class="form-input" type="date" style="font-size:14px;">'
+    +'<select id="add-rel" class="form-input" style="font-size:14px;">'
+    +'<option value="close_friend">Close Friend</option><option value="best_friend">Best Friend</option>'
+    +'<option value="family">Family</option><option value="professional">Professional</option></select>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);">'
+    +'<input type="checkbox" id="add-core"> Add to core circle</label>'
+    +'<button onclick="submitAddPerson()" class="btn btn-primary" style="margin-top:4px;">Add Person</button></div>';
+  modal.style.display='flex';
+}
+
+async function submitAddPerson() {
+  var name=document.getElementById('add-name')?.value.trim();
+  if(!name){showToast('Name required');return;}
+  var payload={name:name,phone:document.getElementById('add-phone')?.value.trim()||null,
+    birthday:document.getElementById('add-birthday')?.value||null,
+    relationship_type:document.getElementById('add-rel')?.value||'close_friend',
+    is_core_circle:document.getElementById('add-core')?.checked||false};
+  var res=await fetch(supabaseUrl+'/rest/v1/people',{method:'POST',
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey,'Content-Type':'application/json','Prefer':'return=representation'},
+    body:JSON.stringify(payload)});
+  if(res.ok){showToast(name+' added ✓');closePeopleModal();loadPeople();}
+  else showToast('Error adding person');
+}
+
+function editPerson(id) { showToast('Edit coming soon'); }
+
+// ── iCloud CardDAV sync ─────────────────────────────────────────────────────
+async function peopleSync() {
+  showToast('Syncing iCloud contacts…');
+  var res = await fetch(supabaseUrl+'/functions/v1/people-sync',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'}
+  });
+  if(!res.ok){showToast('Sync failed — check Vault keys');return;}
+  var d = await res.json();
+  showToast('Synced '+( d.added||0)+' new contacts ✓');
+  loadPeople();
+}
+
+// Load on tab switch
+document.addEventListener('DOMContentLoaded',function(){
+  var origSwitch=window.switchTab;
+  if(origSwitch) window.switchTab=function(name,el){
+    origSwitch(name,el);
+    if(name==='people'&&!_peopleLoaded) loadPeople();
+  };
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TIA'S VAULT — 3-layer: voice phrase → voice confidence → PIN
+// ═══════════════════════════════════════════════════════════════════════════
+
+var TIA_KEY = 'tia_vault_hash';
+var _tia = { entry:'', layer:0 }; // layer: 0=closed, 1=voice confirmed, 2=unlocked
+
+var TIA_PHRASES = ['open the vault','open the tia file','tia vault','open tia'];
+
+function _tiaHash(s){ var h=0;for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return String(h); }
+
+// Called when voice detects a vault phrase or voice confidence is high enough
+function tryOpenTiaVault(similarityPct) {
+  // Layer 2: voice confidence must be 80%+
+  if(similarityPct < 80){ showToast('Voice not recognized'); return; }
+  _tia.layer = 1;
+  _tia.entry = '';
+  var overlay = document.getElementById('tia-vault-overlay');
+  var inner = document.getElementById('tia-vault-inner');
+  var content = document.getElementById('tia-vault-content');
+  var status = document.getElementById('tia-vault-status');
+  if(overlay){ overlay.style.display='flex'; }
+  if(inner){ inner.style.display='block'; }
+  if(content){ content.style.display='none'; }
+  // Check if PIN is already set
+  var stored = localStorage.getItem(TIA_KEY);
+  if(status) status.textContent = stored ? 'Voice confirmed. Enter your vault PIN.' : 'First time — set your vault PIN.';
+  _tiaDots();
+}
+
+function tiaPinKey(d){
+  if(_tia.entry.length>=4) return;
+  _tia.entry+=d; _tiaDots();
+  if(_tia.entry.length===4) setTimeout(_tiaSubmit,120);
+}
+function tiaPinBack(){ _tia.entry=_tia.entry.slice(0,-1); _tiaDots(); }
+function tiaPinClear(){ _tia.entry=''; _tiaDots(); }
+function _tiaDots(){
+  var dots=document.querySelectorAll('.tia-dot');
+  dots.forEach(function(d,i){d.classList.toggle('filled',i<_tia.entry.length);});
+}
+function _tiaSubmit(){
+  var stored=localStorage.getItem(TIA_KEY);
+  var hash=_tiaHash(_tia.entry);
+  if(!stored){ localStorage.setItem(TIA_KEY,hash); _tiaUnlock(); return; }
+  if(hash===stored){ _tiaUnlock(); }
+  else {
+    _tia.entry=''; _tiaDots();
+    var err=document.getElementById('tia-pin-error');
+    if(err){err.textContent='Wrong PIN';setTimeout(function(){err.textContent='';},2000);}
+  }
+}
+function _tiaUnlock(){
+  _tia.layer=2; _tia.entry='';
+  document.getElementById('tia-vault-inner').style.display='none';
+  document.getElementById('tia-vault-content').style.display='block';
+  loadTiaEntries();
+}
+function closeTiaVault(){
+  _tia.layer=0; _tia.entry='';
+  document.getElementById('tia-vault-overlay').style.display='none';
+}
+
+// Keyboard support for vault PIN
+document.addEventListener('keydown',function(e){
+  if(_tia.layer===1){
+    if(e.key>='0'&&e.key<='9') tiaPinKey(e.key);
+    else if(e.key==='Backspace') tiaPinBack();
+    else if(e.key==='Escape') closeTiaVault();
+  }
+});
+
+async function loadTiaEntries(){
+  var res=await fetch(supabaseUrl+'/rest/v1/tia_vault?order=created_at.desc&limit=50',{
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey}
+  });
+  if(!res.ok) return;
+  var items=await res.json();
+  var el=document.getElementById('tia-vault-entries');
+  if(!el) return;
+  var cats={note:'📝',feeling:'💜',date:'📅',plan:'🔮',memory:'💫'};
+  el.innerHTML=items.length?items.map(function(h){
+    return '<div style="background:#0d0d1a;border:1px solid #2a1f4a;border-radius:10px;padding:12px 14px;">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'
+      +'<div><span style="font-size:14px;margin-right:6px;">'+(cats[h.category]||'📝')+'</span>'
+      +'<span style="font-size:13px;color:#e0d0ff;">'+h.content+'</span></div>'
+      +'<button onclick="deleteTiaEntry('+h.id+')" style="background:none;border:none;color:#555;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button></div>'
+      +'<div style="font-size:10px;color:#444;margin-top:6px;">'+new Date(h.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</div>'
+      +'</div>';
+  }).join(''):'<div style="color:#555;font-size:13px;text-align:center;padding:20px;">Nothing here yet. Start adding memories.</div>';
+}
+
+async function tiaSaveNote(){
+  var inp=document.getElementById('tia-note-input');
+  var cat=document.getElementById('tia-note-cat')?.value||'note';
+  var content=inp?.value.trim();
+  if(!content) return;
+  var res=await fetch(supabaseUrl+'/rest/v1/tia_vault',{method:'POST',
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({category:cat,content:content})});
+  if(res.ok){inp.value='';loadTiaEntries();}
+}
+
+async function deleteTiaEntry(id){
+  await fetch(supabaseUrl+'/rest/v1/tia_vault?id=eq.'+id,{method:'DELETE',
+    headers:{'Authorization':'Bearer '+supabaseKey,'apikey':supabaseKey}});
+  loadTiaEntries();
+}
+
+// Layer 1: detect vault phrases in voice + chat
+function checkTiaPhrase(text, similarityPct) {
+  var t = (text||'').toLowerCase().trim();
+  var hit = TIA_PHRASES.some(function(p){ return t.includes(p); });
+  if(hit) tryOpenTiaVault(similarityPct||100);
+  return hit;
+}
+
+// END LAYER 3 — PEOPLE + TIA'S VAULT
+
 // Conversation memory — tracks recent exchanges for follow-up context
 var _voiceMem=[];
 function _getMemCtx(){
@@ -7222,6 +7679,8 @@ function _volCmd(text){
 
 async function _sendToJarvisVoice(text){
   if(!text||!text.trim()){cancelVoice();return;}
+  // Tia's Vault — check before anything else (voice = auto-confirmed since wake word already fired)
+  if(checkTiaPhrase(text, 100)){ cancelVoice(); return; }
   if(_volCmd(text)){setTimeout(cancelVoice,2000);return;}
   // Spotify voice commands — handle before hitting AI
   if(/\b(skip|next|previous|go back|pause|resume|unpause|shuffle|play)\b/.test(text.toLowerCase())){
