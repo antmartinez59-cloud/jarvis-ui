@@ -7475,14 +7475,24 @@ function editPerson(id) { showToast('Edit coming soon'); }
 // ── iCloud CardDAV sync ─────────────────────────────────────────────────────
 async function peopleSync() {
   showToast('Syncing iCloud contacts…');
-  var res = await fetch(supabaseUrl+'/functions/v1/people-sync',{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'}
-  });
-  if(!res.ok){showToast('Sync failed — check Vault keys');return;}
-  var d = await res.json();
-  showToast('Synced '+( d.added||0)+' new contacts ✓');
-  loadPeople();
+  try {
+    var res = await fetch(supabaseUrl+'/functions/v1/people-sync',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'}
+    });
+    var d = await res.json();
+    console.log('[People Sync]', d);
+    if(!d.ok){
+      showToast('Sync error: '+(d.error||'unknown'));
+      console.error('[People Sync] failed:', d);
+      return;
+    }
+    showToast('Sync done — '+d.added+' added, '+d.updated+' updated of '+d.total+' contacts');
+    loadPeople();
+  } catch(e) {
+    showToast('Sync failed: '+e.message);
+    console.error('[People Sync] exception:', e);
+  }
 }
 
 // Load on tab switch

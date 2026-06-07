@@ -1,12 +1,20 @@
-// JARVIS — people-sync Edge Function
-// Syncs iCloud contacts via CardDAV → saves to people table
-// Vault keys: APPLE_CALDAV_USER, APPLE_CALDAV_PASSWORD (same as calendar)
+// JARVIS — people-sync Edge Function v3
+// Syncs iCloud contacts via CardDAV → updates core circle info + adds full contact list
+// Vault keys: APPLE_CALDAV_USER, APPLE_CALDAV_PASSWORD
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Known iCloud contact hosts to try (shard may vary, try common ones)
+const CONTACT_HOSTS = [
+  'https://p171-contacts.icloud.com',
+  'https://p01-contacts.icloud.com',
+  'https://p06-contacts.icloud.com',
+  'https://contacts.icloud.com',
+];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
@@ -17,112 +25,127 @@ Deno.serve(async (req) => {
   const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
   if (!CALDAV_USER || !CALDAV_PASS) {
-    return new Response(JSON.stringify({ ok: false, error: 'APPLE_CALDAV_USER or APPLE_CALDAV_PASSWORD not set in Vault' }), {
+    return new Response(JSON.stringify({ ok: false, error: 'APPLE_CALDAV_USER or APPLE_CALDAV_PASSWORD not set' }), {
       status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 
   const auth = 'Basic ' + btoa(CALDAV_USER + ':' + CALDAV_PASS);
+  const supaHeaders = { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
 
   try {
-    // Step 1: Well-known discovery (same pattern as apple-calendar that works)
-    let principalUrl = '';
+    // ── Step 1: Fetch existing people ──
+    const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/people?select=id,name,contact_name,icloud_uid,is_core_circle`, { headers: supaHeaders });
+    const existing: Array<{id:number,name:string,contact_name:string|null,icloud_uid:string|null,is_core_circle:boolean}> = existingRes.ok ? await existingRes.json() : [];
+    const byContactName = new Map<string, typeof existing[0]>();
+    const byIcloudUid = new Map<string, typeof existing[0]>();
+    for (const p of existing) {
+      if (p.contact_name) byContactName.set(p.contact_name.toLowerCase().trim(), p);
+      if (p.icloud_uid) byIcloudUid.set(p.icloud_uid, p);
+    }
+
+    // ── Step 2: Discover user ID via CalDAV well-known (reuse working pattern) ──
+    let userId = '17710551327'; // known from working CalDAV session
+    let contactHost = 'https://p171-contacts.icloud.com';
+
     try {
       const wk = await fetch('https://contacts.icloud.com/.well-known/carddav', {
-        method: 'PROPFIND',
-        redirect: 'follow',
+        method: 'PROPFIND', redirect: 'follow',
         headers: { 'Authorization': auth, 'Depth': '0', 'Content-Type': 'application/xml' },
         body: `<?xml version="1.0"?><D:propfind xmlns:D="DAV:"><D:prop><D:current-user-principal/></D:prop></D:propfind>`,
       });
       const txt = await wk.text();
-      const m = txt.match(/<[^>]*href[^>]*>\s*([^<]+principal[^<]*)\s*<\/[^>]*href>/i);
-      if (m) principalUrl = m[1].startsWith('http') ? m[1] : `https://contacts.icloud.com${m[1]}`;
-    } catch (_) { /* fall through to fallback */ }
+      // Extract numeric user ID from href like /17710551327/principal/
+      const idMatch = txt.match(/\/(\d{8,12})\//);
+      if (idMatch) userId = idMatch[1];
+      // Extract host from href if absolute URL
+      const hostMatch = txt.match(/https?:\/\/(p\d+-contacts\.icloud\.com)/i);
+      if (hostMatch) contactHost = `https://${hostMatch[1]}`;
+    } catch (_) { /* use known defaults */ }
 
-    // Fallback: derive from CalDAV user ID (Apple uses numeric DSID in path)
-    if (!principalUrl) {
-      // Extract user ID from CALDAV_USER email by trying known p-caldav hosts
-      const userPrefix = CALDAV_USER.split('@')[0];
-      principalUrl = `https://contacts.icloud.com/${userPrefix}/principal/`;
+    // ── Step 3: Try REPORT on known URL patterns ──
+    const candidateUrls = [
+      `${contactHost}/${userId}/carddavhome/card/`,
+      `${contactHost}/${userId}/carddavhome/`,
+      `https://contacts.icloud.com/${userId}/carddavhome/card/`,
+      `https://contacts.icloud.com/${userId}/carddavhome/`,
+    ];
+
+    let vcText = '';
+    let successUrl = '';
+
+    for (const url of candidateUrls) {
+      try {
+        const r = await fetch(url, {
+          method: 'REPORT',
+          headers: { 'Authorization': auth, 'Depth': '1', 'Content-Type': 'application/xml' },
+          body: `<?xml version="1.0"?><card:addressbook-query xmlns:D="DAV:" xmlns:card="urn:ietf:params:xml:ns:carddav"><D:prop><D:getetag/><card:address-data/></D:prop></card:addressbook-query>`,
+        });
+        if (r.ok) {
+          vcText = await r.text();
+          if (vcText.includes('BEGIN:VCARD')) { successUrl = url; break; }
+        }
+      } catch (_) { continue; }
     }
 
-    // Step 2: Find addressbook-home-set
-    const abRes = await fetch(principalUrl, {
-      method: 'PROPFIND',
-      headers: { 'Authorization': auth, 'Depth': '0', 'Content-Type': 'application/xml' },
-      body: `<?xml version="1.0"?><D:propfind xmlns:D="DAV:" xmlns:card="urn:ietf:params:xml:ns:carddav"><D:prop><card:addressbook-home-set/></D:prop></D:propfind>`,
-    });
-    const abTxt = await abRes.text();
-    const abMatch = abTxt.match(/<[^>]*href[^>]*>\s*([^<]+)\s*<\/[^>]*href>/ig);
-    let abHomePath = '';
-    if (abMatch) {
-      for (const m of abMatch) {
-        const inner = m.replace(/<[^>]+>/g, '').trim();
-        if (inner.includes('carddav') || inner.includes('addressbook') || (inner !== '/' && inner !== principalUrl)) {
-          abHomePath = inner.startsWith('http') ? inner : `https://contacts.icloud.com${inner}`;
-          break;
+    if (!vcText || !vcText.includes('BEGIN:VCARD')) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: 'No vCards found — tried all known URL patterns',
+        userId,
+        contactHost,
+        tried: candidateUrls,
+      }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+
+    // ── Step 4: Parse vCards ──
+    const vcardBlocks = vcText.match(/BEGIN:VCARD[\s\S]*?END:VCARD/g) ?? [];
+    let updated = 0, added = 0;
+
+    for (const vcard of vcardBlocks) {
+      const fnMatch = vcard.match(/^FN[;:](.+)/m);
+      const name = fnMatch?.[1]?.trim().replace(/\r/g, '');
+      if (!name || name.length < 2) continue;
+
+      const phone = vcard.match(/^TEL[^:]*:(.+)/m)?.[1]?.trim().replace(/\r/g, '').replace(/[\s\-\(\)\.]/g, '') ?? null;
+      const email = vcard.match(/^EMAIL[^:]*:(.+)/m)?.[1]?.trim().replace(/\r/g, '') ?? null;
+      const icloud_uid = vcard.match(/^UID[;:](.+)/m)?.[1]?.trim().replace(/\r/g, '') ?? '';
+
+      let bday: string|null = null;
+      const bdayMatch = vcard.match(/^BDAY[;:]{1}(\d{4}-?\d{2}-?\d{2})/m);
+      if (bdayMatch) {
+        const raw = bdayMatch[1].replace(/-/g, '');
+        bday = raw.length >= 8 ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}` : null;
+      }
+
+      const patch = { phone, email, birthday: bday, ...(icloud_uid ? { icloud_uid } : {}) };
+
+      const existByUid = icloud_uid ? byIcloudUid.get(icloud_uid) : undefined;
+      const existByName = byContactName.get(name.toLowerCase().trim());
+      const match = existByUid ?? existByName;
+
+      if (match) {
+        // Update existing person (core circle or prior sync) with iCloud data
+        await fetch(`${SUPABASE_URL}/rest/v1/people?id=eq.${match.id}`, {
+          method: 'PATCH', headers: supaHeaders, body: JSON.stringify(patch),
+        });
+        if (icloud_uid && !byIcloudUid.has(icloud_uid)) byIcloudUid.set(icloud_uid, match);
+        updated++;
+      } else if (icloud_uid && !byIcloudUid.has(icloud_uid)) {
+        // New contact — insert
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/people`, {
+          method: 'POST',
+          headers: { ...supaHeaders, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ name, phone, email, birthday: bday, icloud_uid, is_core_circle: false }),
+        });
+        if (r.ok) {
+          byIcloudUid.set(icloud_uid, { id: -1, name, contact_name: name, icloud_uid, is_core_circle: false });
+          added++;
         }
       }
     }
-    if (!abHomePath) abHomePath = principalUrl.replace('/principal/', '/carddavhome/card/');
 
-    // Step 3: Fetch all vCards
-    const vcRes = await fetch(abHomePath, {
-      method: 'REPORT',
-      headers: { 'Authorization': auth, 'Depth': '1', 'Content-Type': 'application/xml' },
-      body: `<?xml version="1.0"?><card:addressbook-query xmlns:D="DAV:" xmlns:card="urn:ietf:params:xml:ns:carddav"><D:prop><D:getetag/><card:address-data/></D:prop></card:addressbook-query>`,
-    });
-    const vcText = await vcRes.text();
-
-    if (!vcRes.ok) {
-      return new Response(JSON.stringify({ ok: false, error: `CardDAV fetch failed: ${vcRes.status}`, url: abHomePath }), {
-        status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Step 4: Parse vCards
-    const vcardBlocks = vcText.match(/BEGIN:VCARD[\s\S]*?END:VCARD/g) ?? [];
-    const contacts = [];
-    for (const vcard of vcardBlocks) {
-      const fnMatch = vcard.match(/^FN[;:](.+)/m);
-      const name = fnMatch?.[1]?.trim().replace(/^;/, '');
-      if (!name || name.includes('@') || name.length < 2) continue;
-      const telMatch = vcard.match(/^TEL[^:]*:(.+)/m);
-      const emailMatch = vcard.match(/^EMAIL[^:]*:(.+)/m);
-      const bdayMatch = vcard.match(/^BDAY[;:](\d{4}-?\d{2}-?\d{2})/m);
-      const uidMatch = vcard.match(/^UID[;:](.+)/m);
-      let bday: string | null = null;
-      if (bdayMatch) {
-        const raw = bdayMatch[1].replace(/-/g, '');
-        bday = `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`;
-      }
-      contacts.push({
-        name,
-        phone: telMatch?.[1]?.trim().replace(/[\s\-\(\)\.]/g, '') ?? null,
-        email: emailMatch?.[1]?.trim() ?? null,
-        birthday: bday,
-        icloud_uid: uidMatch?.[1]?.trim() ?? '',
-      });
-    }
-
-    // Step 5: Upsert — skip core circle (no icloud_uid), skip duplicates
-    let added = 0;
-    for (const c of contacts) {
-      if (!c.icloud_uid) continue;
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/people`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'apikey': SUPABASE_KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=ignore-duplicates,return=minimal',
-        },
-        body: JSON.stringify({ name: c.name, phone: c.phone, email: c.email, birthday: c.birthday, icloud_uid: c.icloud_uid, is_core_circle: false }),
-      });
-      if (r.ok || r.status === 409) added++;
-    }
-
-    return new Response(JSON.stringify({ ok: true, added, total: contacts.length, addressbook: abHomePath }), {
+    return new Response(JSON.stringify({ ok: true, updated, added, total: vcardBlocks.length, url: successUrl }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
 
